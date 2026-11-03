@@ -112,7 +112,7 @@ exports.vnpayReturn = async (req, res) => {
     } = verifyVNPayReturn(req.query);
 
     // Xác định frontend URL để redirect
-    let frontendUrl = 'http://localhost:8080';
+    let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     if (req.headers.host && req.headers.host.includes(':3000')) {
       frontendUrl = 'http://localhost:3000';
     }
