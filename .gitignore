@@ -1,0 +1,32 @@
+# Node modules (Dependencies)
+node_modules/
+*/node_modules/
+*/*/node_modules/
+
+# Environment files and credentials
+.env
+.env.local
+.env.*.local
+*.env
+services/*/.env
+services/*/*.env
+
+# Build outputs
+dist/
+frontend/dist/
+build/
+.cache/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & Editor specific files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

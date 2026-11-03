@@ -1,0 +1,128 @@
+const { createClient } = require('redis');
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const isTLS = REDIS_URL.startsWith('rediss://');
+
+function maskUrl(url) {
+  try {
+    const u = new URL(url);
+    if (u.password) u.password = '******';
+    return u.toString();
+  } catch {
+    return url.replace(/:([^:@]+)@/, ':******@');
+  }
+}
+
+// Cấu hình client hỗ trợ cả Redis thông thường và Upstash Cloud Redis (rediss:// TLS)
+const clientOptions = {
+  url: REDIS_URL,
+  socket: {
+    reconnectStrategy: (retries) => {
+      // Tự động retry sau tối đa 5 giây khi rớt mạng
+      return Math.min(retries * 500, 5000);
+    }
+  }
+};
+
+// Kích hoạt cấu hình TLS nếu dùng giao thức rediss:// của Upstash
+if (isTLS) {
+  clientOptions.socket.tls = true;
+  clientOptions.socket.rejectUnauthorized = false; // Đảm bảo bắt tay TLS mượt mà trên môi trường cloud
+}
+
+const client = createClient(clientOptions);
+
+// Lắng nghe các sự kiện và KHÔNG BAO GIỜ để lỗi làm crash ứng dụng
+client.on('error', (err) => {
+  console.warn(`[Redis Cache] ⚠️ Cảnh báo kết nối (${maskUrl(REDIS_URL)}):`, err.message);
+  console.warn(`[Redis Cache] ℹ️ Hệ thống tự động kích hoạt chế độ Fallback: Truy vấn trực tiếp từ MongoDB Atlas.`);
+});
+
+client.on('connect', () => {
+  console.log(`[Redis Cache] 🔌 Đang kết nối tới ${isTLS ? 'Upstash Redis (TLS)' : 'Redis'}: ${maskUrl(REDIS_URL)}...`);
+});
+
+client.on('ready', () => {
+  console.log(`[Redis Cache] ✅ Đã kết nối thành công tới Redis Cache!`);
+});
+
+let isConnecting = false;
+async function connectRedis() {
+  if (client.isOpen || isConnecting) return;
+  isConnecting = true;
+  try {
+    await client.connect();
+    isConnecting = false;
+  } catch (err) {
+    isConnecting = false;
+    console.warn(`[Redis Cache] ⚠️ Không thể kết nối Redis lúc khởi động (${err.message}). Tự động fallback về MongoDB Atlas.`);
+  }
+}
+
+// Khởi chạy kết nối Redis trong background
+connectRedis().catch(() => {});
+
+/**
+ * Đọc dữ liệu từ Redis Cache theo Key (Fallback về null nếu lỗi)
+ */
+async function getCache(key) {
+  try {
+    if (!client.isOpen) return null;
+    const data = await client.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi đọc cache key "${key}":`, err.message);
+    return null; // Tự động fallback về query database
+  }
+}
+
+/**
+ * Ghi dữ liệu vào Redis Cache kèm thời gian TTL (mặc định 3600s = 1 giờ)
+ */
+async function setCache(key, value, ttlSeconds = 3600) {
+  try {
+    if (!client.isOpen) return false;
+    await client.set(key, JSON.stringify(value), { EX: ttlSeconds });
+    return true;
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi ghi cache key "${key}":`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Xóa một hoặc nhiều keys trong Redis Cache
+ */
+async function deleteCache(...keys) {
+  try {
+    if (!client.isOpen || keys.length === 0) return 0;
+    const validKeys = keys.filter(Boolean);
+    if (validKeys.length === 0) return 0;
+    return await client.del(validKeys);
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi xóa cache:`, err.message);
+    return 0;
+  }
+}
+
+/**
+ * Invalidate Cache: Tự động xóa cache danh sách & cache chi tiết quán ăn
+ */
+async function invalidateRestaurantCache(restaurantId = null) {
+  const keysToDelete = ['restaurants:all'];
+  if (restaurantId) {
+    keysToDelete.push(`menu:${restaurantId}`);
+  }
+  const count = await deleteCache(...keysToDelete);
+  console.log(`[Redis Cache] 🧹 Invalidate Cache: Đã xóa ${count} keys [${keysToDelete.join(', ')}]`);
+}
+
+module.exports = {
+  client,
+  connectRedis,
+  getCache,
+  setCache,
+  deleteCache,
+  invalidateRestaurantCache,
+  TTL: 3600
+};

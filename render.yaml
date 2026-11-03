@@ -1,0 +1,143 @@
+# ==============================================================================
+# RENDER BLUEPRINT (render.yaml)
+# Tự động hóa triển khai 5 Microservices lên Render Cloud (Free Tier)
+# ==============================================================================
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Auth Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: food-delivery-auth-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: services/auth-service
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_URI_AUTH
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # 2. Restaurant Service (kèm Redis Cache & RabbitMQ)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: food-delivery-restaurant-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: services/restaurant-service
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_URI_RESTAURANT
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # 3. Order Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: food-delivery-order-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: services/order-service
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_URI_ORDER
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # 4. Payment Service (kèm VNPay Sandbox)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: food-delivery-payment-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: services/payment-service
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_URI_PAYMENT
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: VNP_TMN_CODE
+        sync: false
+      - key: VNP_HASH_SECRET
+        sync: false
+      - key: VNP_URL
+        value: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      - key: VNP_RETURN_URL
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # 5. Delivery Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: food-delivery-delivery-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: services/delivery-service
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_URI_DELIVERY
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
