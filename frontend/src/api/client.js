@@ -134,7 +134,7 @@ export const authApi = {
     }
   },
   getGoogleAuthUrl: () => {
-    return `${API_BASE_URL}/auth/google`;
+    return buildUrl(AUTH_SERVICE_URL, '/auth/google');
   },
   loginWithGoogleCredential: async (credential) => {
     try {
