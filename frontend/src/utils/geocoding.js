@@ -1,12 +1,14 @@
 /**
- * Tiện ích Reverse Geocoding & Address Search sử dụng OpenStreetMap Nominatim
- * Chuyển đổi tọa độ GPS thành địa chỉ tên đường/quận/thành phố chuẩn ShopeeFood.
+ * Tiện ích Reverse Geocoding & Address Search tối ưu cho Việt Nam
+ * Kết hợp Photon API (Komoot Elasticsearch) và OpenStreetMap Nominatim
+ * - Tìm kiếm được số nhà, số hẻm, tên đường, tòa nhà chi tiết như ShopeeFood
+ * - Tự động định vị tọa độ và đồng bộ với bản đồ
  */
 
 const reverseCache = new Map();
 const searchCache = new Map();
 
-// Danh sách các địa điểm phổ biến tại TP.HCM để gợi ý tức thì không cần đợi API
+// Danh sách các địa điểm phổ biến tại TP.HCM để gợi ý tức thì
 export const POPULAR_LOCATIONS_HCMC = [
   {
     name: 'Chợ Bến Thành, Quận 1',
@@ -59,50 +61,37 @@ export const POPULAR_LOCATIONS_HCMC = [
 ];
 
 /**
- * Rút gọn địa chỉ hiển thị thanh tiêu đề hoặc thẻ quán
+ * Định dạng địa chỉ đầy đủ từ thuộc tính của Photon/Nominatim
  */
-function extractShortAddress(addrObj, fullDisplay) {
-  if (!addrObj) {
-    if (!fullDisplay) return 'Trung tâm TP.HCM';
-    const parts = fullDisplay.split(',').map((p) => p.trim());
-    return parts.slice(0, 2).join(', ');
-  }
-
-  const street = addrObj.road || addrObj.pedestrian || addrObj.suburb || addrObj.neighbourhood || '';
-  const district = addrObj.city_district || addrObj.district || addrObj.county || addrObj.suburb || '';
-  const city = addrObj.city || addrObj.town || addrObj.state || 'TP.HCM';
-
-  if (street && district) {
-    return `${street}, ${district}`;
-  }
-  if (district) {
-    return `${district}, ${city}`;
-  }
-  if (street) {
-    return `${street}, ${city}`;
-  }
-  return fullDisplay ? fullDisplay.split(',')[0] : 'TP. Hồ Chí Minh';
-}
-
-/**
- * Định dạng địa chỉ đầy đủ từ đối tượng address của Nominatim
- */
-function formatFullAddress(addrObj, fallback) {
-  if (!addrObj) return fallback;
+function buildAddressFromProps(props) {
+  if (!props) return 'Khu vực TP. Hồ Chí Minh';
 
   const parts = [];
-  if (addrObj.house_number) parts.push(addrObj.house_number);
-  if (addrObj.road || addrObj.pedestrian) parts.push(addrObj.road || addrObj.pedestrian);
-  if (addrObj.suburb || addrObj.neighbourhood) parts.push(addrObj.suburb || addrObj.neighbourhood);
-  if (addrObj.city_district || addrObj.district || addrObj.county) {
-    parts.push(addrObj.city_district || addrObj.district || addrObj.county);
+  if (props.housenumber) parts.push(props.housenumber);
+  if (props.street && !props.housenumber) parts.push(props.street);
+  if (props.name && props.name !== props.street && props.name !== props.housenumber) {
+    parts.unshift(props.name);
   }
-  if (addrObj.city || addrObj.town) parts.push(addrObj.city || addrObj.town);
+  if (props.locality || props.suburb) parts.push(props.locality || props.suburb);
+  if (props.district) parts.push(props.district);
+  if (props.city) parts.push(props.city);
 
   if (parts.length >= 2) {
     return parts.join(', ');
   }
-  return fallback;
+  return props.name || props.street || 'TP. Hồ Chí Minh';
+}
+
+/**
+ * Rút gọn địa chỉ hiển thị thẻ
+ */
+function buildShortAddressFromProps(props, full) {
+  if (props?.name) return props.name;
+  if (props?.street) {
+    const dist = props.district || props.city || '';
+    return dist ? `${props.street}, ${dist}` : props.street;
+  }
+  return full ? full.split(',').slice(0, 2).join(', ') : 'TP. Hồ Chí Minh';
 }
 
 /**
@@ -114,8 +103,8 @@ function formatFullAddress(addrObj, fallback) {
 export async function reverseGeocode(lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') {
     return {
-      address: 'Trung tâm Quận 1, TP. Hồ Chí Minh',
-      shortAddress: 'Quận 1, TP.HCM',
+      address: 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+      shortAddress: 'Nguyễn Huệ, Quận 1',
       lat: 10.7769,
       lng: 106.7009
     };
@@ -126,43 +115,64 @@ export async function reverseGeocode(lat, lng) {
     return reverseCache.get(key);
   }
 
-  // Tìm nhanh xem có gần địa điểm phổ biến nào không (< 300 mét)
-  for (const item of POPULAR_LOCATIONS_HCMC) {
-    const dLat = Math.abs(item.lat - lat);
-    const dLng = Math.abs(item.lng - lng);
-    if (dLat < 0.003 && dLng < 0.003) {
-      const res = {
-        address: item.address,
-        shortAddress: item.name,
-        lat,
-        lng
-      };
-      reverseCache.set(key, res);
-      return res;
-    }
-  }
-
+  // 1. Thử Photon Reverse Geocoding (Nhanh, không rate limit)
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
+    const timer = setTimeout(() => controller.abort(), 3500);
+
+    const url = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.features) && data.features.length > 0) {
+        const props = data.features[0].properties;
+        const full = buildAddressFromProps(props);
+        const short = buildShortAddressFromProps(props, full);
+
+        const result = {
+          address: full,
+          shortAddress: short,
+          lat,
+          lng
+        };
+        reverseCache.set(key, result);
+        return result;
+      }
+    }
+  } catch (err) {
+    // Thử Nominatim bên dưới
+  }
+
+  // 2. Thử Nominatim Reverse Geocoding
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
 
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json'
-      }
+      headers: { Accept: 'application/json' }
     });
     clearTimeout(timer);
 
     if (res.ok) {
       const data = await res.json();
-      const full = formatFullAddress(data.address, data.display_name || 'Khu vực TP. Hồ Chí Minh');
-      const short = extractShortAddress(data.address, data.display_name);
+      const addr = data.address || {};
+      const parts = [];
+      if (addr.house_number) parts.push(addr.house_number);
+      if (addr.road || addr.pedestrian) parts.push(addr.road || addr.pedestrian);
+      if (addr.suburb || addr.neighbourhood) parts.push(addr.suburb || addr.neighbourhood);
+      if (addr.city_district || addr.district) parts.push(addr.city_district || addr.district);
+      if (addr.city || addr.state) parts.push(addr.city || addr.state);
+
+      const full = parts.length > 0 ? parts.join(', ') : (data.display_name || 'Khu vực TP. Hồ Chí Minh');
+      const short = (addr.road || addr.pedestrian || parts[0]) + (addr.city_district ? `, ${addr.city_district}` : '');
 
       const result = {
         address: full,
-        shortAddress: short,
+        shortAddress: short || 'TP. Hồ Chí Minh',
         lat,
         lng
       };
@@ -170,10 +180,10 @@ export async function reverseGeocode(lat, lng) {
       return result;
     }
   } catch (err) {
-    console.warn('[Geocoding] Reverse geocode timeout or error, using fallback:', err.message);
+    console.warn('[Geocoding] Reverse geocode fallback:', err.message);
   }
 
-  // Fallback nếu API bận hoặc timeout
+  // Fallback
   const fallbackResult = {
     address: 'Khu vực TP. Hồ Chí Minh',
     shortAddress: 'TP. Hồ Chí Minh',
@@ -185,64 +195,97 @@ export async function reverseGeocode(lat, lng) {
 }
 
 /**
- * Tìm kiếm địa chỉ bằng tên đường/quận/địa danh
- * @param {string} query
+ * Tìm kiếm địa chỉ chi tiết theo số nhà, tên đường, phường, quận (ShopeeFood style)
+ * @param {string} query Từ khóa tìm kiếm
+ * @param {number} [centerLat=10.7769] Tọa độ ưu tiên
+ * @param {number} [centerLng=106.7009]
  * @returns {Promise<Array<{ name: string, address: string, lat: number, lng: number }>>}
  */
-export async function searchAddress(query) {
+export async function searchAddress(query, centerLat = 10.7769, centerLng = 106.7009) {
   if (!query || query.trim().length < 2) {
     return POPULAR_LOCATIONS_HCMC.slice(0, 5);
   }
 
-  const q = query.trim().toLowerCase();
-  const cacheKey = q;
+  const q = query.trim();
+  const cacheKey = `${q.toLowerCase()}_${centerLat.toFixed(2)},${centerLng.toFixed(2)}`;
   if (searchCache.has(cacheKey)) {
     return searchCache.get(cacheKey);
   }
 
-  // 1. Lọc trong danh sách địa điểm nổi tiếng trước (0ms phản hồi)
-  const localMatches = POPULAR_LOCATIONS_HCMC.filter(
-    (item) =>
-      item.name.toLowerCase().includes(q) ||
-      item.address.toLowerCase().includes(q)
-  );
+  const results = [];
 
+  // 1. Kiểm tra danh bạ địa phương trước
+  const qLower = q.toLowerCase();
+  for (const item of POPULAR_LOCATIONS_HCMC) {
+    if (item.name.toLowerCase().includes(qLower) || item.address.toLowerCase().includes(qLower)) {
+      results.push(item);
+    }
+  }
+
+  // 2. Tìm kiếm qua Photon API (Hỗ trợ cực tốt số nhà, số hẻm, tên đường tiếng Việt)
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3500);
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=5&addressdetails=1`;
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json'
-      }
-    });
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lat=${centerLat}&lon=${centerLng}`;
+    const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
 
     if (res.ok) {
       const data = await res.json();
-      const remoteMatches = data.map((item) => ({
-        name: item.name || item.display_name.split(',')[0],
-        address: formatFullAddress(item.address, item.display_name),
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon)
-      }));
+      if (Array.isArray(data.features)) {
+        for (const f of data.features) {
+          const props = f.properties;
+          const coords = f.geometry.coordinates; // [lng, lat]
+          const fullAddr = buildAddressFromProps(props);
+          const title = props.name || props.street || fullAddr.split(',')[0];
 
-      // Gộp kết quả địa phương + kết quả từ Nominatim (loại bỏ trùng lặp)
-      const combined = [...localMatches];
-      for (const r of remoteMatches) {
-        if (!combined.some((c) => Math.abs(c.lat - r.lat) < 0.001 && Math.abs(c.lng - r.lng) < 0.001)) {
-          combined.push(r);
+          // Tránh trùng lặp kết quả gần nhau
+          if (!results.some((r) => Math.abs(r.lat - coords[1]) < 0.001 && Math.abs(r.lng - coords[0]) < 0.001)) {
+            results.push({
+              name: title,
+              address: fullAddr,
+              lat: coords[1],
+              lng: coords[0]
+            });
+          }
         }
       }
-
-      searchCache.set(cacheKey, combined.slice(0, 6));
-      return combined.slice(0, 6);
     }
   } catch (err) {
-    console.warn('[Geocoding] Search address timeout or error:', err.message);
+    console.warn('[Geocoding] Photon search error:', err.message);
   }
 
-  return localMatches.length > 0 ? localMatches : POPULAR_LOCATIONS_HCMC.slice(0, 4);
+  // 3. Nếu vẫn ít kết quả, bổ sung tìm kiếm qua Nominatim
+  if (results.length < 3) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=vn&limit=5&addressdetails=1`;
+      const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+      clearTimeout(timer);
+
+      if (res.ok) {
+        const data = await res.json();
+        for (const item of data) {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          if (!results.some((r) => Math.abs(r.lat - lat) < 0.001 && Math.abs(r.lng - lng) < 0.001)) {
+            results.push({
+              name: item.name || item.display_name.split(',')[0],
+              address: item.display_name,
+              lat,
+              lng
+            });
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua lỗi
+    }
+  }
+
+  searchCache.set(cacheKey, results.slice(0, 6));
+  return results.slice(0, 6);
 }
