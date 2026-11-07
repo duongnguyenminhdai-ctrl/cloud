@@ -1,19 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useUserLocation } from '../hooks/useUserLocation';
 import { orderApi, paymentApi } from '../api/client';
+import AddressPickerModal from '../components/AddressPickerModal';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { location: userCoord, setManualLocation } = useUserLocation();
 
-  const [address, setAddress] = useState('72 Đường Lê Thánh Tôn, Bến Nghé, Quận 1, TP. Hồ Chí Minh');
+  const [address, setAddress] = useState(
+    userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'
+  );
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('VNPAY');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (userCoord?.address) {
+      setAddress(userCoord.address);
+    }
+  }, [userCoord?.address]);
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -183,10 +195,20 @@ export default function Checkout() {
 
           {/* Địa chỉ nhận hàng */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
-            <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-orange-600" />
-              Địa chỉ nhận hàng
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-600" />
+                Địa chỉ nhận hàng
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsAddressModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold border border-orange-200 transition-colors"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Chọn trên bản đồ</span>
+              </button>
+            </div>
             <textarea
               rows={2}
               value={address}
@@ -294,6 +316,17 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* Modal chọn địa chỉ trên bản đồ */}
+      <AddressPickerModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        currentLocation={userCoord}
+        onSelectLocation={(loc) => {
+          setManualLocation(loc);
+          setAddress(loc.address);
+        }}
+      />
     </div>
   );
 }

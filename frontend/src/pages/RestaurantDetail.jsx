@@ -5,6 +5,7 @@ import { restaurantApi } from '../api/client';
 import { useCart } from '../context/CartContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import DeliveryBadge from '../components/DeliveryBadge';
+import AddressPickerModal from '../components/AddressPickerModal';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -13,9 +14,10 @@ export default function RestaurantDetail() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [addedItemIds, setAddedItemIds] = useState([]);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const { addToCart, totalItems, totalPrice } = useCart();
-  const { location: userCoord } = useUserLocation();
+  const { location: userCoord, setManualLocation } = useUserLocation();
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -151,8 +153,15 @@ export default function RestaurantDetail() {
           </div>
 
           {/* Khoảng cách & Thời gian giao hàng thực tế (OSRM Routing) */}
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
             <DeliveryBadge store={restaurant} userCoord={userCoord} variant="detail" />
+            <button
+              type="button"
+              onClick={() => setIsAddressModalOpen(true)}
+              className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline px-2.5 py-1 bg-orange-50 rounded-lg transition-colors"
+            >
+              Đổi vị trí ({userCoord?.shortAddress || 'TP.HCM'})
+            </button>
           </div>
         </div>
       </div>
@@ -259,6 +268,14 @@ export default function RestaurantDetail() {
           </div>
         </div>
       )}
+
+      {/* Modal chọn địa chỉ giao hàng phong cách ShopeeFood */}
+      <AddressPickerModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        currentLocation={userCoord}
+        onSelectLocation={setManualLocation}
+      />
     </div>
   );
 }
