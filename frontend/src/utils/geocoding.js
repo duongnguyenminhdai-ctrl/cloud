@@ -67,14 +67,21 @@ function buildAddressFromProps(props) {
   if (!props) return 'Khu vực TP. Hồ Chí Minh';
 
   const parts = [];
-  if (props.housenumber) parts.push(props.housenumber);
-  if (props.street && !props.housenumber) parts.push(props.street);
+  if (props.housenumber && props.street) {
+    parts.push(`${props.housenumber} ${props.street}`);
+  } else {
+    if (props.housenumber) parts.push(props.housenumber);
+    if (props.street) parts.push(props.street);
+  }
+
   if (props.name && props.name !== props.street && props.name !== props.housenumber) {
-    parts.unshift(props.name);
+    if (!parts.some((p) => p.includes(props.name))) {
+      parts.unshift(props.name);
+    }
   }
   if (props.locality || props.suburb) parts.push(props.locality || props.suburb);
   if (props.district) parts.push(props.district);
-  if (props.city) parts.push(props.city);
+  if (props.city && !parts.some((p) => p.includes(props.city))) parts.push(props.city);
 
   if (parts.length >= 2) {
     return parts.join(', ');
@@ -86,6 +93,9 @@ function buildAddressFromProps(props) {
  * Rút gọn địa chỉ hiển thị thẻ
  */
 function buildShortAddressFromProps(props, full) {
+  if (props?.housenumber && props?.street) {
+    return `${props.housenumber} ${props.street}`;
+  }
   if (props?.name) return props.name;
   if (props?.street) {
     const dist = props.district || props.city || '';
@@ -161,8 +171,12 @@ export async function reverseGeocode(lat, lng) {
       const data = await res.json();
       const addr = data.address || {};
       const parts = [];
-      if (addr.house_number) parts.push(addr.house_number);
-      if (addr.road || addr.pedestrian) parts.push(addr.road || addr.pedestrian);
+      if (addr.house_number && (addr.road || addr.pedestrian)) {
+        parts.push(`${addr.house_number} ${addr.road || addr.pedestrian}`);
+      } else {
+        if (addr.house_number) parts.push(addr.house_number);
+        if (addr.road || addr.pedestrian) parts.push(addr.road || addr.pedestrian);
+      }
       if (addr.suburb || addr.neighbourhood) parts.push(addr.suburb || addr.neighbourhood);
       if (addr.city_district || addr.district) parts.push(addr.city_district || addr.district);
       if (addr.city || addr.state) parts.push(addr.city || addr.state);
@@ -262,7 +276,8 @@ export async function searchAddress(query, centerLat = 10.7769, centerLng = 106.
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3000);
 
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=vn&limit=5&addressdetails=1`;
+      const vb = `${(centerLng - 0.6).toFixed(4)},${(centerLat + 0.6).toFixed(4)},${(centerLng + 0.6).toFixed(4)},${(centerLat - 0.6).toFixed(4)}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=vn&viewbox=${vb}&limit=6&addressdetails=1`;
       const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
       clearTimeout(timer);
 

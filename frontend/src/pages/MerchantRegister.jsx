@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../api/client';
+import { VIETNAM_CITIES, TOP_CITIES, OTHER_CITIES } from '../constants/vietnamLocations';
 
 export default function MerchantRegister() {
   const { user, isAuthenticated } = useAuth();
@@ -23,9 +24,12 @@ export default function MerchantRegister() {
     specialtyDish: '',
     areaStreet: '',
     city: 'TP. Hồ Chí Minh',
+    city_code: 'hcm',
+    city_name: 'TP. Hồ Chí Minh',
     district: 'Thành Phố Thủ Đức',
     ward: 'Phường Phú Hữu',
     streetAddress: '',
+    address_detail: '',
     phone: '',
     latitude: 10.7769,
     longitude: 106.7009,
@@ -118,6 +122,17 @@ export default function MerchantRegister() {
     }));
   };
 
+  const handleCityChange = (e) => {
+    const val = e.target.value;
+    const found = VIETNAM_CITIES.find((c) => c.name === val || c.code === val) || VIETNAM_CITIES[0];
+    setFormData((prev) => ({
+      ...prev,
+      city: found.name,
+      city_name: found.name,
+      city_code: found.code
+    }));
+  };
+
   // Tạo tên quán đầy đủ
   const fullStoreName = [formData.brandName, formData.specialtyDish, formData.areaStreet]
     .filter(Boolean)
@@ -180,6 +195,9 @@ export default function MerchantRegister() {
     try {
       const payload = {
         ...formData,
+        city_code: formData.city_code || 'hcm',
+        city_name: formData.city_name || formData.city || 'TP. Hồ Chí Minh',
+        address_detail: formData.streetAddress || '',
         name: fullStoreName || formData.brandName,
         address: fullAddress || `${formData.streetAddress}, ${formData.city}`,
         phone: formData.phone || formData.repPhone,
@@ -347,14 +365,19 @@ export default function MerchantRegister() {
                   <select
                     name="city"
                     value={formData.city}
-                    onChange={handleChange}
+                    onChange={handleCityChange}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm bg-white"
                   >
-                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                    <option value="Hà Nội">Hà Nội</option>
-                    <option value="Đà Nẵng">Đà Nẵng</option>
-                    <option value="Bình Dương">Bình Dương</option>
-                    <option value="Đồng Nai">Đồng Nai</option>
+                    <optgroup label="Thành phố trọng điểm">
+                      {TOP_CITIES.map((c) => (
+                        <option key={c.code} value={c.name}>{c.name}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Tất cả 63 Tỉnh/Thành phố">
+                      {OTHER_CITIES.map((c) => (
+                        <option key={c.code} value={c.name}>{c.name}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
                 <div>

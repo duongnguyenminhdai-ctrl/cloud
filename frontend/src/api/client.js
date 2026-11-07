@@ -160,14 +160,14 @@ export const authApi = {
 // 2. Restaurant Service Endpoints (Port 3001 Local Fallback)
 // -----------------------------------------------------------------------------
 export const restaurantApi = {
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants'));
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants'), { params });
     } catch (err) {
       if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
         try {
           console.warn('[Restaurant API] Gateway không phản hồi, tự động fallback sang port 3001...');
-          return await axios.get('http://localhost:3001/api/v1/restaurants');
+          return await axios.get('http://localhost:3001/api/v1/restaurants', { params });
         } catch {}
       }
       throw err;
@@ -359,9 +359,9 @@ export const voucherApi = {
 // 8. Smart Recommendation API (Ranking Score & Geo-Grid Redis Cache)
 // -----------------------------------------------------------------------------
 export const recommendationApi = {
-  getRecommended: async ({ user_lat, user_lng } = {}) => {
+  getRecommended: async ({ user_lat, user_lng, city, city_code } = {}) => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/recommended'), {
-      params: { user_lat, user_lng }
+      params: { user_lat, user_lng, city: city || city_code, city_code: city_code || city }
     });
   }
 };

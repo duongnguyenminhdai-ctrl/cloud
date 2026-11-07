@@ -26,13 +26,15 @@ function calculateHaversineKm(lat1, lon1, lat2, lon2) {
  */
 exports.getRecommendedStores = async (req, res) => {
   try {
+    const cityCode = (req.query.city_code || req.query.city || 'hcm').toLowerCase().trim();
     const userLat = parseFloat(req.query.user_lat) || 10.7769;
     const userLng = parseFloat(req.query.user_lng) || 106.7009;
 
-    // 1. Tạo Redis Cache Key theo khu vực lưới tọa độ (Geo-Grid ~1km)
+    // 1. Tạo Redis Cache Key gắn kèm mã thành phố theo khu vực lưới tọa độ (Geo-Grid ~1km)
+    // recommended_stores:${city_code}:${lat_grid}_${lng_grid}
     const latGrid = Math.round(userLat * 100);
     const lngGrid = Math.round(userLng * 100);
-    const cacheKey = `recommended_stores:${latGrid}_${lngGrid}`;
+    const cacheKey = `recommended_stores:${cityCode}:${latGrid}_${lngGrid}`;
 
     // 2. Bước 1: Kiểm tra xem key có trên Redis không (Cache Hit)
     const cachedData = await getCache(cacheKey);
@@ -43,17 +45,29 @@ exports.getRecommendedStores = async (req, res) => {
         success: true,
         source: 'cache',
         count: cachedData.length,
+        city: cityCode,
         cache_key: cacheKey,
         data: cachedData
       });
     }
 
     // 3. Bước 2 (Cache Miss): Truy vấn MongoDB Atlas & Tính điểm xếp hạng
-    console.log(`[Recommendation] 🔍 [Cache Miss] Đang tính toán điểm đề xuất thông minh cho vị trí (${userLat}, ${userLng})...`);
+    console.log(`[Recommendation] 🔍 [Cache Miss] Đang tính toán điểm đề xuất cho [${cityCode}] tại vị trí (${userLat}, ${userLng})...`);
 
-    const stores = await Restaurant.find({
-      $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }]
-    }).lean();
+    // Lọc theo đúng Tỉnh/Thành phố (với hcm thì hỗ trợ cả dữ liệu quán cũ)
+    const cityFilter = {
+      $and: [
+        { $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }] },
+        {
+          $or: [
+            { city_code: cityCode },
+            ...(cityCode === 'hcm' ? [{ city_code: { $exists: false } }, { city: /Hồ Chí Minh|HCM/i }] : [])
+          ]
+        }
+      ]
+    };
+
+    const stores = await Restaurant.find(cityFilter).lean();
 
     const rankedStores = stores.map((store) => {
       const storeLat = store.latitude || 10.7769;

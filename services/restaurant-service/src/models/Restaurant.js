@@ -97,7 +97,26 @@ const restaurantSchema = new mongoose.Schema(
     },
     menuItems: [menuItemSchema],
 
-    // 1. Thông tin quán cơ bản
+    // 1. Phân vùng địa lý & Tỉnh/Thành phố (Chuẩn 63 tỉnh thành)
+    city_code: {
+      type: String,
+      default: 'hcm',
+      index: true,
+      lowercase: true,
+      trim: true
+    },
+    city_name: {
+      type: String,
+      default: 'TP. Hồ Chí Minh',
+      trim: true
+    },
+    address_detail: {
+      type: String,
+      default: '',
+      trim: true
+    },
+
+    // Thông tin quán cơ bản
     brandName: { type: String, default: '' },
     specialtyDish: { type: String, default: '' },
     areaStreet: { type: String, default: '' },

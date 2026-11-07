@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { restaurantApi, recommendationApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { useLocationCity } from '../context/LocationContext';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 
@@ -39,6 +40,7 @@ const SHOPEE_CATEGORIES = [
 ];
 
 export default function Home() {
+  const { selectedCity } = useLocationCity();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -70,7 +72,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await restaurantApi.getAll();
+      const res = await restaurantApi.getAll({ city: selectedCity?.code || 'hcm' });
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setRestaurants(res.data.data);
         setDataSource(res.data.source || 'database');
@@ -90,8 +92,9 @@ export default function Home() {
     setRecLoading(true);
     try {
       const res = await recommendationApi.getRecommended({
-        user_lat: userCoord?.lat || 10.7769,
-        user_lng: userCoord?.lng || 106.7009
+        user_lat: userCoord?.lat || selectedCity?.lat || 10.7769,
+        user_lng: userCoord?.lng || selectedCity?.lng || 106.7009,
+        city: selectedCity?.code || 'hcm'
       });
       if (res.data?.success) {
         setRecommendedStores(res.data.data || []);
@@ -106,7 +109,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchRestaurants();
-  }, []);
+    if (activeTab === 'recommended') {
+      fetchRecommended();
+    }
+  }, [selectedCity?.code]);
 
   useEffect(() => {
     if (activeTab === 'recommended' && userCoord?.lat && userCoord?.lng) {
@@ -176,7 +182,7 @@ export default function Home() {
                 Đặt Đồ ăn, giao hàng từ 20'...
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 font-medium">
-                Có {restaurants.length || 100}+ Địa Điểm Tại TP. HCM & Lân Cận Từ 00:00 - 23:59
+                Có {restaurants.length}+ Địa Điểm Tại {selectedCity?.name || 'TP. HCM'} & Lân Cận Từ 00:00 - 23:59
               </p>
             </div>
 
@@ -478,21 +484,37 @@ export default function Home() {
       {/* ===================================================================== */}
       {!loading && !recLoading && !error && (
         (activeTab === 'recommended' ? recommendedStores : filteredRestaurants).length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 space-y-3">
-            <p className="text-base text-gray-700 font-bold">Không tìm thấy quán ăn nào phù hợp.</p>
-            <p className="text-xs text-gray-400">
-              Hãy thử tìm kiếm từ khóa khác hoặc bấm chọn danh mục "All".
-            </p>
-            <button
-              onClick={() => {
-                setSearchKeyword('');
-                setSelectedCategory('All');
-                setActiveTab('all');
-              }}
-              className="px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-colors"
-            >
-              Xem tất cả quán ăn
-            </button>
+          <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
+              <MapPin className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base text-gray-900 font-extrabold">
+                Chưa có quán ăn nào mở bán tại {selectedCity?.name || 'khu vực này'}
+              </p>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Bạn có thể đổi sang Tỉnh/Thành phố khác từ thanh Menu trên cùng hoặc đăng ký mở cửa hàng tiên phong tại khu vực này!
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setSearchKeyword('');
+                  setSelectedCategory('All');
+                  setActiveTab('all');
+                }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                Xóa bộ lọc
+              </button>
+              <Link
+                to="/merchant/register"
+                className="px-5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5"
+              >
+                <span>Mở cửa hàng tại {selectedCity?.shortName} ngay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -571,7 +593,11 @@ export default function Home() {
       <AddressPickerModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
-        currentLocation={userCoord}
+        currentLocation={
+          userCoord?.isDefault && selectedCity
+            ? { ...userCoord, lat: selectedCity.lat, lng: selectedCity.lng, shortAddress: selectedCity.name }
+            : userCoord
+        }
         onSelectLocation={setManualLocation}
       />
     </div>

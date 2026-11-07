@@ -1,28 +1,45 @@
 const Restaurant = require('../models/Restaurant');
 const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../redis');
 
-// 1. Lấy danh sách tất cả nhà hàng (kèm Cache Redis 'restaurants:all')
+// 1. Lấy danh sách tất cả nhà hàng (kèm lọc theo Tỉnh/Thành phố & Cache Redis)
 exports.getAllRestaurants = async (req, res) => {
   try {
-    const CACHE_KEY = 'restaurants:all';
+    const city = (req.query.city || req.query.city_code || '').toLowerCase().trim();
+    const CACHE_KEY = city ? `restaurants:city:${city}` : 'restaurants:all';
 
     // 1.1 Kiểm tra dữ liệu trong Redis Cache trước
     const cachedData = await getCache(CACHE_KEY);
     if (cachedData) {
-      console.log(`[restaurantController] ⚡ [Cache Hit] Lấy danh sách ${cachedData.length} quán ăn từ Redis`);
+      console.log(`[restaurantController] ⚡ [Cache Hit] Lấy danh sách ${cachedData.length} quán ăn từ Redis [${CACHE_KEY}]`);
       return res.status(200).json({
         success: true,
         source: 'cache',
         count: cachedData.length,
+        city: city || 'all',
         data: cachedData
       });
     }
 
     // 1.2 Cache Miss: Truy vấn từ MongoDB Atlas
-    console.log(`[restaurantController] 🔍 [Cache Miss] Truy vấn danh sách quán từ MongoDB Atlas...`);
-    const restaurants = await Restaurant.find({
-      $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }]
-    }).sort({ createdAt: -1 });
+    console.log(`[restaurantController] 🔍 [Cache Miss] Truy vấn danh sách quán từ MongoDB Atlas (City: ${city || 'all'})...`);
+    
+    const query = {
+      $and: [
+        { $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }] }
+      ]
+    };
+
+    if (city) {
+      query.$and.push({
+        $or: [
+          { city_code: city },
+          // Cho các store cũ tạo trước khi có city_code, nếu chọn 'hcm' thì khớp cả các store mặc định
+          ...(city === 'hcm' ? [{ city_code: { $exists: false } }, { city: /Hồ Chí Minh|HCM/i }] : [])
+        ]
+      });
+    }
+
+    const restaurants = await Restaurant.find(query).sort({ createdAt: -1 });
 
     // 1.3 Lưu vào Redis Cache với TTL = 3600 giây (1 tiếng)
     await setCache(CACHE_KEY, restaurants, TTL);
@@ -31,6 +48,7 @@ exports.getAllRestaurants = async (req, res) => {
       success: true,
       source: 'database',
       count: restaurants.length,
+      city: city || 'all',
       data: restaurants
     });
   } catch (error) {
@@ -287,10 +305,13 @@ exports.registerStore = async (req, res) => {
       brandName: brandName || fullStoreName,
       specialtyDish: specialtyDish || '',
       areaStreet: areaStreet || '',
-      city: city || 'TP. Hồ Chí Minh',
+      city: city || req.body.city_name || 'TP. Hồ Chí Minh',
+      city_code: (req.body.city_code || req.body.cityCode || 'hcm').toLowerCase().trim(),
+      city_name: req.body.city_name || req.body.cityName || city || 'TP. Hồ Chí Minh',
       district: district || '',
       ward: ward || '',
       streetAddress: streetAddress || '',
+      address_detail: req.body.address_detail || streetAddress || '',
       address: fullAddress,
       phone: phone || repPhone || '',
       status: 'PENDING',

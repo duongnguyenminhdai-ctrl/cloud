@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, MapPin } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { storeApi } from '../api/client';
+import CitySelector from './CitySelector';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -60,11 +61,9 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* ShopeeFood City Selector */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors">
-            <MapPin className="w-3.5 h-3.5 text-orange-500" />
-            <span>TP. HCM</span>
-            <span className="text-gray-400 text-[10px]">▼</span>
+          {/* ShopeeFood City Selector (Chuẩn 63 Tỉnh Thành) */}
+          <div className="flex items-center">
+            <CitySelector />
           </div>
         </div>
 
