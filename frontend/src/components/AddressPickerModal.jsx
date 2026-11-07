@@ -66,9 +66,9 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Sử dụng CartoDB Voyager (OpenStreetMap data) - Không bị chặn x-blocked như osm.org
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
+      // Sử dụng OpenStreetMap Humanitarian (HOT) - 100% MIỄN PHÍ, KHÔNG cần bất kỳ API Key nào
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19
       }).addTo(map);
 
