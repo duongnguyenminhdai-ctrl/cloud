@@ -117,6 +117,46 @@ async function invalidateRestaurantCache(restaurantId = null) {
   console.log(`[Redis Cache] 🧹 Invalidate Cache: Đã xóa ${count} keys [${keysToDelete.join(', ')}]`);
 }
 
+/**
+ * Thao tác nguyên tử DECR để trừ quota voucher (Chống Race Condition)
+ */
+async function decrQuota(key) {
+  try {
+    if (!client.isOpen) return null;
+    return await client.decr(key);
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi decr key "${key}":`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Thao tác nguyên tử INCR để hoàn lại quota voucher khi rollback
+ */
+async function incrQuota(key) {
+  try {
+    if (!client.isOpen) return null;
+    return await client.incr(key);
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi incr key "${key}":`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Đặt quota ban đầu cho voucher
+ */
+async function setQuota(key, value, ttlSeconds = 86400) {
+  try {
+    if (!client.isOpen) return false;
+    await client.set(key, value.toString(), { EX: ttlSeconds });
+    return true;
+  } catch (err) {
+    console.warn(`[Redis Cache] ⚠️ Lỗi set quota key "${key}":`, err.message);
+    return false;
+  }
+}
+
 module.exports = {
   client,
   connectRedis,
@@ -124,5 +164,8 @@ module.exports = {
   setCache,
   deleteCache,
   invalidateRestaurantCache,
+  decrQuota,
+  incrQuota,
+  setQuota,
   TTL: 3600
 };

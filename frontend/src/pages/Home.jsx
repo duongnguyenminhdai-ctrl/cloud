@@ -13,9 +13,12 @@ import {
   Compass,
   Tag,
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Flame,
+  Award,
+  Check
 } from 'lucide-react';
-import { restaurantApi } from '../api/client';
+import { restaurantApi, recommendationApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
@@ -44,6 +47,13 @@ export default function Home() {
   // Bộ lọc tìm kiếm và danh mục
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'recommended'
+
+  // Trạng thái Đề xuất thông minh (Smart Recommendation Engine)
+  const [recommendedStores, setRecommendedStores] = useState([]);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recCacheStatus, setRecCacheStatus] = useState(null);
+  const [copiedVoucher, setCopiedVoucher] = useState(null);
 
   // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM)
   const {
@@ -76,9 +86,39 @@ export default function Home() {
     }
   };
 
+  const fetchRecommended = async () => {
+    setRecLoading(true);
+    try {
+      const res = await recommendationApi.getRecommended({
+        user_lat: userCoord?.lat || 10.7769,
+        user_lng: userCoord?.lng || 106.7009
+      });
+      if (res.data?.success) {
+        setRecommendedStores(res.data.data || []);
+        setRecCacheStatus(res.data.cache_status || 'MISS');
+      }
+    } catch (err) {
+      console.error('Lỗi tải đề xuất thông minh:', err);
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRestaurants();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'recommended' && userCoord?.lat && userCoord?.lng) {
+      fetchRecommended();
+    }
+  }, [activeTab, userCoord?.lat, userCoord?.lng]);
+
+  const handleCopyVoucher = (code) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedVoucher(code);
+    setTimeout(() => setCopiedVoucher(null), 2500);
+  };
 
   // Lọc quán ăn theo từ khóa tìm kiếm và danh mục
   const filteredRestaurants = useMemo(() => {
@@ -221,35 +261,48 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* 3 Thẻ món ăn ưu đãi mini */}
+              {/* 3 Thẻ món ăn ưu đãi mini (Nhấp để chép mã Voucher) */}
               <div className="grid grid-cols-3 gap-2">
                 {[
                   {
                     name: 'Cơm Tấm Sài Gòn',
                     deal: 'Mã giảm 20%',
+                    code: 'QUANNGON20',
                     img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80'
                   },
                   {
                     name: 'Trà Sữa Trân Châu',
-                    deal: 'Giảm đến 15k',
+                    deal: 'Giảm 10k',
+                    code: 'FOODFAST10',
                     img: 'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=300&q=80'
                   },
                   {
                     name: 'Bún Bò Huế Cay',
-                    deal: 'Freeship 0đ',
+                    deal: 'Freeship 50k',
+                    code: 'FREESHIP50',
                     img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=300&q=80'
                   }
                 ].map((item, idx) => (
-                  <div key={idx} className="group/item flex flex-col space-y-1.5">
+                  <div
+                    key={idx}
+                    onClick={() => handleCopyVoucher(item.code)}
+                    className="group/item flex flex-col space-y-1.5 cursor-pointer hover:opacity-95 transition-all"
+                    title={`Bấm để sao chép mã ${item.code}`}
+                  >
                     <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
                       <img
                         src={item.img}
                         alt={item.name}
                         className="w-full h-full object-cover group-hover/item:scale-105 transition-transform"
                       />
+                      {copiedVoucher === item.code && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center text-[10px] text-emerald-400 font-bold">
+                          ✓ Đã chép mã
+                        </div>
+                      )}
                     </div>
                     <p className="text-[11px] font-bold text-gray-800 line-clamp-1">{item.name}</p>
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit">
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit group-hover/item:bg-red-100 transition-colors">
                       <Tag className="w-2.5 h-2.5" /> {item.deal}
                     </span>
                   </div>
@@ -313,45 +366,86 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 3. HEADER DANH SÁCH QUÁN ĂN & CACHE TAG */}
+      {/* 3. TABS: TẤT CẢ QUÁN ĂN vs GỢI Ý THÔNG MINH (AI RANKING & REDIS CACHE) */}
       {/* ===================================================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {selectedCategory === 'All' ? 'Quán Ăn Nổi Bật' : `Quán Ăn: ${selectedCategory}`}
-            </h2>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-              {filteredRestaurants.length} quán
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Khoảng cách và thời gian giao hàng được tính từ lộ trình đường bộ thực tế (OSRM)
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'all'
+                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            <span>Tất cả quán ăn ({filteredRestaurants.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('recommended')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'recommended'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20 ring-2 ring-amber-400/30'
+                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+            <span>Gợi ý thông minh cho bạn</span>
+            <span className="text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">AI</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          {dataSource && (
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          {activeTab === 'recommended' ? (
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                dataSource === 'cache'
+                recCacheStatus === 'HIT'
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
               }`}
             >
               <Zap className="w-3 h-3" />
-              {dataSource === 'cache' ? '⚡ Redis Cache Hit' : '🔍 MongoDB Atlas Query'}
+              {recCacheStatus === 'HIT' ? '⚡ Redis Geo-Grid HIT (300s)' : '🔍 Atlas Geo-Rank Query'}
             </span>
+          ) : (
+            dataSource && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                  dataSource === 'cache'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
+              >
+                <Zap className="w-3 h-3" />
+                {dataSource === 'cache' ? '⚡ Redis Cache Hit' : '🔍 MongoDB Atlas Query'}
+              </span>
+            )
           )}
           <button
-            onClick={fetchRestaurants}
+            onClick={activeTab === 'recommended' ? fetchRecommended : fetchRestaurants}
             className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-gray-200 transition-colors"
-            title="Làm mới danh sách"
+            title="Làm mới"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${(loading || recLoading) ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
+
+      {/* Thông điệp giải thích thuật toán khi xem tab Gợi ý thông minh */}
+      {activeTab === 'recommended' && (
+        <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <Award className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>
+              <strong>Thuật toán xếp hạng đa tiêu chí:</strong> Điểm = (Rating × 40%) + (1 / (Khoảng cách + 0.1) × 40%) + (Đơn hoàn tất × 20%). Tối ưu khoảng cách theo tọa độ vị trí của bạn!
+            </span>
+          </div>
+          <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-amber-300 font-bold shrink-0">
+            Grid Cache: ~100m
+          </span>
+        </div>
+      )}
 
       {/* Error state */}
       {error && (
@@ -367,7 +461,7 @@ export default function Home() {
       )}
 
       {/* Loading Skeletons */}
-      {loading && (
+      {(loading || (activeTab === 'recommended' && recLoading)) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm animate-pulse space-y-4">
@@ -382,8 +476,8 @@ export default function Home() {
       {/* ===================================================================== */}
       {/* 4. DANH SÁCH NHÀ HÀNG KÈM TÍNH KHOẢNG CÁCH OSRM THỰC TẾ */}
       {/* ===================================================================== */}
-      {!loading && !error && (
-        filteredRestaurants.length === 0 ? (
+      {!loading && !recLoading && !error && (
+        (activeTab === 'recommended' ? recommendedStores : filteredRestaurants).length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 space-y-3">
             <p className="text-base text-gray-700 font-bold">Không tìm thấy quán ăn nào phù hợp.</p>
             <p className="text-xs text-gray-400">
@@ -393,6 +487,7 @@ export default function Home() {
               onClick={() => {
                 setSearchKeyword('');
                 setSelectedCategory('All');
+                setActiveTab('all');
               }}
               className="px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-colors"
             >
@@ -401,11 +496,11 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRestaurants.map((res) => (
+            {(activeTab === 'recommended' ? recommendedStores : filteredRestaurants).map((res) => (
               <Link
                 key={res._id}
                 to={`/restaurants/${res._id}`}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-200 overflow-hidden flex flex-col"
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-200 overflow-hidden flex flex-col relative"
               >
                 {/* Visual Header / Cover */}
                 <div className="h-44 relative p-4 flex flex-col justify-between text-white overflow-hidden bg-gradient-to-tr from-orange-500 to-amber-400">
@@ -429,6 +524,11 @@ export default function Home() {
                   </div>
 
                   <div className="relative z-10">
+                    {res.recommendation_score !== undefined && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mb-1.5 rounded-full bg-amber-500 text-white font-extrabold text-[11px] shadow-sm">
+                        <Sparkles className="w-3 h-3 fill-white" /> Điểm đề xuất: {res.recommendation_score} / 10
+                      </span>
+                    )}
                     <h3 className="text-lg sm:text-xl font-bold drop-shadow group-hover:text-amber-200 transition-colors line-clamp-1">
                       {res.name}
                     </h3>
@@ -442,10 +542,9 @@ export default function Home() {
                       <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                       <span className="line-clamp-2">{res.address}</span>
                     </div>
-                    {res.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span>{res.phone}</span>
+                    {res.completed_orders !== undefined && (
+                      <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-lg w-fit">
+                        <span>⚡ {res.completed_orders || 0} đơn giao thành công</span>
                       </div>
                     )}
                   </div>

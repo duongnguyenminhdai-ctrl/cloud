@@ -7,7 +7,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const restaurantRoutes = require('./src/routes/restaurantRoutes');
-const restaurantController = require('./src/controllers/restaurantController');
+const voucherRoutes = require('./src/routes/voucherRoutes');
+const reviewRoutes = require('./src/routes/reviewRoutes');
 
 const app = express();
 const SERVICE_NAME = 'restaurant-service';
@@ -30,7 +31,18 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 3. Mount router cho cả các prefix: /api/v1/restaurants, /api/v1/stores, /api/v1/users, v.v.
+// 3. Mount các router chuyên biệt
+// 3.1 Voucher Service Endpoints (/api/v1/vouchers/apply, /api/v1/vouchers)
+app.use('/api/v1/vouchers', voucherRoutes);
+app.use('/api/vouchers', voucherRoutes);
+app.use('/vouchers', voucherRoutes);
+
+// 3.2 Review Service Endpoints (/api/v1/reviews)
+app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/reviews', reviewRoutes);
+
+// 3.3 Restaurant & Store & Recommendation Endpoints
 app.use('/api/v1/restaurants', restaurantRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/restaurants', restaurantRoutes);

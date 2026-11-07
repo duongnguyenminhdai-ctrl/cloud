@@ -64,6 +64,16 @@ const restaurantSchema = new mongoose.Schema(
       min: 1.0,
       max: 5.0
     },
+    completed_orders: {
+      type: Number,
+      default: 25,
+      min: 0
+    },
+    review_count: {
+      type: Number,
+      default: 5,
+      min: 0
+    },
     // Vị trí địa lý và thời gian chuẩn bị món (OSRM Routing)
     latitude: {
       type: Number,

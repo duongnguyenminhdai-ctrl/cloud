@@ -66,10 +66,10 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Sử dụng OpenStreetMap Humanitarian (HOT) - 100% MIỄN PHÍ, KHÔNG cần bất kỳ API Key nào
-      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        subdomains: ['a', 'b', 'c'],
-        maxZoom: 19
+      // Sử dụng Google Maps Tiles công cộng (giống 100% ShopeeFood, tiếng Việt đầy đủ, KHÔNG cần API Key, không watermark)
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20
       }).addTo(map);
 
       // Kéo thả bản đồ -> Tự động Reverse Geocode khi dừng kéo
@@ -89,22 +89,15 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
       mapInstanceRef.current.setView([initialLat, initialLng], 16);
     }
 
-    // Force Leaflet tính lại kích thước chính xác sau khi modal mở (tránh bản đồ bị xám)
-    const timer1 = setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize(true);
-      }
-    }, 100);
-
-    const timer2 = setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize(true);
-      }
-    }, 350);
+    // Force Leaflet tính lại kích thước chính xác sau khi modal mở (tránh bản đồ bị xám/trắng)
+    const t0 = setTimeout(() => mapInstanceRef.current?.invalidateSize(true), 50);
+    const t1 = setTimeout(() => mapInstanceRef.current?.invalidateSize(true), 150);
+    const t2 = setTimeout(() => mapInstanceRef.current?.invalidateSize(true), 400);
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      clearTimeout(t0);
+      clearTimeout(t1);
+      clearTimeout(t2);
     };
   }, [isOpen]);
 

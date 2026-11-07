@@ -335,7 +335,51 @@ export const storeApi = {
 };
 
 // -----------------------------------------------------------------------------
-// 7. Admin Management Endpoints
+// 7. Voucher Service Endpoints (Shopee Style & Redis Concurrency Control)
+// -----------------------------------------------------------------------------
+export const voucherApi = {
+  apply: async ({ voucher_code, cart_total, store_id }) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/apply'), {
+      voucher_code,
+      cart_total,
+      store_id
+    });
+  },
+  getAvailable: async ({ store_id } = {}) => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), {
+      params: { store_id }
+    });
+  },
+  create: async (voucherData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), voucherData);
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 8. Smart Recommendation API (Ranking Score & Geo-Grid Redis Cache)
+// -----------------------------------------------------------------------------
+export const recommendationApi = {
+  getRecommended: async ({ user_lat, user_lng } = {}) => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/recommended'), {
+      params: { user_lat, user_lng }
+    });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 9. Review Service & Event-Driven Incentive Endpoints
+// -----------------------------------------------------------------------------
+export const reviewApi = {
+  create: async (reviewData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/reviews'), reviewData);
+  },
+  getByStore: async (storeId) => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, `/reviews/store/${storeId}`));
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 10. Admin Management Endpoints
 // -----------------------------------------------------------------------------
 export const adminApi = {
   login: async ({ email, password }) => {

@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
+const voucherController = require('../controllers/voucherController');
+const recommendationController = require('../controllers/recommendationController');
+const reviewController = require('../controllers/reviewController');
 const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 // -----------------------------------------------------------------------------
@@ -81,7 +84,44 @@ router.delete(
 );
 
 // -----------------------------------------------------------------------------
-// 3. Khách hàng xem danh sách và chi tiết quán ăn (Public Endpoints)
+// 3. Đề xuất quán ăn thông minh (Smart Recommendation & Redis Cache)
+// Đặt TRƯỚC route dynamic /:id để không bị Express nuốt route
+// -----------------------------------------------------------------------------
+router.get(
+  ['/recommended', '/stores/recommended', '/api/v1/stores/recommended', '/restaurants/recommended', '/api/v1/restaurants/recommended'],
+  recommendationController.getRecommendedStores
+);
+
+// -----------------------------------------------------------------------------
+// 4. Hệ thống Voucher (Shopee Style & Concurrency Control với Redis)
+// -----------------------------------------------------------------------------
+router.post(
+  ['/vouchers/apply', '/api/v1/vouchers/apply', '/apply'],
+  voucherController.applyVoucher
+);
+router.get(
+  ['/vouchers', '/api/v1/vouchers'],
+  voucherController.getVouchers
+);
+router.post(
+  ['/vouchers', '/api/v1/vouchers'],
+  voucherController.createVoucher
+);
+
+// -----------------------------------------------------------------------------
+// 5. Đánh giá quán ăn & Event-Driven Tặng Voucher qua RabbitMQ (Review System)
+// -----------------------------------------------------------------------------
+router.post(
+  ['/reviews', '/api/v1/reviews'],
+  reviewController.createReview
+);
+router.get(
+  ['/reviews/store/:storeId', '/api/v1/reviews/store/:storeId'],
+  reviewController.getStoreReviews
+);
+
+// -----------------------------------------------------------------------------
+// 6. Khách hàng xem danh sách và chi tiết quán ăn (Public Endpoints)
 // -----------------------------------------------------------------------------
 router.get(['/', '/restaurants', '/api/restaurants', '/api/v1/restaurants'], restaurantController.getAllRestaurants);
 router.get(['/:id', '/restaurants/:id', '/api/restaurants/:id', '/api/v1/restaurants/:id'], restaurantController.getRestaurantById);

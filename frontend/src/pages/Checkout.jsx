@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { orderApi, paymentApi } from '../api/client';
+import { orderApi, paymentApi, voucherApi } from '../api/client';
 import AddressPickerModal from '../components/AddressPickerModal';
 
 export default function Checkout() {
@@ -21,11 +21,47 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Trạng thái mã giảm giá (Shopee Style Voucher)
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [applyingVoucher, setApplyingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState(null);
+
   useEffect(() => {
     if (userCoord?.address) {
       setAddress(userCoord.address);
     }
   }, [userCoord?.address]);
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setApplyingVoucher(true);
+    setVoucherError(null);
+    try {
+      const res = await voucherApi.apply({
+        voucher_code: voucherCode.trim(),
+        cart_total: totalPrice,
+        store_id: currentRestaurant?._id
+      });
+      if (res.data?.success) {
+        setAppliedVoucher(res.data.data);
+        setVoucherCode('');
+      } else {
+        setVoucherError(res.data?.message || 'Mã giảm giá không hợp lệ.');
+      }
+    } catch (err) {
+      setVoucherError(err.response?.data?.message || 'Không thể áp dụng mã giảm giá.');
+    } finally {
+      setApplyingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherError(null);
+  };
+
+  const payableTotal = appliedVoucher ? appliedVoucher.final_total : totalPrice;
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -51,7 +87,10 @@ export default function Checkout() {
           quantity: item.quantity,
           price: item.price,
         })),
-        totalPrice,
+        totalPrice: payableTotal,
+        originalTotal: totalPrice,
+        discountAmount: appliedVoucher?.discount_amount || 0,
+        voucherCode: appliedVoucher?.voucher_code || null,
         paymentMethod,
         deliveryAddress: address,
       };
@@ -66,7 +105,7 @@ export default function Checkout() {
           try {
             const vnpRes = await paymentApi.createVNPayUrl({
               orderId,
-              amount: totalPrice,
+              amount: payableTotal,
               orderInfo: `Thanh toan don hang ${orderId} tai FoodFast`
             });
 
@@ -278,6 +317,76 @@ export default function Checkout() {
 
         {/* Right: Order Summary */}
         <div className="space-y-6">
+          {/* Card Áp dụng Voucher (Shopee Style) */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+              <Tag className="w-4 h-4 text-orange-600" />
+              <span>Mã Giảm Giá / Voucher (ShopeeFood)</span>
+            </div>
+
+            {appliedVoucher ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between animate-fadeIn">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-extrabold text-sm text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                      {appliedVoucher.voucher_code}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-800">
+                      - {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-600">Đã áp dụng mã thành công</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveVoucher}
+                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-white transition-colors"
+                >
+                  Gỡ bỏ
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    placeholder="VD: FREESHIP50, FOODFAST10"
+                    className="flex-1 px-3 py-2 text-xs sm:text-sm uppercase font-mono tracking-wider rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyVoucher}
+                    disabled={applyingVoucher || !voucherCode.trim()}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm"
+                  >
+                    {applyingVoucher ? 'Đang áp dụng...' : 'Áp dụng'}
+                  </button>
+                </div>
+                {voucherError && (
+                  <p className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{voucherError}</span>
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[10px] text-gray-400 self-center">Gợi ý:</span>
+                  {['FREESHIP50', 'QUANNGON20', 'FOODFAST10'].map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setVoucherCode(code)}
+                      className="text-[10px] font-mono bg-orange-50 text-orange-600 hover:bg-orange-100 px-2 py-0.5 rounded border border-orange-200/60 transition-colors"
+                    >
+                      {code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 sticky top-24">
             <h2 className="font-bold text-gray-900 text-base">Chi tiết thanh toán</h2>
 
@@ -286,6 +395,12 @@ export default function Checkout() {
                 <span>Tiền món ăn</span>
                 <span>{totalPrice.toLocaleString('vi-VN')} đ</span>
               </div>
+              {appliedVoucher && (
+                <div className="flex justify-between text-emerald-600 font-semibold animate-fadeIn">
+                  <span>Giảm giá Voucher ({appliedVoucher.voucher_code})</span>
+                  <span>- {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-500">
                 <span>Phí vận chuyển</span>
                 <span className="text-emerald-600 font-semibold">Miễn phí</span>
@@ -293,7 +408,7 @@ export default function Checkout() {
               <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
                 <span className="font-bold text-gray-900">Tổng thanh toán</span>
                 <span className="text-2xl font-extrabold text-orange-600">
-                  {totalPrice.toLocaleString('vi-VN')} đ
+                  {payableTotal.toLocaleString('vi-VN')} đ
                 </span>
               </div>
             </div>
