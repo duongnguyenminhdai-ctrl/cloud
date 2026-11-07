@@ -9,3 +9,4 @@ router.post(['/', '/reviews'], reviewController.createReview);
 router.get(['/store/:storeId', '/reviews/store/:storeId'], reviewController.getStoreReviews);
 
 module.exports = router;
+

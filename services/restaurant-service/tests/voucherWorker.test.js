@@ -73,3 +73,4 @@ describe('Voucher Incentive Worker - Event-Driven RabbitMQ Consumer', () => {
     expect(setQuota).toHaveBeenCalledWith(expect.stringMatching(/^voucher:quota:THANKYOU-/), 1);
   });
 });
+

@@ -81,3 +81,4 @@ async function startVoucherIncentiveWorker() {
 module.exports = {
   startVoucherIncentiveWorker
 };
+

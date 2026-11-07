@@ -12,3 +12,4 @@ router.get(['/', '/vouchers'], voucherController.getVouchers);
 router.post(['/', '/vouchers'], voucherController.createVoucher);
 
 module.exports = router;
+
