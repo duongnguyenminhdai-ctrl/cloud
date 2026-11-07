@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Star, MapPin, Phone, ArrowLeft, Plus, Check, ShoppingBag, Zap, AlertCircle } from 'lucide-react';
 import { restaurantApi } from '../api/client';
 import { useCart } from '../context/CartContext';
+import { useUserLocation } from '../hooks/useUserLocation';
+import DeliveryBadge from '../components/DeliveryBadge';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -13,6 +15,7 @@ export default function RestaurantDetail() {
   const [addedItemIds, setAddedItemIds] = useState([]);
 
   const { addToCart, totalItems, totalPrice } = useCart();
+  const { location: userCoord } = useUserLocation();
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -145,6 +148,11 @@ export default function RestaurantDetail() {
               <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
               {restaurant.rating ? Number(restaurant.rating).toFixed(1) : '5.0'} / 5.0
             </div>
+          </div>
+
+          {/* Khoảng cách & Thời gian giao hàng thực tế (OSRM Routing) */}
+          <div className="pt-2 border-t border-gray-100">
+            <DeliveryBadge store={restaurant} userCoord={userCoord} variant="detail" />
           </div>
         </div>
       </div>

@@ -27,6 +27,9 @@ export default function MerchantRegister() {
     ward: 'Phường Phú Hữu',
     streetAddress: '',
     phone: '',
+    latitude: 10.7769,
+    longitude: 106.7009,
+    prep_time: 15,
 
     // Bước 2: Thông tin người đại diện
     merchantType: 'INDIVIDUAL', // INDIVIDUAL | HOUSEHOLD | ENTERPRISE
@@ -748,8 +751,8 @@ export default function MerchantRegister() {
                 </div>
               </div>
 
-              {/* Phí gửi xe */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Phí gửi xe & Thời gian chuẩn bị món */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Phí gửi xe</label>
                   <select
@@ -762,6 +765,22 @@ export default function MerchantRegister() {
                     <option value="5.000đ">5.000đ</option>
                     <option value="10.000đ">10.000đ</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Chuẩn bị món (phút)
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="60"
+                    name="prep_time"
+                    value={formData.prep_time || 15}
+                    onChange={(e) => setFormData({ ...formData, prep_time: Number(e.target.value) || 15 })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    placeholder="15"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Dùng để tính thời gian giao thực tế</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Ẩm thực chính</label>

@@ -64,6 +64,19 @@ const restaurantSchema = new mongoose.Schema(
       min: 1.0,
       max: 5.0
     },
+    // Vị trí địa lý và thời gian chuẩn bị món (OSRM Routing)
+    latitude: {
+      type: Number,
+      default: 10.7769
+    },
+    longitude: {
+      type: Number,
+      default: 106.7009
+    },
+    prep_time: {
+      type: Number,
+      default: 15
+    },
     image: {
       type: String,
       default: ''

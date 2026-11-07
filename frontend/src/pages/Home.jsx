@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Phone, Zap, ArrowRight, RefreshCw, Clock } from 'lucide-react';
+import { Star, MapPin, Phone, Zap, ArrowRight, RefreshCw, Clock, Navigation } from 'lucide-react';
 import { restaurantApi } from '../api/client';
+import { useUserLocation } from '../hooks/useUserLocation';
+import DeliveryBadge from '../components/DeliveryBadge';
 
 export default function Home() {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
+
+  // Vị trí GPS của khách hàng (OSRM Driving Route)
+  const { location: userCoord, refreshLocation, loading: locationLoading } = useUserLocation();
 
   const fetchRestaurants = async () => {
     setLoading(true);
@@ -52,6 +57,27 @@ export default function Home() {
         </div>
         {/* Background decorative blob */}
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+      </div>
+
+      {/* Thanh hiển thị vị trí nhận hàng (OSRM GPS Routing) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-orange-50/80 border border-orange-200/80 rounded-2xl text-xs sm:text-sm text-gray-700 shadow-sm">
+        <div className="flex items-center gap-2 min-w-0">
+          <Navigation className="w-4 h-4 text-orange-600 shrink-0" />
+          <span className="font-semibold text-gray-900 shrink-0">Vị trí giao hàng:</span>
+          <span className="truncate text-gray-600" title={userCoord?.isDefault ? 'Tọa độ mặc định: Trung tâm TP.HCM' : 'Tọa độ GPS thiết bị của bạn'}>
+            {userCoord?.isDefault
+              ? 'Trung tâm TP.HCM (Mặc định: 10.7769, 106.7009)'
+              : `Vị trí thực tế của bạn (${userCoord.lat.toFixed(4)}, ${userCoord.lng.toFixed(4)})`}
+          </span>
+        </div>
+        <button
+          onClick={refreshLocation}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-xl font-medium transition-colors"
+          title="Định vị lại tọa độ GPS hiện tại"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} />
+          <span>{locationLoading ? 'Đang dò GPS...' : 'Định vị lại'}</span>
+        </button>
       </div>
 
       {/* Header Danh sách quán ăn + Cache Tag */}
@@ -140,10 +166,7 @@ export default function Home() {
                       <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                       {res.rating ? Number(res.rating).toFixed(1) : '5.0'}
                     </span>
-                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-xs font-medium flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      15-25 phút
-                    </span>
+                    <DeliveryBadge store={res} userCoord={userCoord} />
                   </div>
                   <div className="relative z-10">
                     <h3 className="text-xl font-bold drop-shadow group-hover:text-amber-200 transition-colors">

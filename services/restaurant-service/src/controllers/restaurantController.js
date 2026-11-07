@@ -90,7 +90,7 @@ exports.getRestaurantById = async (req, res) => {
 // 3. Tạo mới nhà hàng kèm thực đơn (menuItems) + Tự động xóa cache (Cache Invalidation)
 exports.createRestaurant = async (req, res) => {
   try {
-    const { name, address, phone, rating, menuItems } = req.body;
+    const { name, address, phone, rating, menuItems, latitude, longitude, prep_time } = req.body;
 
     if (!name || !address || !phone) {
       return res.status(400).json({
@@ -104,6 +104,9 @@ exports.createRestaurant = async (req, res) => {
       address,
       phone,
       rating: rating || 5.0,
+      latitude: latitude !== undefined ? Number(latitude) : 10.7769,
+      longitude: longitude !== undefined ? Number(longitude) : 106.7009,
+      prep_time: prep_time !== undefined ? Number(prep_time) : 15,
       menuItems: menuItems || []
     });
 
@@ -246,7 +249,10 @@ exports.registerStore = async (req, res) => {
       growthPackage,
       packagePrice,
       image,
-      coverImage
+      coverImage,
+      latitude,
+      longitude,
+      prep_time
     } = req.body;
 
     // Tạo tên quán đầy đủ theo format chuẩn Shopee
@@ -316,7 +322,10 @@ exports.registerStore = async (req, res) => {
       menuImages: menuImages || [],
       growthPackage: growthPackage || 'FREE',
       packagePrice: packagePrice || 0,
-      paymentStatus: (packagePrice > 0) ? 'PAID' : 'FREE'
+      paymentStatus: (packagePrice > 0) ? 'PAID' : 'FREE',
+      latitude: latitude !== undefined ? Number(latitude) : 10.7769,
+      longitude: longitude !== undefined ? Number(longitude) : 106.7009,
+      prep_time: prep_time !== undefined ? Number(prep_time) : 15
     });
 
     const savedStore = await newStore.save();
@@ -366,6 +375,7 @@ exports.updateMyStore = async (req, res) => {
 
     const allowedUpdates = [
       'name', 'phone', 'address', 'image', 'coverImage',
+      'latitude', 'longitude', 'prep_time',
       'operatingHours', 'parkingFee', 'serviceTypes', 'cuisineTypes', 'featuredDishes'
     ];
     allowedUpdates.forEach((field) => {

@@ -995,6 +995,8 @@ export default function AdminDashboard() {
                   <div>Tên quán: <strong className="text-white">{selectedStore.name}</strong></div>
                   <div>Số điện thoại: <strong className="text-white">{selectedStore.phone}</strong></div>
                   <div className="col-span-2">Địa chỉ: <strong className="text-white">{selectedStore.address}</strong></div>
+                  <div>Tọa độ GPS: <strong className="text-amber-300">{selectedStore.latitude || 10.7769}, {selectedStore.longitude || 106.7009}</strong></div>
+                  <div>Chuẩn bị món: <strong className="text-amber-300">{selectedStore.prep_time || 15} phút</strong></div>
                 </div>
               </div>
 
