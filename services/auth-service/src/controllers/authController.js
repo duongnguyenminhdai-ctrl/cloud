@@ -181,7 +181,7 @@ exports.register = async (req, res) => {
     }
 
     // Tạo người dùng mới
-    const userRole = role && ['CUSTOMER', 'RESTAURANT_OWNER'].includes(role) ? role : 'CUSTOMER';
+    const userRole = role && ['CUSTOMER', 'RESTAURANT_OWNER', 'USER', 'ADMIN'].includes(role) ? role : 'USER';
     const newUser = await User.create({
       name,
       email: cleanEmail,
@@ -202,7 +202,9 @@ exports.register = async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role
+        role: newUser.role,
+        has_store: newUser.has_store || false,
+        store_id: newUser.store_id || null
       }
     });
   } catch (error) {
@@ -303,6 +305,14 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Kiểm tra tài khoản có bị khóa không
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.'
+      });
+    }
+
     // Kiểm tra mật khẩu mã hóa bcrypt
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
@@ -323,7 +333,10 @@ exports.login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        avatar: user.avatar || '',
+        has_store: user.has_store || false,
+        store_id: user.store_id || null
       }
     });
   } catch (error) {
@@ -354,7 +367,10 @@ exports.verify = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar || ''
+        avatar: user.avatar || '',
+        has_store: user.has_store || false,
+        store_id: user.store_id || null,
+        phone: user.phone || ''
       }
     });
   } catch (error) {
@@ -573,5 +589,248 @@ exports.googleCredentialLogin = async (req, res) => {
       success: false,
       message: 'Lỗi server khi xác thực Google Credential: ' + error.message
     });
+  }
+};
+
+// =============================================================================
+// QUẢN TRỊ VIÊN (ADMIN DASHBOARD CONTROLLERS)
+// =============================================================================
+
+// Khởi tạo Admin mặc định nếu chưa tồn tại
+exports.seedAdminDefault = async () => {
+  try {
+    const adminEmail = process.env.ADMIN_DEFAULT_EMAIL || 'admin@foodfast.vn';
+    const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin@123456';
+    const existingAdmin = await User.findOne({ role: 'ADMIN' });
+    if (!existingAdmin) {
+      await User.create({
+        name: 'Quản Trị Viên Hệ Thống',
+        email: adminEmail,
+        password: adminPassword,
+        role: 'ADMIN',
+        authProvider: 'LOCAL'
+      });
+      console.log(`[authService] 🛡️ Đã tạo tài khoản Admin mặc định: ${adminEmail} | ${adminPassword}`);
+    }
+  } catch (err) {
+    console.warn('[authService] ⚠️ Khởi tạo admin:', err.message);
+  }
+};
+
+// Đăng nhập dành riêng cho Quản trị viên (POST /api/v1/auth/admin/login)
+exports.adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp email và mật khẩu' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
+    if (!user || user.role !== 'ADMIN') {
+      return res.status(401).json({
+        success: false,
+        message: 'Tài khoản không tồn tại hoặc không có đặc quyền Quản trị viên (ADMIN).'
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'Tài khoản quản trị đã bị vô hiệu hóa.' });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Mật khẩu quản trị viên không chính xác.' });
+    }
+
+    const token = generateToken(user);
+    return res.status(200).json({
+      success: true,
+      message: 'Đăng nhập Quản trị viên thành công!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi đăng nhập admin: ' + error.message });
+  }
+};
+
+// Quản lý danh sách tài khoản: phân trang, tìm kiếm, lọc, sắp xếp (GET /api/v1/auth/admin/users)
+exports.adminGetUsers = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const { search, role, has_store, isActive, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (role && role !== 'ALL') {
+      query.role = role;
+    }
+    if (has_store !== undefined && has_store !== '') {
+      query.has_store = has_store === 'true';
+    }
+    if (isActive !== undefined && isActive !== '') {
+      query.isActive = isActive === 'true';
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const [users, total] = await Promise.all([
+      User.find(query).select('-password').sort(sort).skip(skip).limit(limit),
+      User.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy danh sách tài khoản: ' + error.message });
+  }
+};
+
+// Admin cập nhật tài khoản (PUT /api/v1/auth/admin/users/:id)
+exports.adminUpdateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, role, phone, isActive, has_store } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    if (name) user.name = name;
+    if (role && ['USER', 'ADMIN', 'CUSTOMER'].includes(role)) user.role = role;
+    if (phone !== undefined) user.phone = phone;
+    if (isActive !== undefined) user.isActive = isActive;
+    if (has_store !== undefined) user.has_store = has_store;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật tài khoản thành công',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        isActive: user.isActive,
+        has_store: user.has_store
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật người dùng: ' + error.message });
+  }
+};
+
+// Admin xóa tài khoản (DELETE /api/v1/auth/admin/users/:id)
+exports.adminDeleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user && req.user.userId === id) {
+      return res.status(400).json({ success: false, message: 'Không thể tự xóa tài khoản quản trị đang đăng nhập.' });
+    }
+
+    const user = await User.findByIdAndDelete(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản cần xóa.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa tài khoản [${user.email}] thành công.`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa tài khoản: ' + error.message });
+  }
+};
+
+// Admin tạo tài khoản người dùng hoặc admin mới (POST /api/v1/auth/admin/users)
+exports.adminCreateUser = async (req, res) => {
+  try {
+    const { name, email, password, role = 'USER', phone } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp: name, email, password' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Email đã tồn tại trong hệ thống' });
+    }
+    const user = await User.create({
+      name,
+      email: cleanEmail,
+      password,
+      role: ['USER', 'ADMIN', 'CUSTOMER'].includes(role) ? role : 'USER',
+      phone: phone || ''
+    });
+    return res.status(201).json({
+      success: true,
+      message: 'Tạo tài khoản mới thành công!',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tạo tài khoản: ' + error.message });
+  }
+};
+
+// Admin đổi mật khẩu tài khoản hiện tại (PUT /api/v1/auth/admin/change-password)
+exports.adminChangePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mật khẩu cũ và mật khẩu mới' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có tối thiểu 6 ký tự' });
+    }
+
+    const user = await User.findById(req.user.userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản quản trị' });
+    }
+
+    const isMatch = await user.matchPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đổi mật khẩu tài khoản quản trị thành công!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi đổi mật khẩu: ' + error.message });
   }
 };

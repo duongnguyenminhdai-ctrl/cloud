@@ -283,4 +283,97 @@ export const paymentApi = {
   },
 };
 
+// -----------------------------------------------------------------------------
+// 6. Store & Merchant Onboarding Endpoints (My Store)
+// -----------------------------------------------------------------------------
+export const storeApi = {
+  getMyStatus: async () => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-status'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.get('http://localhost:3001/api/v1/stores/my-status', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  register: async (storeData) => {
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/register'), storeData);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.post('http://localhost:3001/api/v1/stores/register', storeData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getMyStore: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store'));
+  },
+  updateMyStore: async (storeData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store'), storeData);
+  },
+  addMenuItem: async (itemData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/menu'), itemData);
+  },
+  updateMenuItem: async (itemId, itemData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/menu/${itemId}`), itemData);
+  },
+  deleteMenuItem: async (itemId) => {
+    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/menu/${itemId}`));
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 7. Admin Management Endpoints
+// -----------------------------------------------------------------------------
+export const adminApi = {
+  login: async ({ email, password }) => {
+    return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/admin/login'), { email, password });
+  },
+  getUsers: async (params = {}) => {
+    return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/admin/users'), { params });
+  },
+  createUser: async (userData) => {
+    return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/admin/users'), userData);
+  },
+  updateUser: async (id, userData) => {
+    return await apiClient.put(buildUrl(AUTH_SERVICE_URL, `/auth/admin/users/${id}`), userData);
+  },
+  deleteUser: async (id) => {
+    return await apiClient.delete(buildUrl(AUTH_SERVICE_URL, `/auth/admin/users/${id}`));
+  },
+  changePassword: async ({ oldPassword, newPassword }) => {
+    return await apiClient.put(buildUrl(AUTH_SERVICE_URL, '/auth/admin/change-password'), { oldPassword, newPassword });
+  },
+  getRestaurants: async (params = {}) => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/admin/list'), { params });
+  },
+  approveRestaurant: async (id) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/approve`));
+  },
+  rejectRestaurant: async (id, reason) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/reject`), { reason });
+  },
+  createRestaurant: async (restaurantData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants'), restaurantData);
+  },
+  updateRestaurant: async (id, restaurantData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/${id}`), restaurantData);
+  },
+  deleteRestaurant: async (id) => {
+    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}`));
+  }
+};
+
 export default apiClient;

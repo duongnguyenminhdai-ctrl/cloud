@@ -39,13 +39,31 @@ const userSchema = new mongoose.Schema(
       enum: ['LOCAL', 'GOOGLE'],
       default: 'LOCAL'
     },
+    phone: {
+      type: String,
+      default: '',
+      trim: true
+    },
     role: {
       type: String,
       enum: {
-        values: ['CUSTOMER', 'RESTAURANT_OWNER'],
-        message: 'Role phải là CUSTOMER hoặc RESTAURANT_OWNER'
+        values: ['USER', 'ADMIN', 'CUSTOMER'],
+        message: 'Role phải là USER hoặc ADMIN'
       },
-      default: 'CUSTOMER'
+      default: 'USER'
+    },
+    has_store: {
+      type: Boolean,
+      default: false
+    },
+    store_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      default: null
+    },
+    isActive: {
+      type: Boolean,
+      default: true
     }
   },
   {

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { verifyToken } = require('../middlewares/authMiddleware');
+const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 // 1. Gửi mã OTP (đăng ký hoặc quên mật khẩu)
 router.post(
@@ -56,6 +56,56 @@ router.get(
 router.post(
   ['/google', '/auth/google', '/api/auth/google', '/api/v1/auth/google', '/google/credential', '/auth/google/credential', '/api/auth/google/credential', '/api/v1/auth/google/credential'],
   authController.googleCredentialLogin
+);
+
+// -----------------------------------------------------------------------------
+// QUẢN TRỊ VIÊN (ADMIN ROUTES)
+// -----------------------------------------------------------------------------
+
+// Đăng nhập Admin
+router.post(
+  ['/admin/login', '/auth/admin/login', '/api/auth/admin/login', '/api/v1/auth/admin/login'],
+  authController.adminLogin
+);
+
+// Quản lý danh sách tài khoản (phân trang, tìm kiếm, lọc, sắp xếp)
+router.get(
+  ['/admin/users', '/auth/admin/users', '/api/auth/admin/users', '/api/v1/auth/admin/users'],
+  verifyToken,
+  requireAdmin,
+  authController.adminGetUsers
+);
+
+// Thêm tài khoản mới từ Admin
+router.post(
+  ['/admin/users', '/auth/admin/users', '/api/auth/admin/users', '/api/v1/auth/admin/users'],
+  verifyToken,
+  requireAdmin,
+  authController.adminCreateUser
+);
+
+// Sửa tài khoản
+router.put(
+  ['/admin/users/:id', '/auth/admin/users/:id', '/api/auth/admin/users/:id', '/api/v1/auth/admin/users/:id'],
+  verifyToken,
+  requireAdmin,
+  authController.adminUpdateUser
+);
+
+// Xóa tài khoản
+router.delete(
+  ['/admin/users/:id', '/auth/admin/users/:id', '/api/auth/admin/users/:id', '/api/v1/auth/admin/users/:id'],
+  verifyToken,
+  requireAdmin,
+  authController.adminDeleteUser
+);
+
+// Đổi mật khẩu tài khoản Admin
+router.put(
+  ['/admin/change-password', '/auth/admin/change-password', '/api/auth/admin/change-password', '/api/v1/auth/admin/change-password'],
+  verifyToken,
+  requireAdmin,
+  authController.adminChangePassword
 );
 
 module.exports = router;

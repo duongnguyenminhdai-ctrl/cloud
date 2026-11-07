@@ -50,9 +50,23 @@ const authorize = (...roles) => {
   };
 };
 
+/**
+ * Middleware phân quyền chỉ dành riêng cho Admin
+ */
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Quyền truy cập bị từ chối. Chỉ dành riêng cho Quản trị viên (ADMIN).'
+    });
+  }
+  next();
+};
+
 module.exports = {
   verifyToken,
   authorize,
+  requireAdmin,
   JWT_SECRET
 };
 

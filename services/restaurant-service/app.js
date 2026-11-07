@@ -30,19 +30,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 3. Viết route trực tiếp với mảng path để bất kể Nginx forward nguyên path hay cắt gọn đều hoạt động chính xác
-const restaurantPaths = ['/', '/restaurants', '/api/restaurants', '/api/v1/restaurants'];
-const restaurantIdPaths = ['/:id', '/restaurants/:id', '/api/restaurants/:id', '/api/v1/restaurants/:id'];
-
-app.get(restaurantPaths, restaurantController.getAllRestaurants);
-app.get(restaurantIdPaths, restaurantController.getRestaurantById);
-app.post(restaurantPaths, restaurantController.createRestaurant);
-app.put(restaurantIdPaths, restaurantController.updateRestaurant);
-
-// Chuẩn hóa thêm router middleware
+// 3. Mount router cho cả các prefix: /api/v1/restaurants, /api/v1/stores, /api/v1/users, v.v.
 app.use('/api/v1/restaurants', restaurantRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/restaurants', restaurantRoutes);
+app.use('/api/v1/stores', restaurantRoutes);
+app.use('/api/stores', restaurantRoutes);
+app.use('/stores', restaurantRoutes);
+app.use('/api/v1/users', restaurantRoutes);
+app.use('/api/users', restaurantRoutes);
+app.use('/users', restaurantRoutes);
+app.use('/', restaurantRoutes);
 
 module.exports = app;
 
