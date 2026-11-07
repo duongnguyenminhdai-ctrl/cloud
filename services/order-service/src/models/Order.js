@@ -26,6 +26,11 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: 'PENDING'
     },
+    driver_info: {
+      name: { type: String, default: null },
+      vehicle: { type: String, default: null },
+      phone: { type: String, default: null }
+    },
     paymentMethod: {
       type: String,
       default: 'VNPAY'

@@ -11,7 +11,9 @@ import {
   AlertCircle,
   MapPin,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Banknote,
+  Phone
 } from 'lucide-react';
 import { orderApi, deliveryApi, paymentApi } from '../api/client';
 
@@ -81,23 +83,31 @@ export default function OrderTracking() {
     return () => clearInterval(intervalId);
   }, [orderId]);
 
+  const isCod = order?.paymentMethod === 'COD';
+  const isVnpayPaid = payment?.status === 'SUCCESS' || paymentQueryStatus === 'success';
+
   // Xác định bước tiến trình (Stepper Step 1..5)
-  // 1: PENDING
-  // 2: CONFIRMED / PAYMENT SUCCESS
-  // 3: FINDING_DRIVER
-  // 4: DELIVERING / PICKING_UP
-  // 5: DELIVERED / COMPLETED
+  // 1: PENDING (Chờ thanh toán VNPay)
+  // 2: CONFIRMED / Đã thanh toán VNPay hoặc Đơn COD
+  // 3: FINDING_DRIVER / DRIVER_ASSIGNED
+  // 4: DELIVERING
+  // 5: DELIVERED
   const getActiveStep = () => {
     if (!order) return 1;
 
     const deliveryStatus = delivery?.status;
     const orderStatus = order?.status;
-    const paymentStatus = payment?.status;
 
-    if (deliveryStatus === 'DELIVERED' || orderStatus === 'COMPLETED') return 5;
-    if (deliveryStatus === 'DELIVERING' || deliveryStatus === 'PICKING_UP' || orderStatus === 'DELIVERING') return 4;
-    if (deliveryStatus === 'FINDING_DRIVER') return 3;
-    if (paymentStatus === 'SUCCESS' || orderStatus === 'CONFIRMED') return 2;
+    if (deliveryStatus === 'DELIVERED' || orderStatus === 'DELIVERED' || orderStatus === 'COMPLETED') return 5;
+    if (deliveryStatus === 'DELIVERING' || orderStatus === 'DELIVERING') return 4;
+    if (deliveryStatus === 'DRIVER_ASSIGNED' || orderStatus === 'DRIVER_ASSIGNED') return 3;
+    if (deliveryStatus === 'FINDING_DRIVER' || orderStatus === 'FINDING_DRIVER') return 3;
+
+    // Đối với đơn COD: bỏ qua chờ thanh toán, chuyển thẳng sang bước xác nhận đơn
+    if (isCod) return 2;
+
+    // Đối với VNPay: chỉ lên bước 2 khi cổng thanh toán xác nhận SUCCESS
+    if (isVnpayPaid || orderStatus === 'CONFIRMED') return 2;
     return 1;
   };
 
@@ -105,9 +115,19 @@ export default function OrderTracking() {
 
   const steps = [
     { step: 1, label: 'Đã nhận đơn', desc: 'Order Service', icon: Clock },
-    { step: 2, label: 'Đã thanh toán', desc: 'Payment Service', icon: CreditCard },
-    { step: 3, label: 'Tìm tài xế', desc: 'RabbitMQ Event', icon: Bike },
-    { step: 4, label: 'Đang giao hàng', desc: 'Delivery Service', icon: Bike },
+    {
+      step: 2,
+      label: isCod ? 'Thanh toán COD' : 'Thanh toán VNPay',
+      desc: isCod ? 'Khi nhận hàng' : (isVnpayPaid ? 'Đã thanh toán' : 'Chờ thanh toán'),
+      icon: isCod ? Banknote : CreditCard
+    },
+    {
+      step: 3,
+      label: (delivery?.status === 'DRIVER_ASSIGNED' || order?.status === 'DRIVER_ASSIGNED') ? 'Đã có tài xế' : 'Tìm tài xế',
+      desc: 'Điều phối tự động',
+      icon: Bike
+    },
+    { step: 4, label: 'Đang giao hàng', desc: 'Lộ trình đường bộ', icon: Bike },
     { step: 5, label: 'Đã giao', desc: 'Hoàn tất', icon: PackageCheck },
   ];
 
@@ -272,25 +292,102 @@ export default function OrderTracking() {
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
         <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
           <Bike className="w-5 h-5 text-orange-600" />
-          Thông tin Vận chuyển & Tài xế
+          Thông tin Vận chuyển & Tài xế (Điều phối tự động)
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div className="p-4 rounded-2xl bg-gray-50 space-y-1">
-            <p className="text-xs text-gray-400 font-medium">Tài xế nhận chuyến</p>
+          {/* Cột 1: Thông tin tài xế */}
+          <div className="p-4 rounded-2xl bg-gray-50 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-400 font-medium">Tài xế giao hàng</p>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : delivery?.status === 'DELIVERING' || order?.status === 'DELIVERING'
+                    ? 'bg-blue-100 text-blue-700'
+                    : delivery?.status === 'DRIVER_ASSIGNED' || order?.status === 'DRIVER_ASSIGNED'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                  ? 'Đã giao thành công'
+                  : delivery?.status === 'DELIVERING' || order?.status === 'DELIVERING'
+                  ? 'Đang giao hàng'
+                  : delivery?.status === 'DRIVER_ASSIGNED' || order?.status === 'DRIVER_ASSIGNED'
+                  ? 'Đã gán tài xế'
+                  : 'Đang tìm tài xế...'}
+              </span>
+            </div>
+
             <p className="font-extrabold text-gray-900 text-base">
-              {delivery?.driverName || (activeStep >= 3 ? 'Trần Văn Vận Chuyển (Đối tác Cloud)' : 'Đang điều phối tài xế...')}
+              {order?.driver_info?.name ||
+                delivery?.driverInfo?.name ||
+                delivery?.driverName ||
+                (activeStep >= 3 ? 'Trần Văn Vận Chuyển (Đối tác Cloud)' : 'Đang điều phối tài xế...')}
             </p>
-            <p className="text-xs text-emerald-600 font-medium">Honda Wave Alpha • 59-X1 888.88</p>
+            <p className="text-xs text-emerald-600 font-medium">
+              {order?.driver_info?.vehicle ||
+                delivery?.driverInfo?.vehicle ||
+                (activeStep >= 3 ? 'Honda Wave Alpha • 59-X1 888.88' : 'Phương tiện giao hàng')}
+            </p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5 text-gray-400" />
+              <span>
+                {order?.driver_info?.phone ||
+                  delivery?.driverInfo?.phone ||
+                  (activeStep >= 3 ? '0908 123 456' : '09xx xxx xxx')}
+              </span>
+            </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-gray-50 space-y-1">
-            <p className="text-xs text-gray-400 font-medium">Trạng thái thanh toán</p>
-            <p className="font-extrabold text-emerald-600 text-base flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              {payment?.status === 'SUCCESS' || activeStep >= 2 ? 'ĐÃ THANH TOÁN THÀNH CÔNG' : 'ĐANG XỬ LÝ THANH TOÁN'}
+          {/* Cột 2: Trạng thái thanh toán chuẩn xác COD vs VNPay */}
+          <div className="p-4 rounded-2xl bg-gray-50 space-y-1.5 flex flex-col justify-between">
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Trạng thái thanh toán</p>
+              {isCod ? (
+                <div className="space-y-0.5 pt-0.5">
+                  <p className="font-extrabold text-amber-700 text-sm sm:text-base flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      {delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                        ? 'ĐÃ THANH TOÁN (TIỀN MẶT COD)'
+                        : 'THANH TOÁN KHI NHẬN HÀNG'}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-500 leading-snug">
+                    {delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                      ? 'Đơn hàng đã hoàn tất giao hàng và thu tiền mặt.'
+                      : `Khách hàng sẽ thanh toán ${Number(order?.totalPrice || 0).toLocaleString('vi-VN')} đ cho tài xế khi nhận món.`}
+                  </p>
+                </div>
+              ) : isVnpayPaid ? (
+                <div className="space-y-0.5 pt-0.5">
+                  <p className="font-extrabold text-emerald-700 text-sm sm:text-base flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>ĐÃ THANH TOÁN THÀNH CÔNG</span>
+                  </p>
+                  <p className="text-xs text-gray-500 leading-snug">
+                    Xác nhận thanh toán qua VNPay Sandbox{txnRef ? ` (Mã: #${txnRef})` : ''}.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0.5 pt-0.5">
+                  <p className="font-extrabold text-amber-600 text-sm sm:text-base flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>CHỜ THANH TOÁN VNPAY</span>
+                  </p>
+                  <p className="text-xs text-gray-500 leading-snug">
+                    Chưa nhận được xác nhận từ VNPay. Vui lòng hoàn tất thanh toán.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-1">
+              Mã giao dịch: {payment?.transactionId || txnRef || (isCod ? `COD-${orderId.slice(-6)}` : 'TXN-PENDING')}
             </p>
-            <p className="text-xs text-gray-500">Mã giao dịch: {payment?.transactionId || 'TXN-PENDING'}</p>
           </div>
         </div>
       </div>

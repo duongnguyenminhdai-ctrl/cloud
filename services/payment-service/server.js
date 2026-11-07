@@ -48,7 +48,38 @@ connectRabbitMQ().then(() => {
           return;
         }
 
-        // Tự động thanh toán MOCK cho các phương thức khác (COD, MOCK,...)
+        // Xử lý đơn hàng COD (Thanh toán khi nhận hàng)
+        if (method === 'COD') {
+          console.log(`[${SERVICE_NAME}] 💵 Đơn [${orderId}] chọn phương thức [COD]. Trạng thái thanh toán: COD_PENDING (Thanh toán khi nhận hàng)`);
+          const codTransactionId = `COD-${Date.now()}`;
+          if (mongoose.connection.readyState === 1) {
+            await Payment.findOneAndUpdate(
+              { orderId: orderId.toString() },
+              {
+                orderId: orderId.toString(),
+                amount: Number(amount),
+                paymentMethod: 'COD',
+                status: 'COD_PENDING',
+                transactionId: codTransactionId
+              },
+              { upsert: true, new: true }
+            );
+          }
+
+          // Bắn sự kiện order.paid để kích hoạt điều phối tài xế giao hàng mà KHÔNG gắn mác đã thanh toán
+          console.log(`[${SERVICE_NAME}] 📦 Đã phát sự kiện order.paid cho đơn COD [${orderId}]`);
+          await publishEvent(DEFAULT_EXCHANGE, 'order.paid', {
+            orderId: orderId.toString(),
+            amount: Number(amount),
+            paymentMethod: 'COD',
+            status: 'COD_PENDING',
+            isCod: true,
+            createdAt: new Date().toISOString()
+          });
+          return;
+        }
+
+        // Tự động thanh toán MOCK cho các phương thức khác (MOCK,...)
         let savedPayment = null;
         const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -73,7 +104,7 @@ connectRabbitMQ().then(() => {
           };
         }
 
-        // Bắn sự kiện payment.success lên RabbitMQ topic exchange
+        // Bắn sự kiện payment.success và order.paid lên RabbitMQ topic exchange
         const paymentSuccessPayload = {
           paymentId: savedPayment._id ? savedPayment._id.toString() : transactionId,
           orderId: savedPayment.orderId,
@@ -86,6 +117,7 @@ connectRabbitMQ().then(() => {
 
         console.log(`[${SERVICE_NAME}] 💰 Thanh toán THÀNH CÔNG cho đơn [${orderId}]! Đang phát event payment.success...`);
         await publishEvent(DEFAULT_EXCHANGE, 'payment.success', paymentSuccessPayload);
+        await publishEvent(DEFAULT_EXCHANGE, 'order.paid', paymentSuccessPayload);
       } catch (err) {
         console.error(`[${SERVICE_NAME}] ❌ Lỗi khi xử lý thanh toán:`, err.message);
       }

@@ -260,7 +260,7 @@ export default function Checkout() {
           {/* Phương thức thanh toán */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
             <h2 className="font-bold text-gray-900 text-base">Phương thức thanh toán</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 {
                   id: 'VNPAY',
@@ -270,16 +270,11 @@ export default function Checkout() {
                   badge: 'Khuyên dùng'
                 },
                 {
-                  id: 'MOMO',
-                  label: 'MoMo Sandbox',
-                  desc: 'Ví điện tử liên kết',
-                  icon: CreditCard
-                },
-                {
                   id: 'COD',
                   label: 'Tiền mặt (COD)',
                   desc: 'Thanh toán khi nhận hàng',
-                  icon: Banknote
+                  icon: Banknote,
+                  badge: 'Tiện lợi'
                 },
               ].map((m) => {
                 const Icon = m.icon;

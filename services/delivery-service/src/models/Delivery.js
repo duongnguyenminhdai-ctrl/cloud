@@ -13,8 +13,14 @@ const deliverySchema = new mongoose.Schema(
       default: null,
       trim: true
     },
+    driverInfo: {
+      name: { type: String, default: null },
+      vehicle: { type: String, default: null },
+      phone: { type: String, default: null }
+    },
     status: {
       type: String,
+      enum: ['FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING', 'DELIVERED', 'CANCELLED'],
       default: 'FINDING_DRIVER'
     }
   },

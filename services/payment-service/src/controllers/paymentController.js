@@ -140,9 +140,9 @@ exports.vnpayReturn = async (req, res) => {
         { upsert: true, new: true }
       );
 
-      // Bắn event payment.success vào RabbitMQ
+      // Bắn event payment.success và order.paid vào RabbitMQ
       try {
-        await publishEvent(DEFAULT_EXCHANGE, 'payment.success', {
+        const paymentSuccessData = {
           paymentId: updatedPayment._id ? updatedPayment._id.toString() : (transactionNo || updatedPayment.transactionId),
           orderId: updatedPayment.orderId,
           amount: updatedPayment.amount,
@@ -150,8 +150,10 @@ exports.vnpayReturn = async (req, res) => {
           status: 'SUCCESS',
           transactionId: updatedPayment.transactionId,
           paidAt: new Date().toISOString()
-        });
-        console.log(`[paymentController] 📢 Đã phát sự kiện payment.success cho đơn [${orderId}]`);
+        };
+        await publishEvent(DEFAULT_EXCHANGE, 'payment.success', paymentSuccessData);
+        await publishEvent(DEFAULT_EXCHANGE, 'order.paid', paymentSuccessData);
+        console.log(`[paymentController] 📢 Đã phát sự kiện payment.success & order.paid cho đơn [${orderId}]`);
       } catch (mqErr) {
         console.warn(`[paymentController] ⚠️ Chưa thể phát sự kiện payment.success:`, mqErr.message);
       }

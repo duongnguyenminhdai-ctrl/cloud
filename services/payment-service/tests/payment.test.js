@@ -106,11 +106,19 @@ describe('Payment Service - Unit Tests (Jest + Supertest)', () => {
         expect.anything()
       );
 
-      // Kiểm tra event payment.success được bắn qua RabbitMQ
-      expect(publishEvent).toHaveBeenCalledTimes(1);
+      // Kiểm tra event payment.success và order.paid được bắn qua RabbitMQ
       expect(publishEvent).toHaveBeenCalledWith(
         DEFAULT_EXCHANGE,
         'payment.success',
+        expect.objectContaining({
+          orderId: 'order_vnpay_123',
+          status: 'SUCCESS',
+          paymentMethod: 'VNPAY'
+        })
+      );
+      expect(publishEvent).toHaveBeenCalledWith(
+        DEFAULT_EXCHANGE,
+        'order.paid',
         expect.objectContaining({
           orderId: 'order_vnpay_123',
           status: 'SUCCESS',
