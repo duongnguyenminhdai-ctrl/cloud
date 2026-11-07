@@ -960,3 +960,4 @@ export default function MerchantRegister() {
     </div>
   );
 }
+
