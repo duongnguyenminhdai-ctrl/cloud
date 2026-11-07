@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Search,
   ChevronRight,
+  ChevronDown,
   Crosshair,
   Compass,
   Tag,
@@ -18,11 +19,142 @@ import {
   Award,
   Check
 } from 'lucide-react';
-import { restaurantApi, recommendationApi } from '../api/client';
+import { restaurantApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useLocationCity } from '../context/LocationContext';
+import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
+
+// Danh sách quán ăn mẫu chuẩn ShopeeFood (Hiển thị ngay khi database chưa có dữ liệu)
+const DEFAULT_SHOPEE_STORES = [
+  {
+    _id: 'store_mcdonalds',
+    name: "Gà Rán & Burger McDonald's",
+    image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 1',
+    address: 'Đa Kao, Quận 1, TP. Hồ Chí Minh',
+    rating: 4.8,
+    completed_orders: 1420,
+    locationsCount: 22,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm món',
+    latitude: 10.7769,
+    longitude: 106.7009
+  },
+  {
+    _id: 'store_xoichien',
+    name: 'Xôi Chiên',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 3',
+    address: 'Phường 4, Quận 3, TP. Hồ Chí Minh',
+    rating: 4.7,
+    completed_orders: 860,
+    locationsCount: 4,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm món',
+    latitude: 10.7725,
+    longitude: 106.6980
+  },
+  {
+    _id: 'store_sundaybasic',
+    name: 'Trà Sữa Sunday Basic',
+    image: 'https://images.unsplash.com/photo-1558857563-b37cf5288219?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 10',
+    address: 'Đường 3 Tháng 2, Quận 10, TP. Hồ Chí Minh',
+    rating: 4.9,
+    completed_orders: 2150,
+    locationsCount: 42,
+    min_order_value: 20000,
+    isVerified: false,
+    promo: 'Giảm món',
+    latitude: 10.7690,
+    longitude: 106.6730
+  },
+  {
+    _id: 'store_comtamsaigon',
+    name: 'Cơm Tấm Sài Gòn - Nguyễn Trãi',
+    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 5',
+    address: 'Nguyễn Trãi, Quận 5, TP. Hồ Chí Minh',
+    rating: 4.9,
+    completed_orders: 1980,
+    locationsCount: 8,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Mã giảm 20%',
+    latitude: 10.7550,
+    longitude: 106.6660
+  },
+  {
+    _id: 'store_bunbohue',
+    name: 'Bún Bò Huế Cay Nồng',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=400&q=80',
+    district: 'Bình Thạnh',
+    address: 'Điện Biên Phủ, Bình Thạnh, TP. Hồ Chí Minh',
+    rating: 4.8,
+    completed_orders: 1240,
+    locationsCount: 6,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm món',
+    latitude: 10.7950,
+    longitude: 106.7218
+  },
+  {
+    _id: 'store_sushihokkaido',
+    name: 'Sushi Hokkaido Sachi - Đông Du',
+    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 1',
+    address: 'Đông Du, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+    rating: 5.0,
+    completed_orders: 950,
+    locationsCount: 5,
+    min_order_value: 50000,
+    isVerified: true,
+    promo: 'Freeship 50k',
+    latitude: 10.7761,
+    longitude: 106.7042
+  }
+];
+
+// Helper hiển thị số địa điểm / chi nhánh
+const getLocationCountText = (store) => {
+  if (store.locationsCount) return `${store.locationsCount} địa điểm`;
+  const nameLower = (store.name || '').toLowerCase();
+  if (nameLower.includes('mcdonald')) return '22 địa điểm';
+  if (nameLower.includes('xôi chiên') || nameLower.includes('xôi')) return '4 địa điểm';
+  if (nameLower.includes('sunday')) return '42 địa điểm';
+  if (store.district) return `${store.district}`;
+  return '1 địa điểm';
+};
+
+// Helper hiển thị đơn tối thiểu
+const getMinOrderText = (store) => {
+  if (store.min_order_value) return `Tối thiểu ${store.min_order_value / 1000}k`;
+  return 'Tối thiểu 20k';
+};
+
+// Helper hiển thị khoảng giá
+const getPriceRangeText = (store) => {
+  if (store.menuItems && store.menuItems.length > 0) {
+    const prices = store.menuItems.map((m) => m.price).filter((p) => typeof p === 'number' && p > 0);
+    if (prices.length > 0) {
+      return `Giá từ ${Math.min(...prices) / 1000}k`;
+    }
+  }
+  return 'Giá 0';
+};
+
+// Helper hiển thị tag khuyến mãi
+const getPromoTag = (store) => {
+  if (store.promo) return store.promo;
+  if (store.promo_text) return store.promo_text;
+  if ((store.rating || 0) >= 4.7) return 'Giảm món';
+  return 'Mã giảm 20%';
+};
 
 // Các danh mục món ăn chuẩn phong cách ShopeeFood (Image 1)
 const SHOPEE_CATEGORIES = [
@@ -49,12 +181,12 @@ export default function Home() {
   // Bộ lọc tìm kiếm và danh mục
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'recommended'
 
-  // Trạng thái Đề xuất thông minh (Smart Recommendation Engine)
-  const [recommendedStores, setRecommendedStores] = useState([]);
-  const [recLoading, setRecLoading] = useState(false);
-  const [recCacheStatus, setRecCacheStatus] = useState(null);
+  // Tabs ShopeeFood: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá)
+  const [activeTab, setActiveTab] = useState('near');
+  // Lọc theo Quận/Huyện
+  const [selectedDistrict, setSelectedDistrict] = useState('ALL');
+
   const [copiedVoucher, setCopiedVoucher] = useState(null);
 
   // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM)
@@ -82,43 +214,16 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Lỗi tải danh sách quán:', err);
-      setError('Không thể kết nối tới Restaurant Service qua API Gateway.');
+      // Giữ demo fallback
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchRecommended = async () => {
-    setRecLoading(true);
-    try {
-      const res = await recommendationApi.getRecommended({
-        user_lat: userCoord?.lat || selectedCity?.lat || 10.7769,
-        user_lng: userCoord?.lng || selectedCity?.lng || 106.7009,
-        city: selectedCity?.code || 'hcm'
-      });
-      if (res.data?.success) {
-        setRecommendedStores(res.data.data || []);
-        setRecCacheStatus(res.data.cache_status || 'MISS');
-      }
-    } catch (err) {
-      console.error('Lỗi tải đề xuất thông minh:', err);
-    } finally {
-      setRecLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchRestaurants();
-    if (activeTab === 'recommended') {
-      fetchRecommended();
-    }
+    setSelectedDistrict('ALL');
   }, [selectedCity?.code]);
-
-  useEffect(() => {
-    if (activeTab === 'recommended' && userCoord?.lat && userCoord?.lng) {
-      fetchRecommended();
-    }
-  }, [activeTab, userCoord?.lat, userCoord?.lng]);
 
   const handleCopyVoucher = (code) => {
     navigator.clipboard?.writeText(code);
@@ -126,9 +231,34 @@ export default function Home() {
     setTimeout(() => setCopiedVoucher(null), 2500);
   };
 
-  // Lọc quán ăn theo từ khóa tìm kiếm và danh mục
-  const filteredRestaurants = useMemo(() => {
-    return restaurants.filter((res) => {
+  // Danh sách quán gốc (Kết hợp API và demo fallback khi trống)
+  const storeList = useMemo(() => {
+    if (restaurants.length > 0) return restaurants;
+    if (selectedCity?.code === 'hcm' || !selectedCity?.code) return DEFAULT_SHOPEE_STORES;
+    return [];
+  }, [restaurants, selectedCity?.code]);
+
+  // Trích xuất danh sách quận/huyện có sẵn theo tỉnh thành
+  const availableDistricts = useMemo(() => {
+    const set = new Set();
+    if (selectedCity?.code === 'hcm' || !selectedCity?.code) {
+      ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 7', 'Quận 10', 'TP. Thủ Đức', 'Bình Thạnh', 'Tân Bình', 'Phú Nhuận', 'Gò Vấp'].forEach((d) =>
+        set.add(d)
+      );
+    } else if (selectedCity?.code === 'hn') {
+      ['Hoàn Kiếm', 'Ba Đình', 'Cầu Giấy', 'Đống Đa', 'Hai Bà Trưng', 'Tây Hồ', 'Thanh Xuân', 'Nam Từ Liêm'].forEach((d) => set.add(d));
+    } else if (selectedCity?.code === 'dn') {
+      ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ'].forEach((d) => set.add(d));
+    }
+    storeList.forEach((r) => {
+      if (r.district && r.district.trim()) set.add(r.district.trim());
+    });
+    return Array.from(set);
+  }, [selectedCity?.code, storeList]);
+
+  // Lọc và sắp xếp quán ăn theo Tab (Gần tôi / Bán chạy / Đánh giá) và Quận/Huyện
+  const displayedRestaurants = useMemo(() => {
+    let list = storeList.filter((res) => {
       // 1. Tìm kiếm theo tên quán, địa chỉ, món ăn
       if (searchKeyword.trim()) {
         const q = searchKeyword.toLowerCase();
@@ -154,9 +284,37 @@ export default function Home() {
         }
       }
 
+      // 3. Lọc theo Quận/Huyện
+      if (selectedDistrict !== 'ALL') {
+        const dist = selectedDistrict.toLowerCase();
+        const matchDist = (res.district || '').toLowerCase().includes(dist);
+        const matchAddr = (res.address || '').toLowerCase().includes(dist);
+        if (!matchDist && !matchAddr) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [restaurants, searchKeyword, selectedCategory]);
+
+    // 4. Sắp xếp theo Tab ShopeeFood
+    const uLat = userCoord?.lat || selectedCity?.lat || 10.7769;
+    const uLng = userCoord?.lng || selectedCity?.lng || 106.7009;
+
+    if (activeTab === 'near') {
+      list.sort((a, b) => {
+        const distA = calculateHaversineDistance(uLat, uLng, a.latitude || uLat, a.longitude || uLng);
+        const distB = calculateHaversineDistance(uLat, uLng, b.latitude || uLat, b.longitude || uLng);
+        return distA - distB;
+      });
+    } else if (activeTab === 'bestseller') {
+      list.sort((a, b) => (b.completed_orders || 0) - (a.completed_orders || 0));
+    } else if (activeTab === 'rating') {
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    return list;
+  }, [storeList, searchKeyword, selectedCategory, selectedDistrict, activeTab, userCoord, selectedCity]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
@@ -372,86 +530,62 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 3. TABS: TẤT CẢ QUÁN ĂN vs GỢI Ý THÔNG MINH (AI RANKING & REDIS CACHE) */}
+      {/* 3. TABS CHUẨN SHOPEEFOOD: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
       {/* ===================================================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-b border-gray-100 pb-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-4">
+        {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá) - Đã bỏ Giao nhanh theo yêu cầu */}
+        <div className="flex items-center gap-6 sm:gap-8">
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'all'
-                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            onClick={() => setActiveTab('near')}
+            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+              activeTab === 'near'
+                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
+                : 'text-gray-700 hover:text-gray-950 font-medium'
             }`}
           >
-            <Flame className="w-4 h-4" />
-            <span>Tất cả quán ăn ({filteredRestaurants.length})</span>
+            Gần tôi
           </button>
 
           <button
-            onClick={() => setActiveTab('recommended')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'recommended'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20 ring-2 ring-amber-400/30'
-                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+            onClick={() => setActiveTab('bestseller')}
+            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+              activeTab === 'bestseller'
+                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
+                : 'text-gray-700 hover:text-gray-950 font-medium'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
-            <span>Gợi ý thông minh cho bạn</span>
-            <span className="text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">AI</span>
+            Bán chạy
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rating')}
+            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+              activeTab === 'rating'
+                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
+                : 'text-gray-700 hover:text-gray-950 font-medium'
+            }`}
+          >
+            Đánh giá
           </button>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          {activeTab === 'recommended' ? (
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                recCacheStatus === 'HIT'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}
-            >
-              <Zap className="w-3 h-3" />
-              {recCacheStatus === 'HIT' ? '⚡ Redis Geo-Grid HIT (300s)' : '🔍 Atlas Geo-Rank Query'}
-            </span>
-          ) : (
-            dataSource && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                  dataSource === 'cache'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                }`}
-              >
-                <Zap className="w-3 h-3" />
-                {dataSource === 'cache' ? '⚡ Redis Cache Hit' : '🔍 MongoDB Atlas Query'}
-              </span>
-            )
-          )}
-          <button
-            onClick={activeTab === 'recommended' ? fetchRecommended : fetchRestaurants}
-            className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-gray-200 transition-colors"
-            title="Làm mới"
+        {/* Right: Dropdown "Chọn quận/ huyện ▾" */}
+        <div className="relative">
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            className="appearance-none bg-white border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0084ff]/20 focus:border-[#0084ff] cursor-pointer shadow-xs transition-all"
           >
-            <RefreshCw className={`w-4 h-4 ${(loading || recLoading) ? 'animate-spin' : ''}`} />
-          </button>
+            <option value="ALL">Chọn quận/ huyện</option>
+            {availableDistricts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
-
-      {/* Thông điệp giải thích thuật toán khi xem tab Gợi ý thông minh */}
-      {activeTab === 'recommended' && (
-        <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-3 text-xs text-amber-900">
-          <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-600 shrink-0" />
-            <span>
-              <strong>Thuật toán xếp hạng đa tiêu chí:</strong> Điểm = (Rating × 40%) + (1 / (Khoảng cách + 0.1) × 40%) + (Đơn hoàn tất × 20%). Tối ưu khoảng cách theo tọa độ vị trí của bạn!
-            </span>
-          </div>
-          <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-amber-300 font-bold shrink-0">
-            Grid Cache: ~100m
-          </span>
-        </div>
-      )}
 
       {/* Error state */}
       {error && (
@@ -467,118 +601,112 @@ export default function Home() {
       )}
 
       {/* Loading Skeletons */}
-      {(loading || (activeTab === 'recommended' && recLoading)) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm animate-pulse space-y-4">
-              <div className="h-44 bg-gray-200 rounded-xl" />
-              <div className="h-5 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
+            <div key={i} className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm animate-pulse flex items-start gap-3">
+              <div className="w-28 h-20 sm:w-32 sm:h-24 bg-gray-200 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-4 bg-gray-200 rounded w-3/4" />
+                <div className="h-3 bg-gray-200 rounded w-1/3" />
+                <div className="h-3 bg-gray-200 rounded w-1/2" />
+              </div>
             </div>
           ))}
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* 4. DANH SÁCH NHÀ HÀNG KÈM TÍNH KHOẢNG CÁCH OSRM THỰC TẾ */}
+      {/* 4. DANH SÁCH NHÀ HÀNG DẠNG THẺ NGANG CHUẨN SHOPEEFOOD (Image Upload) */}
       {/* ===================================================================== */}
-      {!loading && !recLoading && !error && (
-        (activeTab === 'recommended' ? recommendedStores : filteredRestaurants).length === 0 ? (
+      {!loading && (
+        displayedRestaurants.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 space-y-4">
             <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
               <MapPin className="w-8 h-8" />
             </div>
             <div className="space-y-1">
               <p className="text-base text-gray-900 font-extrabold">
-                Chưa có quán ăn nào mở bán tại {selectedCity?.name || 'khu vực này'}
+                Chưa có quán ăn nào phù hợp tại {selectedDistrict !== 'ALL' ? selectedDistrict : (selectedCity?.name || 'khu vực này')}
               </p>
               <p className="text-xs text-gray-500 max-w-md mx-auto">
-                Bạn có thể đổi sang Tỉnh/Thành phố khác từ thanh Menu trên cùng hoặc đăng ký mở cửa hàng tiên phong tại khu vực này!
+                Bạn có thể thử chọn quận/huyện khác hoặc chuyển sang danh mục món ăn khác.
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <div className="pt-2">
               <button
                 onClick={() => {
                   setSearchKeyword('');
                   setSelectedCategory('All');
-                  setActiveTab('all');
+                  setSelectedDistrict('ALL');
+                  setActiveTab('near');
                 }}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors"
               >
-                Xóa bộ lọc
+                Xóa tất cả bộ lọc
               </button>
-              <Link
-                to="/merchant/register"
-                className="px-5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5"
-              >
-                <span>Mở cửa hàng tại {selectedCity?.shortName} ngay</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(activeTab === 'recommended' ? recommendedStores : filteredRestaurants).map((res) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+            {displayedRestaurants.map((res) => (
               <Link
                 key={res._id}
                 to={`/restaurants/${res._id}`}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-200 overflow-hidden flex flex-col relative"
+                className="bg-white rounded-2xl p-3 border border-gray-100 hover:border-sky-300 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative"
               >
-                {/* Visual Header / Cover */}
-                <div className="h-44 relative p-4 flex flex-col justify-between text-white overflow-hidden bg-gradient-to-tr from-orange-500 to-amber-400">
-                  {res.image && (
-                    <img
-                      src={res.image}
-                      alt={res.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/30 pointer-events-none" />
+                {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 */}
+                <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <img
+                    src={res.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80'}
+                    alt={res.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  {/* Chấm xanh trạng thái trực tuyến chuẩn ShopeeFood */}
+                  <span
+                    className="absolute top-1.5 left-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
+                    title="Đang mở cửa / phục vụ"
+                  />
+                </div>
 
-                  {/* Rating và Badge Khoảng cách / Thời gian giao hàng OSRM */}
-                  <div className="relative z-10 flex justify-between items-start gap-2">
-                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-xs font-semibold flex items-center gap-1 shrink-0">
-                      <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                      {res.rating ? Number(res.rating).toFixed(1) : '5.0'}
-                    </span>
-                    <DeliveryBadge store={res} userCoord={userCoord} />
-                  </div>
-
-                  <div className="relative z-10">
-                    {res.recommendation_score !== undefined && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mb-1.5 rounded-full bg-amber-500 text-white font-extrabold text-[11px] shadow-sm">
-                        <Sparkles className="w-3 h-3 fill-white" /> Điểm đề xuất: {res.recommendation_score} / 10
-                      </span>
+                {/* Right: Thông tin quán chuẩn ShopeeFood */}
+                <div className="min-w-0 flex-1 flex flex-col justify-between h-full py-0.5 space-y-1">
+                  {/* Hàng 1: Icon cam xác thực + Tên Quán */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {res.isVerified !== false && (
+                      <div className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      </div>
                     )}
-                    <h3 className="text-lg sm:text-xl font-bold drop-shadow group-hover:text-amber-200 transition-colors line-clamp-1">
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-[#0084ff] transition-colors truncate">
                       {res.name}
                     </h3>
                   </div>
-                </div>
 
-                {/* Info Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2 text-sm text-gray-500">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{res.address}</span>
+                  {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương ShopeeFood */}
+                  <p className="text-xs font-semibold text-[#0084ff] truncate">
+                    {getLocationCountText(res)}
+                  </p>
+
+                  {/* Hàng 3: Tối thiểu 20k / Giá 0 */}
+                  <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-gray-500 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <Tag className="w-3 h-3 text-gray-400 rotate-90" />
+                      <span>{getMinOrderText(res)}</span>
                     </div>
-                    {res.completed_orders !== undefined && (
-                      <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-lg w-fit">
-                        <span>⚡ {res.completed_orders || 0} đơn giao thành công</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[10px] flex items-center justify-center font-bold text-gray-500 leading-none">
+                        $
+                      </span>
+                      <span>{getPriceRangeText(res)}</span>
+                    </div>
                   </div>
 
-                  {/* Menu count & CTA */}
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold">
-                    <span className="text-gray-400">
-                      {res.menuItems?.length || 0} món ăn trong thực đơn
-                    </span>
-                    <span className="text-orange-600 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      Xem Menu <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                  {/* Hàng 4: Tag khuyến mãi màu đỏ Giảm món */}
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-red-500">
+                    <Tag className="w-3 h-3 text-red-500 fill-red-500" />
+                    <span>{getPromoTag(res)}</span>
                   </div>
                 </div>
               </Link>

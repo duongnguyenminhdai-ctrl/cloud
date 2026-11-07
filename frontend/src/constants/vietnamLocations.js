@@ -86,3 +86,4 @@ export function getCityByCode(code) {
 
 export const TOP_CITIES = VIETNAM_CITIES.slice(0, 5);
 export const OTHER_CITIES = VIETNAM_CITIES.slice(5);
+
