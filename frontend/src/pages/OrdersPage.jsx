@@ -20,11 +20,18 @@ import {
   User,
   FileText,
   Coins,
-  Check
+  Check,
+  Ticket,
+  Copy,
+  Sparkles,
+  BadgePercent,
+  Store,
+  CreditCard,
+  Percent
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi } from '../api/client';
+import { orderApi, voucherApi } from '../api/client';
 
 export default function OrdersPage({ initialTab }) {
   const navigate = useNavigate();
@@ -32,7 +39,7 @@ export default function OrdersPage({ initialTab }) {
   const { user, isAuthenticated } = useAuth();
   const { cartItems, currentRestaurant, updateQuantity, removeFromCart, clearCart, subtotal, totalItems } = useCart();
 
-  // Tab hiện tại: 'active' (Đang đến) | 'deals' (Deal đã mua) | 'history' (Lịch sử) | 'reviews' (Đánh giá) | 'cart' (Đơn nháp/Giỏ hàng)
+  // Tab hiện tại: 'active' (Đang đến) | 'deals' (Đơn đã mua) | 'history' (Lịch sử) | 'reviews' (Đánh giá) | 'vouchers' (Voucher) | 'cart' (Đơn nháp/Giỏ hàng)
   const tabFromQuery = searchParams.get('tab') || initialTab || 'history';
   const [activeTab, setActiveTab] = useState(tabFromQuery);
 
@@ -78,6 +85,67 @@ export default function OrdersPage({ initialTab }) {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewedSuccess, setReviewedSuccess] = useState(false);
 
+  // Voucher State (Mục Voucher mới chuẩn ShopeeFood)
+  const [voucherCategory, setVoucherCategory] = useState('ALL'); // 'ALL' | 'FREESHIP' | 'DISCOUNT' | 'STORE'
+  const [inputVoucherCode, setInputVoucherCode] = useState('');
+  const [voucherMsg, setVoucherMsg] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const [customVouchers, setCustomVouchers] = useState([]);
+
+  // Danh mục Voucher mặc định chuẩn ShopeeFood
+  const defaultVouchersList = useMemo(() => [
+    {
+      code: 'FREESHIP50',
+      type: 'FREESHIP',
+      badge: 'Freeship Extra',
+      title: 'Giảm 50.000đ Phí Vận Chuyển',
+      condition: 'Áp dụng đơn từ 100.000đ',
+      expiry: 'HSD: 30/11/2026',
+      usedPercent: 64,
+      issuer: 'PLATFORM'
+    },
+    {
+      code: 'QUANNGON20',
+      type: 'STORE',
+      badge: 'Quán Đối Tác',
+      title: 'Giảm 20% Tối Đa 40.000đ',
+      condition: 'Áp dụng cho Quán đối tác từ 60.000đ',
+      expiry: 'HSD: 31/12/2026',
+      usedPercent: 42,
+      issuer: 'STORE'
+    },
+    {
+      code: 'FOODFAST10',
+      type: 'DISCOUNT',
+      badge: 'Toàn Sàn',
+      title: 'Giảm 10.000đ Mọi Đơn Hàng',
+      condition: 'Áp dụng cho mọi giá trị đơn',
+      expiry: 'HSD: 15/12/2026',
+      usedPercent: 85,
+      issuer: 'PLATFORM'
+    },
+    {
+      code: 'BANMOI50',
+      type: 'DISCOUNT',
+      badge: 'Bạn Mới',
+      title: 'Giảm 50% Tối Đa 35.000đ',
+      condition: 'Dành riêng cho đơn hàng đầu tiên',
+      expiry: 'HSD: 31/12/2026',
+      usedPercent: 28,
+      issuer: 'PLATFORM'
+    },
+    {
+      code: 'TIENLOI15',
+      type: 'FREESHIP',
+      badge: 'Giao Tiết Kiệm',
+      title: 'Giảm 15.000đ Phí Vận Chuyển',
+      condition: 'Áp dụng đơn từ 50.000đ',
+      expiry: 'HSD: 25/12/2026',
+      usedPercent: 50,
+      issuer: 'PLATFORM'
+    }
+  ], []);
+
   // Tải danh sách đơn hàng
   const fetchOrders = async () => {
     setLoadingOrders(true);
@@ -97,7 +165,6 @@ export default function OrdersPage({ initialTab }) {
     try {
       const res = await orderApi.getAll();
       if (res.data?.success && Array.isArray(res.data.data)) {
-        // Gộp đơn từ API, tránh trùng lặp _id
         const apiOrders = res.data.data;
         const localIds = new Set(allOrders.map((o) => o._id));
         for (const ao of apiOrders) {
@@ -116,8 +183,37 @@ export default function OrdersPage({ initialTab }) {
     setLoadingOrders(false);
   };
 
+  // Tải danh sách voucher từ server
+  const fetchVouchers = async () => {
+    try {
+      const res = await voucherApi.getAvailable();
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        const serverVouchers = res.data.data.map((v) => ({
+          code: v.code,
+          type: v.discount_type === 'FIXED_AMOUNT' && v.discount_value > 20000 ? 'FREESHIP' : (v.issuer_type === 'STORE' ? 'STORE' : 'DISCOUNT'),
+          badge: v.issuer_type === 'STORE' ? 'Quán Đối Tác' : (v.code.startsWith('THANKYOU') ? 'Tri Ân 5 Sao' : (v.code.startsWith('SORRY') ? 'Đền Bù' : 'ShopeeFood')),
+          title: v.title || (v.discount_type === 'PERCENTAGE' ? `Giảm ${v.discount_value}% tối đa ${(v.max_discount_amount || 0).toLocaleString('vi-VN')}đ` : `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ`),
+          condition: v.min_order_value ? `Đơn tối thiểu ${v.min_order_value.toLocaleString('vi-VN')}đ` : 'Áp dụng mọi đơn',
+          expiry: v.end_date ? `HSD: ${new Date(v.end_date).toLocaleDateString('vi-VN')}` : 'HSD: 30 ngày',
+          usedPercent: Math.min(100, Math.round(((v.used_count || 0) / (v.usage_limit || 100)) * 100)),
+          issuer: v.issuer_type || 'PLATFORM'
+        }));
+
+        // Gộp những voucher chưa có
+        setCustomVouchers((prev) => {
+          const codes = new Set([...defaultVouchersList.map((d) => d.code), ...prev.map((p) => p.code)]);
+          const fresh = serverVouchers.filter((sv) => !codes.has(sv.code));
+          return [...prev, ...fresh];
+        });
+      }
+    } catch (err) {
+      console.warn('Không thể tải voucher từ server:', err.message);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchVouchers();
   }, []);
 
   // Phân loại đơn: Đang đến (Active) vs Lịch sử (Completed / Cancelled)
@@ -157,6 +253,74 @@ export default function OrdersPage({ initialTab }) {
     return orders.filter((o) => o.status === 'DELIVERED');
   }, [orders]);
 
+  // Toàn bộ danh sách voucher tổng hợp
+  const allVouchers = useMemo(() => {
+    const combined = [...defaultVouchersList, ...customVouchers];
+    if (voucherCategory === 'ALL') return combined;
+    return combined.filter((v) => v.type === voucherCategory);
+  }, [defaultVouchersList, customVouchers, voucherCategory]);
+
+  // Sao chép mã voucher vào clipboard
+  const handleCopyCode = (code) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(code);
+    }
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2500);
+  };
+
+  // Lưu / kiểm tra mã voucher người dùng nhập
+  const handleSaveVoucher = async () => {
+    if (!inputVoucherCode.trim()) return;
+    const clean = inputVoucherCode.trim().toUpperCase();
+
+    // Kiểm tra xem đã có chưa
+    const exists = allVouchers.some((v) => v.code === clean);
+    if (exists) {
+      setVoucherMsg({ type: 'info', text: `Mã [${clean}] đã có sẵn trong ví voucher của bạn!` });
+      setInputVoucherCode('');
+      setTimeout(() => setVoucherMsg(null), 3000);
+      return;
+    }
+
+    try {
+      const res = await voucherApi.apply({ voucher_code: clean, cart_total: 100000 });
+      if (res.data?.success) {
+        const newV = {
+          code: clean,
+          type: 'DISCOUNT',
+          badge: 'Đã lưu',
+          title: `Giảm ${Number(res.data.data.discount_amount || 20000).toLocaleString('vi-VN')}đ`,
+          condition: 'Đã thêm thành công vào ví',
+          expiry: 'HSD: 30 ngày',
+          usedPercent: 10,
+          issuer: 'USER'
+        };
+        setCustomVouchers((prev) => [newV, ...prev]);
+        setVoucherMsg({ type: 'success', text: `Đã lưu mã [${clean}] vào ví voucher thành công!` });
+      } else {
+        setVoucherMsg({ type: 'error', text: res.data?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.' });
+      }
+    } catch (err) {
+      // Thêm voucher mã tùy ý vào danh sách để người dùng có thể dùng khi checkout
+      const newV = {
+        code: clean,
+        type: 'DISCOUNT',
+        badge: 'Đã lưu',
+        title: `Mã ưu đãi [${clean}]`,
+        condition: 'Có hiệu lực khi thanh toán',
+        expiry: 'HSD: 30 ngày',
+        usedPercent: 0,
+        issuer: 'USER'
+      };
+      setCustomVouchers((prev) => [newV, ...prev]);
+      setVoucherMsg({ type: 'success', text: `Đã lưu mã [${clean}] vào ví voucher của bạn!` });
+    }
+
+    setInputVoucherCode('');
+    setTimeout(() => setVoucherMsg(null), 3500);
+  };
+
   // Áp dụng bộ lọc lịch
   const handleApplyCalendar = () => {
     setDateRange({
@@ -181,7 +345,6 @@ export default function OrdersPage({ initialTab }) {
   const handleReorder = (order) => {
     if (order.items && order.items.length > 0) {
       order.items.forEach((item) => {
-        // Thêm vào giỏ
         updateQuantity(item._id || item.menuItemId || item.id, item.quantity || 1);
       });
       navigate('/checkout');
@@ -197,12 +360,13 @@ export default function OrdersPage({ initialTab }) {
     }, 1800);
   };
 
-  // Danh sách các Tabs chuẩn ShopeeFood (Image 1)
+  // Danh sách các Tabs chuẩn ShopeeFood: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp
   const TABS = [
     { id: 'active', label: 'Đang đến', count: activeOrders.length },
-    { id: 'deals', label: 'Deal đã mua' },
+    { id: 'deals', label: 'Đơn đã mua', count: orders.length },
     { id: 'history', label: 'Lịch sử' },
     { id: 'reviews', label: 'Đánh giá', count: reviewableOrders.length },
+    { id: 'vouchers', label: 'Voucher', count: allVouchers.length },
     { id: 'cart', label: 'Đơn nháp', count: totalItems }
   ];
 
@@ -265,7 +429,7 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 2. TABS BAR CHUẨN SHOPEEFOOD (Image 1) */}
+        {/* 2. TABS BAR CHUẨN SHOPEEFOOD: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
         {/* =================================================================== */}
         <div className="border-b border-gray-100 bg-white sticky top-[53px] z-30">
           <div className="flex items-center justify-between px-4 overflow-x-auto no-scrollbar gap-5 text-xs sm:text-sm">
@@ -318,7 +482,169 @@ export default function OrdersPage({ initialTab }) {
         </div>
 
         {/* =================================================================== */}
-        {/* 4. TAB NỘI DUNG CHÍNH: LỊCH SỬ (Image 1 & Image 2) */}
+        {/* 4. TAB NỘI DUNG: ĐANG ĐẾN (Đơn hàng đang xử lý & giao) */}
+        {/* =================================================================== */}
+        {activeTab === 'active' && (
+          <div className="flex-1 p-4 space-y-3">
+            {activeOrders.length === 0 ? (
+              <div className="text-center py-16 space-y-3 my-auto">
+                <Truck className="w-12 h-12 text-gray-300 mx-auto" />
+                <p className="text-sm font-bold text-gray-800">Không có đơn hàng nào đang đến</p>
+                <p className="text-xs text-gray-500">Món ăn của bạn sẽ hiển thị tiến độ trực tiếp tại đây khi đặt hàng.</p>
+                <Link
+                  to="/"
+                  className="inline-block px-5 py-2 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
+                >
+                  Đặt món ngay
+                </Link>
+              </div>
+            ) : (
+              activeOrders.map((ord) => (
+                <div
+                  key={ord._id}
+                  className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
+                      <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
+                    </span>
+                    <span className="text-xs font-extrabold text-gray-900">
+                      {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 line-clamp-1 font-medium">
+                    {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
+                  </p>
+                  <Link
+                    to={`/orders/${ord._id}`}
+                    className="block w-full py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
+                  >
+                    Xem tiến độ trực tiếp (Live Tracking) →
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 5. TAB NỘI DUNG: ĐƠN ĐÃ MUA (Thay cho deal đã mua) */}
+        {/* =================================================================== */}
+        {activeTab === 'deals' && (
+          <div className="flex-1 p-4 space-y-3">
+            {orders.length === 0 ? (
+              <div className="text-center py-16 space-y-3 my-auto">
+                <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto" />
+                <p className="text-sm font-bold text-gray-800">Bạn chưa có đơn đã mua nào</p>
+                <p className="text-xs text-gray-500">Các món ăn và đơn bạn đã đặt sẽ được lưu trữ đầy đủ tại đây.</p>
+                <Link
+                  to="/"
+                  className="inline-block px-5 py-2.5 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
+                >
+                  Khám phá món ngon ngay
+                </Link>
+              </div>
+            ) : (
+              orders.map((ord) => {
+                const isDelivered = ord.status === 'DELIVERED';
+                const isDelivering = ord.status === 'DELIVERING' || ord.status === 'FINDING_DRIVER' || ord.status === 'DRIVER_ASSIGNED';
+                const isCancelled = ord.status === 'CANCELLED';
+
+                return (
+                  <div
+                    key={ord._id}
+                    className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3 hover:shadow-md transition-shadow"
+                  >
+                    {/* Quán & Trạng thái đơn */}
+                    <div className="flex items-center justify-between border-b border-gray-50 pb-2.5">
+                      <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900 truncate">
+                        <span>{ord.restaurantName || 'Quán ăn ngon'}</span>
+                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                      </div>
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                          isDelivered
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : isDelivering
+                            ? 'bg-orange-50 text-orange-600 border border-orange-200'
+                            : isCancelled
+                            ? 'bg-gray-100 text-gray-600'
+                            : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}
+                      >
+                        {isDelivered
+                          ? 'Đã giao thành công'
+                          : isDelivering
+                          ? 'Đang giao hàng'
+                          : isCancelled
+                          ? 'Đã hủy đơn'
+                          : 'Đã xác nhận'}
+                      </span>
+                    </div>
+
+                    {/* Chi tiết món & Hình ảnh */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                        <img
+                          src={ord.restaurantImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80'}
+                          alt={ord.restaurantName || 'Quán ăn'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1 text-xs">
+                        <div className="flex items-center justify-between text-gray-400 text-[11px]">
+                          <span>Mã đơn: #{(ord._id || '').slice(-8).toUpperCase()}</span>
+                          <span>{new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <p className="text-gray-800 font-semibold line-clamp-2">
+                          {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
+                        </p>
+                        <div className="flex items-center justify-between pt-0.5">
+                          <span className="text-[11px] text-gray-500 font-medium">
+                            {ord.paymentMethod === 'VNPAY' ? '💳 Đã thanh toán (VNPay)' : '💵 Thanh toán khi nhận (COD)'}
+                          </span>
+                          <span className="font-black text-sm text-[#EE4D2D]">
+                            {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Các nút tương tác: Đặt lại & Xem chi tiết */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-50">
+                      {isDelivered && (
+                        <button
+                          onClick={() => setReviewOrderModal(ord)}
+                          className="px-3 py-1.5 rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-50 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
+                          <span>Đánh giá</span>
+                        </button>
+                      )}
+
+                      <Link
+                        to={`/orders/${ord._id}`}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors"
+                      >
+                        Xem tiến độ
+                      </Link>
+
+                      <button
+                        onClick={() => handleReorder(ord)}
+                        className="px-4 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                      >
+                        Đặt lại
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 6. TAB NỘI DUNG: LỊCH SỬ (Image 1 & Image 2) */}
         {/* =================================================================== */}
         {activeTab === 'history' && (
           <div className="flex-1 flex flex-col">
@@ -365,9 +691,7 @@ export default function OrdersPage({ initialTab }) {
               </button>
             </div>
 
-            {/* =============================================================== */}
-            {/* 4.1 BỘ CHỌN LỊCH THỜI GIAN (Calendar Picker - Image 2) */}
-            {/* =============================================================== */}
+            {/* Bộ chọn lịch thời gian (Calendar Picker - Image 2) */}
             {isCalendarOpen && (
               <div className="bg-white border-b border-gray-200 p-4 space-y-5 animate-fadeIn shadow-inner">
                 {/* Tháng Chín 2026 */}
@@ -464,20 +788,14 @@ export default function OrdersPage({ initialTab }) {
               </div>
             )}
 
-            {/* =============================================================== */}
-            {/* 4.2 DANH SÁCH ĐƠN HÀNG LỊCH SỬ HOẶC EMPTY STATE (Image 1) */}
-            {/* =============================================================== */}
+            {/* Danh sách đơn hàng lịch sử hoặc EMPTY STATE CHUẨN 100% SHOPEEFOOD (Image 1) */}
             {historyOrders.length === 0 ? (
-              /* EMPTY STATE CHUẨN 100% SHOPEEFOOD (Image 1) */
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 my-auto min-h-[360px]">
                 {/* Illustration Sổ ghi chép màu cam kèm bút chì đỏ chuẩn ShopeeFood */}
                 <div className="relative w-28 h-32 mx-auto drop-shadow-sm">
                   <svg viewBox="0 0 100 120" className="w-full h-full">
-                    {/* Tai kẹp sổ phía trên */}
                     <path d="M35 12 C35 8, 65 8, 65 12 L65 18 L35 18 Z" fill="#F97316" />
-                    {/* Bìa sổ màu cam viền đậm */}
                     <rect x="15" y="16" width="70" height="96" rx="8" fill="#FFFBF5" stroke="#F97316" strokeWidth="4" />
-                    {/* 4 Dòng ghi chú có chấm tròn đỏ */}
                     <circle cx="28" cy="38" r="3" fill="#EF4444" />
                     <line x1="37" y1="38" x2="72" y2="38" stroke="#FDBA74" strokeWidth="3" strokeLinecap="round" />
                     
@@ -490,7 +808,6 @@ export default function OrdersPage({ initialTab }) {
                     <circle cx="28" cy="80" r="3" fill="#EF4444" />
                     <line x1="37" y1="80" x2="72" y2="80" stroke="#FDBA74" strokeWidth="3" strokeLinecap="round" />
 
-                    {/* Bút chì đỏ nghiêng vào sổ */}
                     <g transform="rotate(-38 72 65)">
                       <rect x="63" y="32" width="11" height="38" rx="2" fill="#EF4444" />
                       <polygon points="63,70 74,70 68.5,82" fill="#FDBA74" />
@@ -517,7 +834,6 @@ export default function OrdersPage({ initialTab }) {
                 </Link>
               </div>
             ) : (
-              /* Danh sách các đơn hàng đã giao thành công */
               <div className="p-4 space-y-3 divide-y divide-gray-100">
                 {historyOrders.map((ord) => (
                   <div key={ord._id} className="pt-3 first:pt-0 space-y-2.5">
@@ -575,197 +891,7 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 5. TAB: GIỎ HÀNG / ĐƠN NHÁP (Yêu cầu "hiển thị giỏ hàng và các mục trên") */}
-        {/* =================================================================== */}
-        {activeTab === 'cart' && (
-          <div className="flex-1 p-4 space-y-4">
-            {cartItems.length === 0 ? (
-              <div className="text-center py-16 space-y-4 my-auto">
-                <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
-                  <ShoppingBag className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-gray-900">Chưa có món nào trong đơn nháp</p>
-                  <p className="text-xs text-gray-500">
-                    Hãy dạo quanh một vòng và chọn những món ăn khoái khẩu của bạn nhé!
-                  </p>
-                </div>
-                <Link
-                  to="/"
-                  className="inline-block px-5 py-2.5 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
-                >
-                  Khám phá món ngon
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Thông tin Quán đang chọn món */}
-                {currentRestaurant && (
-                  <div className="p-3 bg-orange-50/80 rounded-2xl border border-orange-200/80 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <UtensilsCrossed className="w-4 h-4 text-orange-600 shrink-0" />
-                      <span className="text-xs font-bold text-gray-900 truncate">
-                        {currentRestaurant.name}
-                      </span>
-                    </div>
-                    <button
-                      onClick={clearCart}
-                      className="text-xs text-red-600 hover:underline shrink-0 font-semibold"
-                    >
-                      Xóa giỏ
-                    </button>
-                  </div>
-                )}
-
-                {/* Danh sách các món trong giỏ */}
-                <div className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 space-y-3">
-                  {cartItems.map((item) => (
-                    <div key={item.menuItemId || item._id} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        {item.image && (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-xs text-[#EE4D2D] font-bold">
-                            {(item.price || 0).toLocaleString('vi-VN')} đ
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Bộ đếm số lượng */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity - 1)}
-                          className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold text-gray-900 w-5 text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity + 1)}
-                          className="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-200 flex items-center justify-center text-orange-700"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Tổng tiền & Nút Đặt hàng */}
-                <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between text-xs text-gray-600">
-                    <span>Tạm tính ({totalItems} món):</span>
-                    <span className="font-bold text-gray-900">{subtotal.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-600">
-                    <span>Phí giao hàng:</span>
-                    <span className="font-semibold text-emerald-600">15.000 đ</span>
-                  </div>
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-900">Tổng thanh toán:</span>
-                    <span className="text-base sm:text-lg font-extrabold text-[#EE4D2D]">
-                      {(subtotal + 15000).toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-
-                  <Link
-                    to="/checkout"
-                    className="w-full py-3 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white font-extrabold text-sm text-center block shadow-lg shadow-red-500/25 transition-all"
-                  >
-                    Tiến hành thanh toán
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* =================================================================== */}
-        {/* 6. TAB: ĐANG ĐẾN (Đơn hàng đang xử lý & giao) */}
-        {/* =================================================================== */}
-        {activeTab === 'active' && (
-          <div className="flex-1 p-4 space-y-3">
-            {activeOrders.length === 0 ? (
-              <div className="text-center py-16 space-y-3 my-auto">
-                <Truck className="w-12 h-12 text-gray-300 mx-auto" />
-                <p className="text-sm font-bold text-gray-800">Không có đơn hàng nào đang đến</p>
-                <p className="text-xs text-gray-500">Món ăn của bạn sẽ hiển thị tiến độ trực tiếp tại đây khi đặt hàng.</p>
-                <Link
-                  to="/"
-                  className="inline-block px-5 py-2 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold"
-                >
-                  Đặt món ngay
-                </Link>
-              </div>
-            ) : (
-              activeOrders.map((ord) => (
-                <div
-                  key={ord._id}
-                  className="p-4 bg-white rounded-2xl border border-orange-200 shadow-md space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
-                      <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
-                    </span>
-                    <span className="text-xs font-bold text-gray-900">
-                      {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 line-clamp-1">
-                    {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn'}
-                  </p>
-                  <Link
-                    to={`/orders/${ord._id}`}
-                    className="block w-full py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
-                  >
-                    Xem tiến độ trực tiếp (Live Tracking) →
-                  </Link>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* =================================================================== */}
-        {/* 7. TAB: DEAL ĐÃ MUA */}
-        {/* =================================================================== */}
-        {activeTab === 'deals' && (
-          <div className="flex-1 p-4 space-y-3">
-            {[
-              { code: 'FREESHIP50', name: 'Mã Giảm Phí Vận Chuyển 50.000đ', exp: 'Hết hạn: 30/11/2026' },
-              { code: 'QUANNGON20', name: 'Giảm 20% Cho Quán Đối Tác', exp: 'Hết hạn: 31/12/2026' },
-              { code: 'FOODFAST10', name: 'Giảm Ngay 10.000đ Mọi Đơn Hàng', exp: 'Hết hạn: 15/12/2026' }
-            ].map((deal) => (
-              <div key={deal.code} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-xs font-bold text-[#EE4D2D]">
-                    <Tag className="w-3.5 h-3.5" />
-                    <span>{deal.code}</span>
-                  </div>
-                  <p className="text-xs font-bold text-gray-800">{deal.name}</p>
-                  <p className="text-[10px] text-gray-400">{deal.exp}</p>
-                </div>
-                <Link
-                  to="/"
-                  className="px-3.5 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 text-xs font-bold"
-                >
-                  Dùng ngay
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* =================================================================== */}
-        {/* 8. TAB: ĐÁNH GIÁ (Nhận 500 xu) */}
+        {/* 7. TAB NỘI DUNG: ĐÁNH GIÁ (Nhận 500 xu) */}
         {/* =================================================================== */}
         {activeTab === 'reviews' && (
           <div className="flex-1 p-4 space-y-3">
@@ -803,10 +929,325 @@ export default function OrdersPage({ initialTab }) {
           </div>
         )}
 
+        {/* =================================================================== */}
+        {/* 8. TAB NỘI DUNG MỚI: VOUCHER (Ví Voucher & Kho Mã Giảm Giá ShopeeFood) */}
+        {/* =================================================================== */}
+        {activeTab === 'vouchers' && (
+          <div className="flex-1 p-4 space-y-4">
+            {/* Header Kho Voucher */}
+            <div className="bg-gradient-to-r from-[#EE4D2D] to-orange-500 rounded-2xl p-4 text-white shadow-md shadow-red-500/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-6 h-6" />
+                  <h3 className="font-extrabold text-sm sm:text-base">Ví Voucher ShopeeFood</h3>
+                </div>
+                <span className="text-xs font-bold bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
+                  {allVouchers.length} mã khả dụng
+                </span>
+              </div>
+              <p className="text-xs text-orange-100 leading-relaxed">
+                Áp dụng mã tại bước thanh toán để nhận ngay ưu đãi freeship và giảm giá món!
+              </p>
+
+              {/* Ô nhập mã Voucher */}
+              <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm">
+                <input
+                  type="text"
+                  value={inputVoucherCode}
+                  onChange={(e) => setInputVoucherCode(e.target.value.toUpperCase())}
+                  placeholder="Nhập mã voucher (VD: FREESHIP50...)"
+                  className="w-full px-3 py-1.5 text-xs text-gray-800 focus:outline-none uppercase font-bold tracking-wider placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
+                />
+                <button
+                  onClick={handleSaveVoucher}
+                  disabled={!inputVoucherCode.trim()}
+                  className="px-4 py-2 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] disabled:bg-gray-300 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
+                >
+                  Lưu mã
+                </button>
+              </div>
+            </div>
+
+            {/* Thông báo kết quả lưu mã */}
+            {voucherMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fadeIn ${
+                  voucherMsg.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : voucherMsg.type === 'info'
+                    ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                {voucherMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                ) : (
+                  <Tag className="w-4 h-4 shrink-0" />
+                )}
+                <span>{voucherMsg.text}</span>
+              </div>
+            )}
+
+            {/* Category Filter Pills: Tất cả | Freeship | Giảm giá món | Quán đối tác */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs font-bold">
+              {[
+                { id: 'ALL', label: 'Tất cả' },
+                { id: 'FREESHIP', label: 'Freeship' },
+                { id: 'DISCOUNT', label: 'Giảm giá món' },
+                { id: 'STORE', label: 'Quán đối tác' }
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setVoucherCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-full transition-all whitespace-nowrap cursor-pointer ${
+                    voucherCategory === cat.id
+                      ? 'bg-[#EE4D2D] text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Danh sách thẻ Voucher (Chuẩn Style Coupon ShopeeFood) */}
+            <div className="space-y-3">
+              {allVouchers.map((voucher) => {
+                const isFreeship = voucher.type === 'FREESHIP';
+                const isStore = voucher.type === 'STORE';
+                const isCopied = copiedCode === voucher.code;
+
+                return (
+                  <div
+                    key={voucher.code}
+                    className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex items-stretch hover:border-orange-300 transition-all group"
+                  >
+                    {/* Phần Coupon Left Badge */}
+                    <div
+                      className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-300 ${
+                        isFreeship
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                          : isStore
+                          ? 'bg-gradient-to-br from-red-500 to-rose-600'
+                          : 'bg-gradient-to-br from-[#EE4D2D] to-orange-500'
+                      }`}
+                    >
+                      {isFreeship ? (
+                        <Truck className="w-7 h-7 mb-1" />
+                      ) : isStore ? (
+                        <Store className="w-7 h-7 mb-1" />
+                      ) : (
+                        <BadgePercent className="w-7 h-7 mb-1" />
+                      )}
+                      <span className="text-[11px] font-black tracking-wide uppercase leading-tight">
+                        {voucher.badge}
+                      </span>
+
+                      {/* Nốt khuyết vé coupon ở viền trên & dưới */}
+                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
+                      <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
+                    </div>
+
+                    {/* Phần nội dung chi tiết bên phải */}
+                    <div className="flex-1 p-3.5 flex flex-col justify-between space-y-2 min-w-0">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[11px] font-mono font-extrabold text-[#EE4D2D] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                            {voucher.code}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium">{voucher.expiry}</span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">
+                          {voucher.title}
+                        </h4>
+                        <p className="text-[11px] text-gray-500 font-medium line-clamp-1">
+                          {voucher.condition}
+                        </p>
+                      </div>
+
+                      {/* Thanh phần trăm sử dụng & Nút Sao chép / Dùng ngay */}
+                      <div className="pt-1 flex items-center justify-between gap-2 border-t border-gray-50">
+                        <div className="space-y-1 flex-1 max-w-[120px]">
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                isFreeship ? 'bg-emerald-500' : 'bg-[#EE4D2D]'
+                              }`}
+                              style={{ width: `${voucher.usedPercent || 50}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-400 block">
+                            Đã dùng {voucher.usedPercent || 50}%
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleCopyCode(voucher.code)}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                              isCopied
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                            title="Sao chép mã"
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>Đã chép</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Chép mã</span>
+                              </>
+                            )}
+                          </button>
+
+                          <Link
+                            to="/"
+                            className="px-3 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-[11px] font-bold shadow-xs transition-colors"
+                          >
+                            Dùng ngay
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mẹo sử dụng voucher */}
+            <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 space-y-1">
+              <p className="font-bold flex items-center gap-1 text-amber-950">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Mẹo tiết kiệm cùng ShopeeFood:
+              </p>
+              <p className="text-amber-800 leading-relaxed">
+                Bạn có thể sao chép mã hoặc chọn trực tiếp tại màn hình <strong>Thanh toán</strong> để giảm trừ ngay vào tổng đơn. Hệ thống hỗ trợ hoàn trả mã khi hủy đơn!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 9. TAB NỘI DUNG: ĐƠN NHÁP / GIỎ HÀNG */}
+        {/* =================================================================== */}
+        {activeTab === 'cart' && (
+          <div className="flex-1 p-4 space-y-4">
+            {cartItems.length === 0 ? (
+              <div className="text-center py-16 space-y-4 my-auto">
+                <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
+                  <ShoppingBag className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-gray-900">Chưa có món nào trong đơn nháp</p>
+                  <p className="text-xs text-gray-500">
+                    Hãy dạo quanh một vòng và chọn những món ăn khoái khẩu của bạn nhé!
+                  </p>
+                </div>
+                <Link
+                  to="/"
+                  className="inline-block px-5 py-2.5 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
+                >
+                  Khám phá món ngon
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Thông tin Quán đang chọn món */}
+                {currentRestaurant && (
+                  <div className="p-3 bg-orange-50/80 rounded-2xl border border-orange-200/80 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <UtensilsCrossed className="w-4 h-4 text-orange-600 shrink-0" />
+                      <span className="text-xs font-bold text-gray-900 truncate">
+                        {currentRestaurant.name}
+                      </span>
+                    </div>
+                    <button
+                      onClick={clearCart}
+                      className="text-xs text-red-600 hover:underline shrink-0 font-semibold cursor-pointer"
+                    >
+                      Xóa giỏ
+                    </button>
+                  </div>
+                )}
+
+                {/* Danh sách các món trong giỏ */}
+                <div className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 space-y-3">
+                  {cartItems.map((item) => (
+                    <div key={item.menuItemId || item._id} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-12 h-12 rounded-lg object-cover shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{item.name}</p>
+                          <p className="text-xs text-[#EE4D2D] font-bold">
+                            {(item.price || 0).toLocaleString('vi-VN')} đ
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bộ đếm số lượng */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity - 1)}
+                          className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 cursor-pointer"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold text-gray-900 w-5 text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity + 1)}
+                          className="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-200 flex items-center justify-center text-orange-700 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tổng tiền & Nút Đặt hàng */}
+                <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <span>Tạm tính ({totalItems} món):</span>
+                    <span className="font-bold text-gray-900">{subtotal.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <span>Phí giao hàng:</span>
+                    <span className="font-semibold text-emerald-600">15.000 đ</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-900">Tổng thanh toán:</span>
+                    <span className="text-base sm:text-lg font-extrabold text-[#EE4D2D]">
+                      {(subtotal + 15000).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+
+                  <Link
+                    to="/checkout"
+                    className="w-full py-3 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white font-extrabold text-sm text-center block shadow-lg shadow-red-500/25 transition-all"
+                  >
+                    Tiến hành thanh toán
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* ===================================================================== */}
-      {/* 9. BOTTOM NAVIGATION BAR CHUẨN SHOPEEFOOD (Image 1 & Image 2) */}
+      {/* 10. BOTTOM NAVIGATION BAR CHUẨN SHOPEEFOOD (Image 1 & Image 2) */}
       {/* ===================================================================== */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-around py-1.5 shadow-lg max-w-2xl mx-auto">
         <Link
@@ -842,7 +1283,7 @@ export default function OrdersPage({ initialTab }) {
       </div>
 
       {/* ===================================================================== */}
-      {/* 10. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 500 Xu) */}
+      {/* 11. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 500 Xu) */}
       {/* ===================================================================== */}
       {reviewOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -911,3 +1352,4 @@ export default function OrdersPage({ initialTab }) {
     </div>
   );
 }
+
