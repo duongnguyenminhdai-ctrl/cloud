@@ -224,30 +224,58 @@ async function seedData() {
           isAvailable: true,
           customization: {
             hasCustomization: true,
-            sizes: [
-              { id: 'M', name: 'Size Vừa (M)', price: 0, isDefault: true },
-              { id: 'L', name: 'Size Lớn (L)', price: 10000 }
-            ],
             optionGroups: [
               {
-                id: 'sugar',
-                name: 'Độ ngọt (Mức đường)',
+                id: 'opt_size',
+                name: 'Kích cỡ (Size)',
+                layout: 'VERTICAL',
                 required: true,
-                options: ['100% Đường', '70% Đường (Chuẩn)', '50% Đường', '30% Đường', 'Không đường'],
-                defaultOption: '70% Đường (Chuẩn)'
+                multiple: false,
+                choices: [
+                  { id: 'M', name: 'Size Vừa (M)', price: 0, isDefault: true },
+                  { id: 'L', name: 'Size Lớn (L)', price: 10000, isDefault: false }
+                ]
               },
               {
-                id: 'ice',
-                name: 'Lượng đá',
+                id: 'opt_sugar',
+                name: 'Mức ngọt (Đường)',
+                layout: 'HORIZONTAL',
                 required: true,
-                options: ['100% Đá', '70% Đá (Chuẩn)', '50% Đá', 'Ít đá', 'Không đá'],
-                defaultOption: '70% Đá (Chuẩn)'
+                multiple: false,
+                choices: [
+                  { id: 'sg_100', name: '100% Đường', price: 0, isDefault: false },
+                  { id: 'sg_70', name: '70% Đường (Chuẩn)', price: 0, isDefault: true },
+                  { id: 'sg_50', name: '50% Đường', price: 0, isDefault: false },
+                  { id: 'sg_30', name: '30% Đường', price: 0, isDefault: false },
+                  { id: 'sg_0', name: 'Không đường', price: 0, isDefault: false }
+                ]
+              },
+              {
+                id: 'opt_ice',
+                name: 'Mức lạnh (Đá)',
+                layout: 'HORIZONTAL',
+                required: true,
+                multiple: false,
+                choices: [
+                  { id: 'ice_100', name: '100% Đá', price: 0, isDefault: false },
+                  { id: 'ice_70', name: '70% Đá (Chuẩn)', price: 0, isDefault: true },
+                  { id: 'ice_50', name: '50% Đá', price: 0, isDefault: false },
+                  { id: 'ice_less', name: 'Ít đá', price: 0, isDefault: false },
+                  { id: 'ice_none', name: 'Không đá', price: 0, isDefault: false }
+                ]
+              },
+              {
+                id: 'opt_toppings',
+                name: 'Topping gọi thêm',
+                layout: 'VERTICAL',
+                required: false,
+                multiple: true,
+                choices: [
+                  { id: 'top_boba', name: 'Trân châu đường đen dẻo', price: 8000, isDefault: false },
+                  { id: 'top_cheese', name: 'Thạch phô mai tươi', price: 10000, isDefault: false },
+                  { id: 'top_pudding', name: 'Pudding trứng béo ngậy', price: 8000, isDefault: false }
+                ]
               }
-            ],
-            toppings: [
-              { id: 'top_boba', name: 'Trân châu đường đen dẻo', price: 8000 },
-              { id: 'top_cheese', name: 'Thạch phô mai tươi', price: 10000 },
-              { id: 'top_pudding', name: 'Pudding trứng béo ngậy', price: 8000 }
             ],
             allowNotes: true,
             notePlaceholder: 'Ví dụ: lấy thêm ống hút to...'
@@ -346,28 +374,43 @@ async function seedData() {
           isAvailable: true,
           customization: {
             hasCustomization: true,
-            sizes: [
-              { id: 'std', name: 'Khẩu phần Tiêu chuẩn', price: 0, isDefault: true },
-              { id: 'double', name: 'Double Size (Gấp đôi nhân bò & phô mai)', price: 15000 }
-            ],
             optionGroups: [
               {
-                id: 'sauce',
-                name: 'Nước sốt đi kèm',
+                id: 'opt_size',
+                name: 'Kích cỡ (Size)',
+                layout: 'VERTICAL',
                 required: true,
-                options: [
-                  'Sốt Phô mai đặc biệt (Chuẩn)',
-                  'Sốt Cay Gochujang Hàn Quốc',
-                  'Sốt Tiêu đen nướng BBQ',
-                  'Sốt Mayonnaise tương cà'
-                ],
-                defaultOption: 'Sốt Phô mai đặc biệt (Chuẩn)'
+                multiple: false,
+                choices: [
+                  { id: 'std', name: 'Khẩu phần Tiêu chuẩn', price: 0, isDefault: true },
+                  { id: 'double', name: 'Double Size (Gấp đôi nhân)', price: 15000, isDefault: false }
+                ]
+              },
+              {
+                id: 'opt_sauce',
+                name: 'Nước sốt đi kèm',
+                layout: 'VERTICAL',
+                required: true,
+                multiple: false,
+                choices: [
+                  { id: 'sc_cheese', name: 'Sốt Phô mai đặc biệt (Chuẩn)', price: 0, isDefault: true },
+                  { id: 'sc_spicy', name: 'Sốt Cay Gochujang Hàn Quốc', price: 0, isDefault: false },
+                  { id: 'sc_bbq', name: 'Sốt Tiêu đen nướng BBQ', price: 0, isDefault: false },
+                  { id: 'sc_mayo', name: 'Sốt Mayonnaise tương cà', price: 0, isDefault: false }
+                ]
+              },
+              {
+                id: 'opt_toppings',
+                name: 'Topping thêm',
+                layout: 'VERTICAL',
+                required: false,
+                multiple: true,
+                choices: [
+                  { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 10000, isDefault: false },
+                  { id: 'top_cheddar', name: 'Phô mai Cheddar tan chảy', price: 12000, isDefault: false },
+                  { id: 'top_bacon', name: 'Thịt xông khói áp chảo giòn', price: 12000, isDefault: false }
+                ]
               }
-            ],
-            toppings: [
-              { id: 'top_cheddar', name: 'Thêm lát Phô mai Cheddar Mỹ', price: 8000 },
-              { id: 'top_bacon', name: 'Thịt xông khói áp chảo giòn', price: 12000 },
-              { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 7000 }
             ],
             allowNotes: true,
             notePlaceholder: 'Ví dụ: không lấy dưa chuột muối, nước sốt để riêng...'

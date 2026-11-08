@@ -41,13 +41,27 @@ const menuItemSchema = new mongoose.Schema(
           isDefault: { type: Boolean, default: false }
         }
       ],
-      // Các nhóm tùy chọn đi kèm (vd: Nước sốt, Mức đá, Mức đường, Độ cay...) do quán thiết lập
+      // Các nhóm tùy chọn đi kèm (vd: Kích cỡ, Nước sốt, Mức đá, Mức đường, Độ cay, Topping...) do quán thiết lập
       optionGroups: [
         {
           id: { type: String, default: '' },
           name: { type: String, required: true },
+          layout: {
+            type: String,
+            enum: ['VERTICAL', 'HORIZONTAL'],
+            default: 'VERTICAL'
+          },
           required: { type: Boolean, default: false },
+          multiple: { type: Boolean, default: false },
           options: [{ type: String }],
+          choices: [
+            {
+              id: { type: String, default: '' },
+              name: { type: String, required: true },
+              price: { type: Number, default: 0 },
+              isDefault: { type: Boolean, default: false }
+            }
+          ],
           defaultOption: { type: String, default: '' }
         }
       ],

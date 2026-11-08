@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Store, UtensilsCrossed, Plus, Edit, Trash2, CheckCircle2,
-  Clock, MapPin, Phone, RefreshCw, AlertCircle, Save, X,
-  Sparkles, Settings2, ChevronRight
+  Store,
+  Plus,
+  Edit2,
+  Trash2,
+  AlertCircle,
+  Clock,
+  MapPin,
+  UtensilsCrossed,
+  DollarSign,
+  Layers,
+  ChevronRight,
+  TrendingUp,
+  Settings2,
+  Sparkles,
+  Check,
+  X,
+  FileText
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function MerchantDashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -15,7 +29,6 @@ export default function MerchantDashboard() {
   const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   // Modal thêm/sửa món
   const [showItemModal, setShowItemModal] = useState(false);
@@ -30,9 +43,7 @@ export default function MerchantDashboard() {
     isAvailable: true,
     customization: {
       hasCustomization: false,
-      sizes: [],
       optionGroups: [],
-      toppings: [],
       allowNotes: true,
       notePlaceholder: 'Ví dụ: không hành, ít cay, để riêng nước chấm...'
     }
@@ -76,9 +87,7 @@ export default function MerchantDashboard() {
       isAvailable: true,
       customization: {
         hasCustomization: false,
-        sizes: [],
         optionGroups: [],
-        toppings: [],
         allowNotes: true,
         notePlaceholder: 'Ví dụ: không hành, ít cay, để riêng nước chấm...'
       }
@@ -90,12 +99,71 @@ export default function MerchantDashboard() {
     setEditingItem(item);
     setModalTab('basic');
     const cust = item.customization || {};
-    const formattedGroups = Array.isArray(cust.optionGroups)
-      ? cust.optionGroups.map((g) => ({
-          ...g,
-          optionsText: Array.isArray(g.options) ? g.options.join(', ') : ''
+
+    // Chuẩn hóa danh sách nhóm lựa chọn (Option Groups)
+    let groups = [];
+    if (Array.isArray(cust.optionGroups) && cust.optionGroups.length > 0) {
+      groups = cust.optionGroups.map((g, gIdx) => {
+        let choices = [];
+        if (Array.isArray(g.choices) && g.choices.length > 0) {
+          choices = g.choices.map((c, cIdx) => ({
+            id: c.id || `c_${gIdx}_${cIdx}`,
+            name: c.name || '',
+            price: Number(c.price || 0),
+            isDefault: Boolean(c.isDefault)
+          }));
+        } else if (Array.isArray(g.options) && g.options.length > 0) {
+          choices = g.options.map((opt, cIdx) => ({
+            id: `c_${gIdx}_${cIdx}`,
+            name: opt,
+            price: 0,
+            isDefault: opt === g.defaultOption || (!g.multiple && cIdx === 0)
+          }));
+        }
+        return {
+          id: g.id || `opt_${gIdx}`,
+          name: g.name || '',
+          layout: g.layout === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL',
+          required: Boolean(g.required),
+          multiple: Boolean(g.multiple),
+          choices
+        };
+      });
+    }
+
+    // Tương thích ngược: Nếu item có sizes > 1 mà chưa có nhóm size trong optionGroups
+    if (Array.isArray(cust.sizes) && cust.sizes.length > 1 && !groups.some((g) => g.name.toLowerCase().includes('size') || g.name.toLowerCase().includes('kích cỡ'))) {
+      groups.unshift({
+        id: 'opt_sizes_legacy',
+        name: 'Kích cỡ (Size)',
+        layout: 'VERTICAL',
+        required: true,
+        multiple: false,
+        choices: cust.sizes.map((s, idx) => ({
+          id: s.id || `sz_${idx}`,
+          name: s.name,
+          price: Number(s.price || 0),
+          isDefault: Boolean(s.isDefault || idx === 0)
         }))
-      : [];
+      });
+    }
+
+    // Tương thích ngược: Nếu item có toppings mà chưa có nhóm topping trong optionGroups
+    if (Array.isArray(cust.toppings) && cust.toppings.length > 0 && !groups.some((g) => g.name.toLowerCase().includes('topping'))) {
+      groups.push({
+        id: 'opt_toppings_legacy',
+        name: 'Topping gọi thêm',
+        layout: 'VERTICAL',
+        required: false,
+        multiple: true,
+        choices: cust.toppings.map((t, idx) => ({
+          id: t.id || `top_${idx}`,
+          name: t.name,
+          price: Number(t.price || 0),
+          isDefault: false
+        }))
+      });
+    }
 
     setItemForm({
       name: item.name,
@@ -104,10 +172,8 @@ export default function MerchantDashboard() {
       image: item.image || '',
       isAvailable: item.isAvailable !== false,
       customization: {
-        hasCustomization: cust.hasCustomization || false,
-        sizes: Array.isArray(cust.sizes) ? cust.sizes : [],
-        optionGroups: formattedGroups,
-        toppings: Array.isArray(cust.toppings) ? cust.toppings : [],
+        hasCustomization: groups.length > 0,
+        optionGroups: groups,
         allowNotes: cust.allowNotes !== false,
         notePlaceholder: cust.notePlaceholder || 'Ví dụ: không hành, ít cay, để riêng nước chấm...'
       }
@@ -115,65 +181,25 @@ export default function MerchantDashboard() {
     setShowItemModal(true);
   };
 
-  // Quản lý Kích cỡ (Size) do quán thiết lập
-  const handleAddSize = () => {
-    const currentSizes = itemForm.customization?.sizes || [];
-    const newSizes = [
-      ...currentSizes,
-      {
-        id: `size_${Date.now()}`,
-        name: currentSizes.length === 0 ? 'Khẩu phần Tiêu chuẩn' : 'Size Lớn (Double)',
-        price: currentSizes.length === 0 ? 0 : 15000,
-        isDefault: currentSizes.length === 0
-      }
-    ];
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        hasCustomization: true,
-        sizes: newSizes
-      }
-    });
-  };
+  // =========================================================================
+  // XỬ LÝ NHÓM LỰA CHỌN DO CHỦ QUÁN TỰ ĐẶT TÊN, TỰ CHỌN ĐỊNH DẠNG & SỐ LƯỢNG
+  // =========================================================================
 
-  const handleUpdateSize = (index, field, value) => {
-    const currentSizes = [...(itemForm.customization?.sizes || [])];
-    currentSizes[index] = {
-      ...currentSizes[index],
-      [field]: field === 'price' ? Number(value) || 0 : value
-    };
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        sizes: currentSizes
-      }
-    });
-  };
-
-  const handleRemoveSize = (index) => {
-    const currentSizes = (itemForm.customization?.sizes || []).filter((_, i) => i !== index);
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        sizes: currentSizes
-      }
-    });
-  };
-
-  // Quản lý Nhóm Tùy Chọn Đi Kèm (Nước sốt, Mức đá, Mức đường, Độ cay...) do quán thiết lập
+  // Thêm một nhóm lựa chọn mới (Trường chính, layout dọc/ngang, các lựa chọn)
   const handleAddOptionGroup = () => {
     const currentGroups = itemForm.customization?.optionGroups || [];
     const newGroup = {
       id: `opt_${Date.now()}`,
-      name: 'Nước sốt đi kèm',
+      name: 'Kích cỡ (Size)',
+      layout: 'VERTICAL', // 'VERTICAL' (dọc lớn) | 'HORIZONTAL' (ngang nhỏ)
       required: true,
-      optionsText: 'Sốt Phô mai đặc biệt, Sốt Cay Gochujang, Sốt BBQ',
-      options: ['Sốt Phô mai đặc biệt', 'Sốt Cay Gochujang', 'Sốt BBQ'],
-      defaultOption: 'Sốt Phô mai đặc biệt'
+      multiple: false,
+      choices: [
+        { id: `c_${Date.now()}_1`, name: 'Size Vừa (M)', price: 0, isDefault: true },
+        { id: `c_${Date.now()}_2`, name: 'Size Lớn (L)', price: 10000, isDefault: false }
+      ]
     };
+
     setItemForm({
       ...itemForm,
       customization: {
@@ -184,114 +210,161 @@ export default function MerchantDashboard() {
     });
   };
 
-  const handleUpdateOptionGroup = (index, field, value) => {
+  const handleUpdateOptionGroup = (groupIndex, field, value) => {
     const currentGroups = [...(itemForm.customization?.optionGroups || [])];
-    if (field === 'optionsText') {
-      const opts = value.split(',').map((s) => s.trim()).filter(Boolean);
-      currentGroups[index] = {
-        ...currentGroups[index],
-        optionsText: value,
-        options: opts,
-        defaultOption: opts[0] || ''
-      };
-    } else {
-      currentGroups[index] = { ...currentGroups[index], [field]: value };
-    }
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        optionGroups: currentGroups
-      }
-    });
-  };
-
-  const handleRemoveOptionGroup = (index) => {
-    const currentGroups = (itemForm.customization?.optionGroups || []).filter((_, i) => i !== index);
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        optionGroups: currentGroups
-      }
-    });
-  };
-
-  // Quản lý Topping do quán thiết lập
-  const handleAddTopping = () => {
-    const currentToppings = itemForm.customization?.toppings || [];
-    const newToppings = [
-      ...currentToppings,
-      { id: `top_${Date.now()}`, name: 'Thêm phô mai', price: 8000 }
-    ];
-    setItemForm({
-      ...itemForm,
-      customization: {
-        ...itemForm.customization,
-        hasCustomization: true,
-        toppings: newToppings
-      }
-    });
-  };
-
-  const handleUpdateTopping = (index, field, value) => {
-    const currentToppings = [...(itemForm.customization?.toppings || [])];
-    currentToppings[index] = {
-      ...currentToppings[index],
-      [field]: field === 'price' ? Number(value) || 0 : value
+    currentGroups[groupIndex] = {
+      ...currentGroups[groupIndex],
+      [field]: value
     };
     setItemForm({
       ...itemForm,
       customization: {
         ...itemForm.customization,
-        toppings: currentToppings
+        optionGroups: currentGroups
       }
     });
   };
 
-  const handleRemoveTopping = (index) => {
-    const currentToppings = (itemForm.customization?.toppings || []).filter((_, i) => i !== index);
+  const handleRemoveOptionGroup = (groupIndex) => {
+    const currentGroups = (itemForm.customization?.optionGroups || []).filter((_, i) => i !== groupIndex);
     setItemForm({
       ...itemForm,
       customization: {
         ...itemForm.customization,
-        toppings: currentToppings
+        hasCustomization: currentGroups.length > 0,
+        optionGroups: currentGroups
       }
     });
   };
 
-  // Áp dụng Preset Templates nhanh
+  // Thêm 1 lựa chọn con vào nhóm
+  const handleAddChoice = (groupIndex) => {
+    const currentGroups = [...(itemForm.customization?.optionGroups || [])];
+    const group = currentGroups[groupIndex];
+    const choices = [...(group.choices || [])];
+
+    choices.push({
+      id: `c_${Date.now()}_${choices.length}`,
+      name: '',
+      price: 0,
+      isDefault: choices.length === 0
+    });
+
+    currentGroups[groupIndex] = { ...group, choices };
+    setItemForm({
+      ...itemForm,
+      customization: {
+        ...itemForm.customization,
+        optionGroups: currentGroups
+      }
+    });
+  };
+
+  // Cập nhật 1 lựa chọn con
+  const handleUpdateChoice = (groupIndex, choiceIndex, field, value) => {
+    const currentGroups = [...(itemForm.customization?.optionGroups || [])];
+    const group = currentGroups[groupIndex];
+    const choices = [...(group.choices || [])];
+
+    if (field === 'isDefault' && !group.multiple && value === true) {
+      // Đối với nhóm chọn 1: Chỉ cho phép duy nhất 1 lựa chọn mặc định
+      choices.forEach((c, i) => {
+        c.isDefault = i === choiceIndex;
+      });
+    } else {
+      choices[choiceIndex] = {
+        ...choices[choiceIndex],
+        [field]: field === 'price' ? Math.max(0, Number(value) || 0) : value
+      };
+    }
+
+    currentGroups[groupIndex] = { ...group, choices };
+    setItemForm({
+      ...itemForm,
+      customization: {
+        ...itemForm.customization,
+        optionGroups: currentGroups
+      }
+    });
+  };
+
+  // Xóa 1 lựa chọn con
+  const handleRemoveChoice = (groupIndex, choiceIndex) => {
+    const currentGroups = [...(itemForm.customization?.optionGroups || [])];
+    const group = currentGroups[groupIndex];
+    const choices = (group.choices || []).filter((_, i) => i !== choiceIndex);
+
+    currentGroups[groupIndex] = { ...group, choices };
+    setItemForm({
+      ...itemForm,
+      customization: {
+        ...itemForm.customization,
+        optionGroups: currentGroups
+      }
+    });
+  };
+
+  // =========================================================================
+  // CÁC MẪU GỢI Ý THIẾT LẬP NHANH (1-CLICK TEMPLATES)
+  // =========================================================================
   const handleApplyPreset = (presetType) => {
     if (presetType === 'BEVERAGE') {
       setItemForm({
         ...itemForm,
         customization: {
           hasCustomization: true,
-          sizes: [
-            { id: 'size_m', name: 'Size Vừa (M)', price: 0, isDefault: true },
-            { id: 'size_l', name: 'Size Lớn (L)', price: 10000 }
-          ],
           optionGroups: [
             {
-              id: 'sugar',
-              name: 'Mức đường',
+              id: `opt_size_${Date.now()}`,
+              name: 'Kích cỡ (Size)',
+              layout: 'VERTICAL', // Dạng dọc lớn
               required: true,
-              options: ['100% Đường', '70% Đường (Chuẩn)', '50% Đường', 'Không đường'],
-              optionsText: '100% Đường, 70% Đường (Chuẩn), 50% Đường, Không đường',
-              defaultOption: '70% Đường (Chuẩn)'
+              multiple: false,
+              choices: [
+                { id: 'sz_m', name: 'Size Vừa (M)', price: 0, isDefault: true },
+                { id: 'sz_l', name: 'Size Lớn (L)', price: 10000, isDefault: false }
+              ]
             },
             {
-              id: 'ice',
-              name: 'Lượng đá',
+              id: `opt_sugar_${Date.now()}`,
+              name: 'Mức ngọt (Đường)',
+              layout: 'HORIZONTAL', // Dạng ngang nhỏ
               required: true,
-              options: ['100% Đá', '70% Đá (Chuẩn)', '50% Đá', 'Không đá'],
-              optionsText: '100% Đá, 70% Đá (Chuẩn), 50% Đá, Không đá',
-              defaultOption: '70% Đá (Chuẩn)'
+              multiple: false,
+              choices: [
+                { id: 'sg_100', name: '100% Đường', price: 0, isDefault: false },
+                { id: 'sg_70', name: '70% Đường (Chuẩn)', price: 0, isDefault: true },
+                { id: 'sg_50', name: '50% Đường', price: 0, isDefault: false },
+                { id: 'sg_30', name: '30% Đường', price: 0, isDefault: false },
+                { id: 'sg_0', name: 'Không đường', price: 0, isDefault: false }
+              ]
+            },
+            {
+              id: `opt_ice_${Date.now()}`,
+              name: 'Mức lạnh (Đá)',
+              layout: 'HORIZONTAL', // Dạng ngang nhỏ
+              required: true,
+              multiple: false,
+              choices: [
+                { id: 'ice_100', name: '100% Đá', price: 0, isDefault: false },
+                { id: 'ice_70', name: '70% Đá (Chuẩn)', price: 0, isDefault: true },
+                { id: 'ice_50', name: '50% Đá', price: 0, isDefault: false },
+                { id: 'ice_less', name: 'Ít đá', price: 0, isDefault: false },
+                { id: 'ice_none', name: 'Không đá', price: 0, isDefault: false }
+              ]
+            },
+            {
+              id: `opt_top_${Date.now()}`,
+              name: 'Topping gọi thêm',
+              layout: 'VERTICAL', // Dạng dọc lớn
+              required: false,
+              multiple: true,
+              choices: [
+                { id: 'top_boba', name: 'Trân châu đường đen dẻo', price: 8000, isDefault: false },
+                { id: 'top_jelly', name: 'Thạch củ năng giòn', price: 7000, isDefault: false },
+                { id: 'top_cheese', name: 'Phô mai tươi', price: 10000, isDefault: false }
+              ]
             }
-          ],
-          toppings: [
-            { id: 'top_boba', name: 'Trân châu đường đen', price: 8000 },
-            { id: 'top_cheese', name: 'Thạch phô mai tươi', price: 10000 }
           ],
           allowNotes: true,
           notePlaceholder: 'Ví dụ: ít đá, ngọt dịu, lấy thêm ống hút to...'
@@ -302,62 +375,85 @@ export default function MerchantDashboard() {
         ...itemForm,
         customization: {
           hasCustomization: true,
-          sizes: [
-            { id: 'std', name: 'Khẩu phần Tiêu chuẩn', price: 0, isDefault: true },
-            { id: 'double', name: 'Double Size (Gấp đôi nhân)', price: 15000 }
-          ],
           optionGroups: [
             {
-              id: 'sauce',
-              name: 'Nước sốt đi kèm',
+              id: `opt_size_${Date.now()}`,
+              name: 'Kích cỡ (Size)',
+              layout: 'VERTICAL', // Dạng dọc lớn
               required: true,
-              options: ['Sốt Phô mai đặc biệt', 'Sốt BBQ nướng', 'Sốt Mayonnaise tương cà'],
-              optionsText: 'Sốt Phô mai đặc biệt, Sốt BBQ nướng, Sốt Mayonnaise tương cà',
-              defaultOption: 'Sốt Phô mai đặc biệt'
+              multiple: false,
+              choices: [
+                { id: 'sz_std', name: 'Khẩu phần Tiêu chuẩn', price: 0, isDefault: true },
+                { id: 'sz_double', name: 'Double Size (Gấp đôi nhân)', price: 15000, isDefault: false }
+              ]
+            },
+            {
+              id: `opt_sauce_${Date.now()}`,
+              name: 'Nước sốt đi kèm',
+              layout: 'VERTICAL', // Dạng dọc lớn
+              required: true,
+              multiple: false,
+              choices: [
+                { id: 'sc_cheese', name: 'Sốt Phô mai đặc biệt (Chuẩn)', price: 0, isDefault: true },
+                { id: 'sc_spicy', name: 'Sốt Cay Gochujang Hàn Quốc', price: 0, isDefault: false },
+                { id: 'sc_bbq', name: 'Sốt Tiêu đen nướng BBQ', price: 0, isDefault: false },
+                { id: 'sc_mayo', name: 'Sốt Mayonnaise tương cà', price: 0, isDefault: false }
+              ]
+            },
+            {
+              id: `opt_top_${Date.now()}`,
+              name: 'Topping thêm',
+              layout: 'VERTICAL', // Dạng dọc lớn
+              required: false,
+              multiple: true,
+              choices: [
+                { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 10000, isDefault: false },
+                { id: 'top_cheddar', name: 'Phô mai Cheddar tan chảy', price: 12000, isDefault: false }
+              ]
             }
-          ],
-          toppings: [
-            { id: 'top_cheddar', name: 'Thêm lát Phô mai Cheddar', price: 8000 },
-            { id: 'top_egg', name: 'Trứng ốp la', price: 7000 }
           ],
           allowNotes: true,
           notePlaceholder: 'Ví dụ: không lấy dưa chuột muối, nước sốt để riêng...'
         }
       });
-    } else if (presetType === 'VIETNAMESE') {
+    } else if (presetType === 'SIZE_ONLY') {
+      // Thêm nhóm Size chuẩn (2 lựa chọn: Size M và Size L, dạng dọc lớn)
       setItemForm({
         ...itemForm,
         customization: {
           hasCustomization: true,
-          sizes: [
-            { id: 'std', name: 'Phần Tiêu chuẩn', price: 0, isDefault: true },
-            { id: 'extra', name: 'Phần Đặc biệt (Thêm thịt & cơm)', price: 15000 }
-          ],
-          optionGroups: [],
-          toppings: [
-            { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 7000 },
-            { id: 'top_cha', name: 'Chả trứng hấp thêm', price: 12000 }
+          optionGroups: [
+            {
+              id: `opt_size_${Date.now()}`,
+              name: 'Kích cỡ (Size)',
+              layout: 'VERTICAL', // Dạng dọc lớn
+              required: true,
+              multiple: false,
+              choices: [
+                { id: 'sz_m', name: 'Size Vừa (M)', price: 0, isDefault: true },
+                { id: 'sz_l', name: 'Size Lớn (L)', price: 10000, isDefault: false }
+              ]
+            }
           ],
           allowNotes: true,
-          notePlaceholder: 'Ví dụ: không mỡ hành, ớt để riêng...'
+          notePlaceholder: 'Ghi chú cho quán...'
         }
       });
     } else if (presetType === 'SINGLE_SIZE') {
-      // Món chỉ có 1 size chuẩn duy nhất, không sốt, không topping
+      // Món chỉ có 1 size chuẩn duy nhất, không có nhóm tùy chọn nào (như lon Coca-Cola)
       setItemForm({
         ...itemForm,
         customization: {
           hasCustomization: false,
-          sizes: [],
           optionGroups: [],
-          toppings: [],
           allowNotes: true,
-          notePlaceholder: 'Ghi chú cho quán (không hành, ít cay...)'
+          notePlaceholder: 'Ghi chú cho quán...'
         }
       });
     }
   };
 
+  // Lưu món ăn
   const handleSaveItem = async (e) => {
     e.preventDefault();
     if (!itemForm.name || !itemForm.price) {
@@ -365,49 +461,63 @@ export default function MerchantDashboard() {
       return;
     }
 
-    // Chuẩn hóa dữ liệu customization trước khi gửi lên API
-    const sizes = (itemForm.customization?.sizes || []).filter((s) => s.name?.trim());
-    const optionGroups = (itemForm.customization?.optionGroups || [])
-      .filter((og) => og.name?.trim())
-      .map((og) => {
-        const rawOpts = og.optionsText
-          ? og.optionsText.split(',').map((s) => s.trim()).filter(Boolean)
-          : Array.isArray(og.options) ? og.options : [];
-        return {
-          id: og.id,
-          name: og.name,
-          required: og.required !== false,
-          options: rawOpts,
-          defaultOption: og.defaultOption || rawOpts[0] || ''
-        };
-      });
-    const toppings = (itemForm.customization?.toppings || []).filter((t) => t.name?.trim());
+    // Chuẩn hóa và làm sạch dữ liệu các nhóm tùy chọn
+    const cleanedOptionGroups = (itemForm.customization?.optionGroups || [])
+      .filter((og) => og && og.name?.trim())
+      .map((og, ogIdx) => {
+        const cleanedChoices = (og.choices || [])
+          .filter((c) => c && c.name?.trim())
+          .map((c, cIdx) => ({
+            id: c.id || `c_${ogIdx}_${cIdx}`,
+            name: c.name.trim(),
+            price: Math.max(0, Number(c.price || 0)),
+            isDefault: Boolean(c.isDefault)
+          }));
 
-    const hasCust = sizes.length > 1 || optionGroups.length > 0 || toppings.length > 0;
+        return {
+          id: og.id || `opt_${ogIdx}_${Date.now()}`,
+          name: og.name.trim(),
+          layout: og.layout === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL',
+          required: Boolean(og.required),
+          multiple: Boolean(og.multiple),
+          choices: cleanedChoices
+        };
+      })
+      .filter((og) => og.choices.length > 0);
+
+    const hasCust = cleanedOptionGroups.length > 0;
+
+    // Tương thích ngược với các trường sizes và toppings cũ
+    const legacySizes = cleanedOptionGroups.find((g) =>
+      g.name.toLowerCase().includes('size') || g.name.toLowerCase().includes('kích cỡ')
+    )?.choices || [];
+
+    const legacyToppings = cleanedOptionGroups.find((g) => g.multiple)?.choices || [];
 
     const payload = {
-      ...itemForm,
+      name: itemForm.name.trim(),
+      price: Number(itemForm.price),
+      description: itemForm.description?.trim() || '',
+      image: itemForm.image?.trim() || '',
+      isAvailable: itemForm.isAvailable !== false,
       customization: {
         hasCustomization: hasCust,
-        sizes,
-        optionGroups,
-        toppings,
+        optionGroups: cleanedOptionGroups,
+        sizes: legacySizes,
+        toppings: legacyToppings,
         allowNotes: itemForm.customization?.allowNotes !== false,
-        notePlaceholder: itemForm.customization?.notePlaceholder || 'Ghi chú cho quán...'
+        notePlaceholder: itemForm.customization?.notePlaceholder || 'Ghi chú cho quán (không hành, ít cay...)'
       }
     };
 
     try {
       if (editingItem) {
         await storeApi.updateMenuItem(editingItem._id, payload);
-        setSuccessMsg('Cập nhật món ăn thành công!');
       } else {
         await storeApi.addMenuItem(payload);
-        setSuccessMsg('Thêm món mới vào thực đơn thành công!');
       }
       setShowItemModal(false);
       fetchStoreData();
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Lỗi lưu món ăn');
     }
@@ -417,11 +527,9 @@ export default function MerchantDashboard() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa món này khỏi thực đơn?')) return;
     try {
       await storeApi.deleteMenuItem(itemId);
-      setSuccessMsg('Đã xóa món ăn khỏi thực đơn!');
       fetchStoreData();
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Lỗi xóa món ăn');
+      alert(err.response?.data?.message || err.message || 'Lỗi xóa món');
     }
   };
 
@@ -436,76 +544,138 @@ export default function MerchantDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <RefreshCw className="w-8 h-8 animate-spin text-orange-600" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-2xl shadow-sm text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-gray-800 mb-2">Đã xảy ra lỗi</h2>
+          <p className="text-sm text-gray-500 mb-4">{errorMsg}</p>
+          <button
+            onClick={fetchStoreData}
+            className="px-4 py-2 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 transition"
+          >
+            Thử lại
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/60 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <img
-                src={store?.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=200&q=80'}
-                alt={store?.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-white/50 shadow-md"
-              />
+              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                <Store className="w-8 h-8 text-white" />
+              </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-black">{store?.name || 'Cửa hàng của tôi'}</h1>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-orange-700">
-                    Đối tác FoodFast
+                  <h1 className="text-2xl font-black">{store?.name || 'Cửa hàng của tôi'}</h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-400 text-emerald-950">
+                    Đang hoạt động
                   </span>
                 </div>
-                <p className="text-xs text-orange-100 flex items-center gap-1.5 mt-1">
-                  <MapPin className="w-3.5 h-3.5" /> {store?.address}
-                </p>
+                <div className="flex items-center gap-4 text-xs text-orange-100 mt-1">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {store?.address || 'Chưa cập nhật địa chỉ'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {store?.openHours || '07:00 - 22:00'}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
-                onClick={fetchStoreData}
-                className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-xs font-bold transition-colors flex items-center gap-1"
+                onClick={() => navigate(`/restaurant/${store?._id}`)}
+                className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold backdrop-blur-md transition flex items-center gap-1.5"
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Đồng bộ
+                <span>Xem trang quán</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {successMsg && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fadeIn">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {/* Quản lý Thực Đơn Món Ăn */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Quản lý thực đơn món ăn</h2>
-              <p className="text-xs text-gray-500">Chủ quán có toàn quyền quy định giá, kích cỡ (size), nước sốt và topping cho từng món ăn</p>
+      <div className="max-w-6xl mx-auto px-4 -mt-4 space-y-6">
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+              <UtensilsCrossed className="w-5 h-5" />
             </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Tổng món ăn</p>
+              <p className="text-lg font-black text-gray-900">{store?.menuItems?.length || 0}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Đang bán</p>
+              <p className="text-lg font-black text-emerald-600">
+                {store?.menuItems?.filter((m) => m.isAvailable !== false).length || 0}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Đánh giá sao</p>
+              <p className="text-lg font-black text-blue-600">{store?.rating || 5.0} ★</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Doanh thu hôm nay</p>
+              <p className="text-lg font-black text-purple-600">Theo dõi realtime</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu management section */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <UtensilsCrossed className="w-5 h-5 text-orange-600" />
+                <span>Thực đơn quán ăn (Menu Management)</span>
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Chủ quán tự do thiết lập kích cỡ, nước sốt hoặc topping riêng cho từng món ăn.
+              </p>
+            </div>
+
             <button
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-orange-600/20 transition-all self-start sm:self-auto"
+              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-orange-600/20 transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> Thêm món mới
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Thêm món mới</span>
             </button>
           </div>
 
@@ -519,9 +689,8 @@ export default function MerchantDashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {store.menuItems.map((item) => {
-                const sizes = item.customization?.sizes || [];
                 const optionGroups = item.customization?.optionGroups || [];
-                const toppings = item.customization?.toppings || [];
+                const hasCustom = optionGroups.length > 0 || (item.customization?.sizes?.length > 1);
 
                 return (
                   <div
@@ -550,25 +719,23 @@ export default function MerchantDashboard() {
 
                       {/* Badges hiển thị cấu hình quán thiết lập cho món */}
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-dashed border-gray-100">
-                        {sizes.length > 1 ? (
-                          <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-bold">
-                            {sizes.length} kích cỡ
-                          </span>
+                        {optionGroups.length > 0 ? (
+                          optionGroups.map((g, gIdx) => (
+                            <span
+                              key={gIdx}
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                                g.layout === 'HORIZONTAL'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-blue-50 text-blue-800 border-blue-200'
+                              }`}
+                            >
+                              {g.layout === 'HORIZONTAL' ? 'Ngang nhỏ: ' : 'Dọc lớn: '}
+                              {g.name} ({g.choices?.length || 0})
+                            </span>
+                          ))
                         ) : (
                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                            1 size chuẩn
-                          </span>
-                        )}
-
-                        {optionGroups.length > 0 && (
-                          <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
-                            {optionGroups.length} nhóm tùy chọn/sốt
-                          </span>
-                        )}
-
-                        {toppings.length > 0 && (
-                          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-bold">
-                            {toppings.length} topping
+                            1 size chuẩn (không tùy chọn)
                           </span>
                         )}
                       </div>
@@ -577,7 +744,7 @@ export default function MerchantDashboard() {
                     <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
                       <button
                         onClick={() => handleToggleAvailable(item)}
-                        className={`text-xs px-2.5 py-1 rounded-full font-bold transition-colors ${
+                        className={`text-xs px-2.5 py-1 rounded-full font-bold transition-colors cursor-pointer ${
                           item.isAvailable !== false
                             ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
@@ -589,15 +756,15 @@ export default function MerchantDashboard() {
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleOpenEditModal(item)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-                          title="Sửa thông tin & tùy chọn món"
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition cursor-pointer"
+                          title="Chỉnh sửa món & tùy chọn"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteItem(item._id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Xóa món"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                          title="Xóa món ăn"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -611,23 +778,23 @@ export default function MerchantDashboard() {
         </div>
       </div>
 
-      {/* Modal Thêm / Sửa Món Ăn Toàn Diện Cho Chủ Quán */}
+      {/* ========================================================================= */}
+      {/* MODAL THÊM / SỬA MÓN ĂN VỚI TÙY CHỌN DỌC LỚN & NGANG NHỎ */}
+      {/* ========================================================================= */}
       {showItemModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative">
-            {/* Header Modal */}
-            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white w-full max-w-2xl rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-gray-900">
-                  {editingItem ? 'Chỉnh sửa món ăn & tùy chọn' : 'Thêm món ăn mới vào thực đơn'}
+                <h3 className="font-extrabold text-base text-gray-900">
+                  {editingItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới vào thực đơn'}
                 </h3>
-                <p className="text-xs text-gray-500">
-                  Thiết lập giá bán, kích cỡ (size), nước sốt và topping do chính quán quy định
-                </p>
+                <p className="text-xs text-gray-400">Thiết lập giá bán cơ bản và các nhóm lựa chọn do quán tự quy định</p>
               </div>
               <button
                 onClick={() => setShowItemModal(false)}
-                className="p-1.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-colors"
+                className="p-1.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -638,7 +805,7 @@ export default function MerchantDashboard() {
               <button
                 type="button"
                 onClick={() => setModalTab('basic')}
-                className={`py-3 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-4 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                   modalTab === 'basic'
                     ? 'border-orange-600 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -650,14 +817,14 @@ export default function MerchantDashboard() {
               <button
                 type="button"
                 onClick={() => setModalTab('customization')}
-                className={`py-3 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-4 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                   modalTab === 'customization'
                     ? 'border-orange-600 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <Settings2 className="w-4 h-4" />
-                <span>2. Kích cỡ & Tùy chọn (Shop tự quy định)</span>
+                <span>2. Tùy chọn & Kích cỡ (Shop tự quy định)</span>
               </button>
             </div>
 
@@ -671,7 +838,7 @@ export default function MerchantDashboard() {
                       type="text"
                       value={itemForm.name}
                       onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                      placeholder="vd: Burger Bò Phô Mai Kép, Trà Sữa Ô Long, Cơm Tấm Sườn..."
+                      placeholder="vd: Burger Bò Phô Mai Kép, Trà Sữa Ô Long, Coca-Cola 500ml..."
                       className="w-full px-3.5 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                       required
                     />
@@ -738,8 +905,10 @@ export default function MerchantDashboard() {
                       <span>Quyền tự chủ thực đơn của Chủ quán:</span>
                     </div>
                     <p className="text-orange-800 leading-relaxed">
-                      Quán tự do thêm kích cỡ (size), nhóm nước sốt hoặc topping riêng của quán. 
-                      <strong> Nếu quán chỉ bán 1 kích cỡ chuẩn, hãy để trống phần Size</strong> để khách hàng mua nhanh mà không bị bắt chọn size!
+                      Bạn có thể tạo bất kỳ nhóm tùy chọn nào (Size, Mức đường, Mức đá, Nước sốt, Topping...), 
+                      chọn kiểu hiển thị <strong>Dạng dọc lớn</strong> hoặc <strong>Dạng ngang nhỏ</strong>, 
+                      và tự do điền số lượng lựa chọn kèm giá cộng thêm. 
+                      <strong> Nếu quán chỉ bán 1 kích cỡ chuẩn (như lon nước ngọt), hãy để trống phần này</strong> để khách mua nhanh mà không hiện popup!
                     </p>
                   </div>
 
@@ -752,163 +921,250 @@ export default function MerchantDashboard() {
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('FASTFOOD')}
-                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all"
+                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all cursor-pointer"
                       >
                         <span className="block font-bold text-gray-900">🍔 Burger / Gà</span>
-                        <span className="text-[10px] text-gray-500">Size, Nước sốt, Phô mai</span>
+                        <span className="text-[10px] text-gray-500">Size & Sốt (Dọc lớn)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('BEVERAGE')}
-                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all"
+                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all cursor-pointer"
                       >
                         <span className="block font-bold text-gray-900">☕ Trà sữa / Nước</span>
-                        <span className="text-[10px] text-gray-500">Size M/L, Đường/Đá, Thạch</span>
+                        <span className="text-[10px] text-gray-500">Đường & Đá (Ngang nhỏ)</span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => handleApplyPreset('VIETNAMESE')}
-                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all"
+                        onClick={() => handleApplyPreset('SIZE_ONLY')}
+                        className="p-2.5 rounded-xl border border-gray-200 hover:border-orange-400 bg-gray-50/60 hover:bg-orange-50/50 text-left text-xs transition-all cursor-pointer"
                       >
-                        <span className="block font-bold text-gray-900">🍚 Cơm / Bún / Phở</span>
-                        <span className="text-[10px] text-gray-500">Tô đặc biệt, Trứng, Chả</span>
+                        <span className="block font-bold text-gray-900">📏 Kích cỡ (Size)</span>
+                        <span className="text-[10px] text-gray-500">2 lựa chọn (Dọc lớn)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('SINGLE_SIZE')}
-                        className="p-2.5 rounded-xl border border-red-200 hover:border-red-400 bg-red-50/40 hover:bg-red-50 text-left text-xs transition-all"
+                        className="p-2.5 rounded-xl border border-red-200 hover:border-red-400 bg-red-50/40 hover:bg-red-50 text-left text-xs transition-all cursor-pointer"
                       >
                         <span className="block font-bold text-red-700">🥫 Chỉ 1 size chuẩn</span>
-                        <span className="text-[10px] text-red-500">Xóa hết (Lon nước, Canh...)</span>
+                        <span className="text-[10px] text-red-500">Xóa hết (Lon Coca, Canh...)</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Mục 1: Kích cỡ (Size) do quán thiết lập */}
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                  {/* Danh sách các nhóm tùy chọn (Option Groups) do người bán tự cấu hình */}
+                  <div className="space-y-4 pt-3 border-t border-gray-100">
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                          1. Kích cỡ (Size) của món
+                          Danh sách nhóm lựa chọn của món ({itemForm.customization?.optionGroups?.length || 0} nhóm)
                         </h4>
                         <p className="text-[11px] text-gray-400">
-                          Nếu để trống hoặc chỉ có 1 size, hệ thống tự hiểu món có 1 kích cỡ chuẩn theo giá cơ bản.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddSize}
-                        className="px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 font-bold text-xs flex items-center gap-1 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" /> Thêm size
-                      </button>
-                    </div>
-
-                    {itemForm.customization?.sizes?.length === 0 ? (
-                      <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-500 text-center border border-dashed border-gray-200">
-                        Chưa có kích cỡ riêng (Món đang áp dụng 1 kích cỡ chuẩn theo giá bán {Number(itemForm.price || 0).toLocaleString('vi-VN')} đ).
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {itemForm.customization.sizes.map((sz, idx) => (
-                          <div key={sz.id || idx} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={sz.name}
-                              onChange={(e) => handleUpdateSize(idx, 'name', e.target.value)}
-                              placeholder="Tên size (vd: Size Lớn)"
-                              className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500"
-                            />
-                            <div className="relative w-32">
-                              <input
-                                type="number"
-                                value={sz.price}
-                                onChange={(e) => handleUpdateSize(idx, 'price', e.target.value)}
-                                placeholder="+Giá (VND)"
-                                className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-right pr-6"
-                              />
-                              <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">đ</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSize(idx)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                              title="Xóa size này"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mục 2: Nhóm Tùy Chọn Đi Kèm (Nước sốt, Mức đá, Mức đường, Độ cay...) */}
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                          2. Nhóm tùy chọn đi kèm (Nước sốt, Độ cay, Mức đá...)
-                        </h4>
-                        <p className="text-[11px] text-gray-400">
-                          Nhập các lựa chọn cách nhau bằng dấu phẩy để khách chọn 1 món.
+                          Chủ quán tự do đặt tên trường chính, chọn định dạng hiển thị và thêm số lượng lựa chọn.
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={handleAddOptionGroup}
-                        className="px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 font-bold text-xs flex items-center gap-1 transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-orange-600 text-white hover:bg-orange-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
                       >
-                        <Plus className="w-3 h-3" /> Thêm nhóm
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" /> Thêm nhóm lựa chọn
                       </button>
                     </div>
 
-                    {itemForm.customization?.optionGroups?.length === 0 ? (
-                      <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-500 text-center border border-dashed border-gray-200">
-                        Chưa có nhóm tùy chọn nào (Khách sẽ không phải chọn nước sốt hay tùy chỉnh).
+                    {(!itemForm.customization?.optionGroups || itemForm.customization.optionGroups.length === 0) ? (
+                      <div className="p-6 bg-gray-50 rounded-2xl text-xs text-gray-500 text-center border border-dashed border-gray-200 space-y-2">
+                        <UtensilsCrossed className="w-8 h-8 text-gray-300 mx-auto" />
+                        <p className="font-semibold text-gray-700">Chưa có nhóm lựa chọn nào</p>
+                        <p className="text-gray-400 max-w-sm mx-auto">
+                          Món ăn này sẽ là món 1 size chuẩn theo giá cơ bản ({Number(itemForm.price || 0).toLocaleString('vi-VN')} đ). 
+                          Khách hàng bấm thêm vào giỏ ngay mà không bị ép chọn size hay nước sốt.
+                        </p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {itemForm.customization.optionGroups.map((og, idx) => (
-                          <div key={og.id || idx} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <input
-                                type="text"
-                                value={og.name}
-                                onChange={(e) => handleUpdateOptionGroup(idx, 'name', e.target.value)}
-                                placeholder="Tên nhóm (vd: Nước sốt đi kèm)"
-                                className="font-bold text-xs px-2.5 py-1.5 bg-white rounded-lg border border-gray-200 flex-1"
-                              />
-                              <label className="flex items-center gap-1.5 text-xs text-gray-600 shrink-0 cursor-pointer">
+                      <div className="space-y-4">
+                        {itemForm.customization.optionGroups.map((og, gIdx) => (
+                          <div
+                            key={og.id || gIdx}
+                            className="p-4 rounded-2xl bg-gray-50/70 border border-gray-200 hover:border-orange-300 transition-all space-y-3"
+                          >
+                            {/* Dòng 1: Tên trường chính & Nút xóa nhóm */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-black text-xs flex items-center justify-center shrink-0">
+                                  {gIdx + 1}
+                                </span>
                                 <input
-                                  type="checkbox"
-                                  checked={og.required !== false}
-                                  onChange={(e) => handleUpdateOptionGroup(idx, 'required', e.target.checked)}
-                                  className="rounded text-orange-600"
+                                  type="text"
+                                  value={og.name}
+                                  onChange={(e) => handleUpdateOptionGroup(gIdx, 'name', e.target.value)}
+                                  placeholder="Nhập tên trường chính (vd: Kích cỡ (Size), Mức ngọt (Đường), Nước sốt đi kèm...)"
+                                  className="font-bold text-xs sm:text-sm px-3 py-2 bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 flex-1 shadow-xs"
+                                  required
                                 />
-                                <span>Bắt buộc chọn</span>
-                              </label>
+                              </div>
+
                               <button
                                 type="button"
-                                onClick={() => handleRemoveOptionGroup(idx)}
-                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg"
-                                title="Xóa nhóm"
+                                onClick={() => handleRemoveOptionGroup(gIdx)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl transition cursor-pointer"
+                                title="Xóa toàn bộ nhóm này"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
 
-                            <div>
-                              <input
-                                type="text"
-                                value={og.optionsText || (Array.isArray(og.options) ? og.options.join(', ') : '')}
-                                onChange={(e) => handleUpdateOptionGroup(idx, 'optionsText', e.target.value)}
-                                placeholder="Các lựa chọn (ngăn cách bằng dấu phẩy: Sốt BBQ, Sốt phô mai...)"
-                                className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-gray-200 focus:outline-none"
-                              />
+                            {/* Dòng 2: Định dạng hiển thị (Dọc lớn vs Ngang nhỏ) - Người bán tự chọn */}
+                            <div className="space-y-1.5 bg-white p-3 rounded-xl border border-gray-100">
+                              <span className="text-[11px] font-bold text-gray-700 block">
+                                Chọn kiểu hiển thị trên màn hình khách hàng:
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label
+                                  onClick={() => handleUpdateOptionGroup(gIdx, 'layout', 'VERTICAL')}
+                                  className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2.5 transition-all ${
+                                    og.layout === 'VERTICAL'
+                                      ? 'border-orange-500 bg-orange-50/50 shadow-xs'
+                                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`layout_${og.id || gIdx}`}
+                                    checked={og.layout === 'VERTICAL'}
+                                    onChange={() => handleUpdateOptionGroup(gIdx, 'layout', 'VERTICAL')}
+                                    className="mt-0.5 text-orange-600"
+                                  />
+                                  <div className="text-xs">
+                                    <span className="font-bold text-gray-900 block">🔘 Dạng dọc lớn (Vertical)</span>
+                                    <span className="text-[11px] text-gray-500 block leading-tight mt-0.5">
+                                      Thẻ hàng dọc lớn kèm giá cộng thêm (Chuẩn cho Size, Nước sốt, Khẩu phần, Topping).
+                                    </span>
+                                  </div>
+                                </label>
+
+                                <label
+                                  onClick={() => handleUpdateOptionGroup(gIdx, 'layout', 'HORIZONTAL')}
+                                  className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2.5 transition-all ${
+                                    og.layout === 'HORIZONTAL'
+                                      ? 'border-orange-500 bg-orange-50/50 shadow-xs'
+                                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`layout_${og.id || gIdx}`}
+                                    checked={og.layout === 'HORIZONTAL'}
+                                    onChange={() => handleUpdateOptionGroup(gIdx, 'layout', 'HORIZONTAL')}
+                                    className="mt-0.5 text-orange-600"
+                                  />
+                                  <div className="text-xs">
+                                    <span className="font-bold text-gray-900 block">🔘 Dạng ngang nhỏ (Horizontal)</span>
+                                    <span className="text-[11px] text-gray-500 block leading-tight mt-0.5">
+                                      Các nút bấm nhỏ nằm ngang (Chuẩn cho Mức đường, Mức đá, Mức cay, Nhiệt độ).
+                                    </span>
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Dòng 3: Cấu hình quy tắc chọn (Bắt buộc & Chọn 1 hay Chọn nhiều) */}
+                            <div className="flex flex-wrap items-center gap-4 text-xs bg-white p-2.5 rounded-xl border border-gray-100">
+                              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={og.required === true}
+                                  onChange={(e) => handleUpdateOptionGroup(gIdx, 'required', e.target.checked)}
+                                  className="rounded text-orange-600"
+                                />
+                                <span>Bắt buộc khách phải chọn</span>
+                              </label>
+
+                              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={og.multiple === true}
+                                  onChange={(e) => handleUpdateOptionGroup(gIdx, 'multiple', e.target.checked)}
+                                  className="rounded text-orange-600"
+                                />
+                                <span>Cho phép chọn nhiều (vd: Topping gọi thêm)</span>
+                              </label>
+                            </div>
+
+                            {/* Dòng 4: Danh sách các lựa chọn con (Người bán tự chọn số lượng và tự điền) */}
+                            <div className="space-y-2 pt-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-gray-700">
+                                  Các lựa chọn trong nhóm ({og.choices?.length || 0} lựa chọn):
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddChoice(gIdx)}
+                                  className="text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 stroke-[3]" /> Thêm lựa chọn
+                                </button>
+                              </div>
+
+                              <div className="space-y-2">
+                                {(og.choices || []).map((choice, cIdx) => (
+                                  <div
+                                    key={choice.id || cIdx}
+                                    className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200"
+                                  >
+                                    <span className="text-[11px] font-bold text-gray-400 w-5 text-center">
+                                      #{cIdx + 1}
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={choice.name}
+                                      onChange={(e) => handleUpdateChoice(gIdx, cIdx, 'name', e.target.value)}
+                                      placeholder="Tên lựa chọn (vd: Size Vừa (M), 70% Đường, Sốt BBQ...)"
+                                      className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-gray-200 focus:outline-none focus:border-orange-500 font-medium"
+                                      required
+                                    />
+                                    <div className="relative w-28 sm:w-32">
+                                      <input
+                                        type="number"
+                                        value={choice.price}
+                                        onChange={(e) => handleUpdateChoice(gIdx, cIdx, 'price', e.target.value)}
+                                        placeholder="+Giá (VND)"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 focus:outline-none focus:border-orange-500 text-right pr-6 font-bold text-gray-800"
+                                      />
+                                      <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">đ</span>
+                                    </div>
+
+                                    {!og.multiple && (
+                                      <label
+                                        className="flex items-center gap-1 text-[11px] text-gray-600 shrink-0 cursor-pointer px-2 py-1 rounded bg-gray-50 border border-gray-100"
+                                        title="Lựa chọn này sẽ được chọn sẵn khi mở món"
+                                      >
+                                        <input
+                                          type="radio"
+                                          name={`default_${og.id || gIdx}`}
+                                          checked={choice.isDefault === true}
+                                          onChange={() => handleUpdateChoice(gIdx, cIdx, 'isDefault', true)}
+                                          className="text-orange-600"
+                                        />
+                                        <span>Mặc định</span>
+                                      </label>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveChoice(gIdx, cIdx)}
+                                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                                      title="Xóa lựa chọn này"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -916,63 +1172,25 @@ export default function MerchantDashboard() {
                     )}
                   </div>
 
-                  {/* Mục 3: Topping / Món ăn kèm do quán thiết lập */}
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                          3. Topping / Món ăn kèm gọi thêm
-                        </h4>
-                        <p className="text-[11px] text-gray-400">
-                          Khách hàng có thể chọn nhiều topping cùng lúc và cộng dồn vào hóa đơn.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddTopping}
-                        className="px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 font-bold text-xs flex items-center gap-1 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" /> Thêm topping
-                      </button>
-                    </div>
-
-                    {itemForm.customization?.toppings?.length === 0 ? (
-                      <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-500 text-center border border-dashed border-gray-200">
-                        Chưa có topping kèm theo.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {itemForm.customization.toppings.map((top, idx) => (
-                          <div key={top.id || idx} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={top.name}
-                              onChange={(e) => handleUpdateTopping(idx, 'name', e.target.value)}
-                              placeholder="Tên topping (vd: Thêm lát phô mai Cheddar)"
-                              className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500"
-                            />
-                            <div className="relative w-32">
-                              <input
-                                type="number"
-                                value={top.price}
-                                onChange={(e) => handleUpdateTopping(idx, 'price', e.target.value)}
-                                placeholder="+Giá (VND)"
-                                className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-right pr-6"
-                              />
-                              <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">đ</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveTopping(idx)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                              title="Xóa topping này"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  {/* Mục Ghi chú cho quán */}
+                  <div className="pt-3 border-t border-gray-100 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={itemForm.customization?.allowNotes !== false}
+                        onChange={(e) =>
+                          setItemForm({
+                            ...itemForm,
+                            customization: {
+                              ...itemForm.customization,
+                              allowNotes: e.target.checked
+                            }
+                          })
+                        }
+                        className="rounded text-orange-600"
+                      />
+                      <span>Cho phép khách hàng ghi chú thêm cho quán khi đặt món</span>
+                    </label>
                   </div>
                 </div>
               )}
@@ -983,7 +1201,7 @@ export default function MerchantDashboard() {
                   <button
                     type="button"
                     onClick={() => setModalTab('customization')}
-                    className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                    className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
                   >
                     <span>Sang bước thiết lập kích cỡ & tùy chọn</span>
                     <ChevronRight className="w-4 h-4" />
@@ -992,7 +1210,7 @@ export default function MerchantDashboard() {
                   <button
                     type="button"
                     onClick={() => setModalTab('basic')}
-                    className="text-xs font-bold text-gray-500 hover:text-gray-700"
+                    className="text-xs font-bold text-gray-600 hover:text-gray-800 cursor-pointer"
                   >
                     ← Quay lại thông tin cơ bản
                   </button>
@@ -1002,15 +1220,15 @@ export default function MerchantDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowItemModal(false)}
-                    className="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                    className="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-orange-600/20"
+                    className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-orange-600/20 cursor-pointer"
                   >
-                    {editingItem ? 'Lưu thay đổi' : 'Thêm vào thực đơn'}
+                    {editingItem ? 'Lưu thay đổi' : 'Thêm món vào thực đơn'}
                   </button>
                 </div>
               </div>
