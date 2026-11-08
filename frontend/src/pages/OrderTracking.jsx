@@ -61,6 +61,19 @@ export default function OrderTracking() {
         // Payment đang xử lý
       }
 
+      // Cập nhật trạng thái vào LocalStorage để đồng bộ trang Lịch sử đơn hàng ShopeeFood
+      try {
+        const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
+        const idx = local.findIndex((o) => o._id === orderId);
+        if (idx !== -1) {
+          const currentStatus = delivery?.status || orderRes.data?.data?.status;
+          if (currentStatus) {
+            local[idx].status = currentStatus;
+            localStorage.setItem('my_orders', JSON.stringify(local));
+          }
+        }
+      } catch (e) {}
+
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Lỗi khi polling trạng thái đơn:', err);

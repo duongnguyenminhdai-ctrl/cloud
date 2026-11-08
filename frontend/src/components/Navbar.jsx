@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { storeApi } from '../api/client';
@@ -99,15 +99,25 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Cart Button */}
+          {/* Nút Đơn hàng ShopeeFood */}
           <Link
-            to="/checkout"
-            className="relative p-2.5 rounded-xl text-gray-700 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-            title="Giỏ hàng"
+            to="/orders?tab=history"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 hover:text-[#EE4D2D] hover:bg-orange-50 font-bold text-xs sm:text-sm transition-all"
+            title="Xem đơn hàng và lịch sử đặt món"
+          >
+            <FileText className="w-4 h-4 text-[#EE4D2D]" />
+            <span className="hidden sm:inline">Đơn hàng</span>
+          </Link>
+
+          {/* Cart Button: Nhấn vào hiển thị Giỏ hàng và các mục trên */}
+          <Link
+            to="/orders?tab=cart"
+            className="relative p-2.5 rounded-xl text-gray-700 hover:text-[#EE4D2D] hover:bg-orange-50 transition-colors"
+            title="Xem giỏ hàng"
           >
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
             {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#EE4D2D] text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                 {totalItems > 99 ? '99+' : totalItems}
               </span>
             )}

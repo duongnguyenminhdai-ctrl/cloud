@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Checkout from './pages/Checkout';
 import OrderTracking from './pages/OrderTracking';
+import OrdersPage from './pages/OrdersPage';
 import MerchantRegister from './pages/MerchantRegister';
 import MerchantStatus from './pages/MerchantStatus';
 import MerchantDashboard from './pages/MerchantDashboard';
@@ -34,6 +35,8 @@ export default function App() {
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/cart" element={<OrdersPage initialTab="cart" />} />
                   <Route path="/orders/:orderId" element={<OrderTracking />} />
 
                   {/* Cửa hàng của tôi (My Store & Seller Onboarding) */}

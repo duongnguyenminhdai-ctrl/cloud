@@ -98,6 +98,23 @@ export default function Checkout() {
       const res = await orderApi.create(orderPayload);
       if (res.data?.success) {
         const orderId = res.data.data?._id || res.data.order?._id || res.data.data?.orderId;
+
+        // Lưu đơn hàng vào LocalStorage để đồng bộ ngay lập tức với trang Đơn hàng ShopeeFood
+        try {
+          const prevOrders = JSON.parse(localStorage.getItem('my_orders') || '[]');
+          const newOrder = {
+            _id: orderId,
+            restaurantName: currentRestaurant?.name || 'Quán ăn ngon',
+            restaurantImage: currentRestaurant?.image,
+            items: [...cartItems],
+            totalPrice: payableTotal,
+            paymentMethod,
+            status: paymentMethod === 'COD' ? 'FINDING_DRIVER' : 'PENDING',
+            createdAt: new Date().toISOString()
+          };
+          localStorage.setItem('my_orders', JSON.stringify([newOrder, ...prevOrders]));
+        } catch (e) {}
+
         clearCart();
 
         // Nếu chọn thanh toán qua VNPay Sandbox: lấy URL thanh toán và chuyển hướng ngay
