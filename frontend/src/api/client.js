@@ -229,21 +229,60 @@ export const orderApi = {
 };
 
 // -----------------------------------------------------------------------------
-// 4. Delivery Service Endpoints (Port 3004 Local Fallback)
+// 4. Delivery Service Endpoints (Port 3004 Local Fallback & Driver Role API)
 // -----------------------------------------------------------------------------
 export const deliveryApi = {
-  getByOrderId: async (orderId) => {
+  // Khách hàng theo dõi lộ trình thời gian thực
+  trackOrder: async (orderId) => {
     try {
-      return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/order/${orderId}`));
+      return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/track/${orderId}`));
     } catch (err) {
       if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !DELIVERY_SERVICE_URL) {
         try {
-          return await axios.get(`http://localhost:3004/api/v1/deliveries/order/${orderId}`);
+          return await axios.get(`http://localhost:3004/api/v1/deliveries/track/${orderId}`);
         } catch {}
       }
       throw err;
     }
   },
+  getByOrderId: async (orderId) => {
+    try {
+      return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/track/${orderId}`));
+    } catch (err) {
+      try {
+        return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/order/${orderId}`));
+      } catch (innerErr) {
+        if (isLocalhost && (innerErr.code === 'ERR_NETWORK' || !innerErr.response) && !DELIVERY_SERVICE_URL) {
+          try {
+            return await axios.get(`http://localhost:3004/api/v1/deliveries/track/${orderId}`);
+          } catch {
+            return await axios.get(`http://localhost:3004/api/v1/deliveries/order/${orderId}`);
+          }
+        }
+        throw innerErr;
+      }
+    }
+  },
+  // Tài xế nhận đơn (PATCH /api/v1/deliveries/:id/accept)
+  acceptDelivery: async (id, driverData = {}) => {
+    return await apiClient.patch(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/${id}/accept`), driverData);
+  },
+  // Tài xế xác nhận lấy món (PATCH /api/v1/deliveries/:id/pick-up)
+  pickUpDelivery: async (id) => {
+    return await apiClient.patch(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/${id}/pick-up`));
+  },
+  // Tài xế hoàn tất giao hàng (PATCH /api/v1/deliveries/:id/complete)
+  completeDelivery: async (id) => {
+    return await apiClient.patch(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/${id}/complete`));
+  },
+  // Tài xế cập nhật tọa độ GPS thời gian thực (PATCH /api/v1/deliveries/:id/location)
+  updateLocation: async (id, { lat, lng }) => {
+    return await apiClient.patch(buildUrl(DELIVERY_SERVICE_URL, `/deliveries/${id}/location`), { lat, lng });
+  },
+  // Lấy toàn bộ danh sách vận đơn
+  getAll: async () => {
+    return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, '/deliveries'));
+  }
 };
 
 // -----------------------------------------------------------------------------

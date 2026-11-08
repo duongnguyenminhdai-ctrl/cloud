@@ -111,8 +111,8 @@ export default function OrderTracking() {
     const deliveryStatus = delivery?.status;
     const orderStatus = order?.status;
 
-    if (deliveryStatus === 'DELIVERED' || orderStatus === 'DELIVERED' || orderStatus === 'COMPLETED') return 5;
-    if (deliveryStatus === 'DELIVERING' || orderStatus === 'DELIVERING') return 4;
+    if (deliveryStatus === 'DELIVERED' || deliveryStatus === 'COMPLETED' || orderStatus === 'DELIVERED' || orderStatus === 'COMPLETED') return 5;
+    if (deliveryStatus === 'DELIVERING' || deliveryStatus === 'PICKED_UP' || orderStatus === 'DELIVERING') return 4;
     if (deliveryStatus === 'DRIVER_ASSIGNED' || orderStatus === 'DRIVER_ASSIGNED') return 3;
     if (deliveryStatus === 'FINDING_DRIVER' || orderStatus === 'FINDING_DRIVER') return 3;
 
@@ -315,18 +315,18 @@ export default function OrderTracking() {
               <p className="text-xs text-gray-400 font-medium">Tài xế giao hàng</p>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                  delivery?.status === 'DELIVERED' || delivery?.status === 'COMPLETED' || order?.status === 'DELIVERED' || order?.status === 'COMPLETED'
                     ? 'bg-emerald-100 text-emerald-700'
-                    : delivery?.status === 'DELIVERING' || order?.status === 'DELIVERING'
+                    : delivery?.status === 'DELIVERING' || delivery?.status === 'PICKED_UP' || order?.status === 'DELIVERING'
                     ? 'bg-blue-100 text-blue-700'
                     : delivery?.status === 'DRIVER_ASSIGNED' || order?.status === 'DRIVER_ASSIGNED'
                     ? 'bg-amber-100 text-amber-700'
                     : 'bg-gray-200 text-gray-700'
                 }`}
               >
-                {delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                {delivery?.status === 'DELIVERED' || delivery?.status === 'COMPLETED' || order?.status === 'DELIVERED' || order?.status === 'COMPLETED'
                   ? 'Đã giao thành công'
-                  : delivery?.status === 'DELIVERING' || order?.status === 'DELIVERING'
+                  : delivery?.status === 'DELIVERING' || delivery?.status === 'PICKED_UP' || order?.status === 'DELIVERING'
                   ? 'Đang giao hàng'
                   : delivery?.status === 'DRIVER_ASSIGNED' || order?.status === 'DRIVER_ASSIGNED'
                   ? 'Đã gán tài xế'
@@ -370,7 +370,7 @@ export default function OrderTracking() {
                     </span>
                   </p>
                   <p className="text-xs text-gray-500 leading-snug">
-                    {delivery?.status === 'DELIVERED' || order?.status === 'DELIVERED'
+                    {delivery?.status === 'DELIVERED' || delivery?.status === 'COMPLETED' || order?.status === 'DELIVERED' || order?.status === 'COMPLETED'
                       ? 'Đơn hàng đã hoàn tất giao hàng và thu tiền mặt.'
                       : `Khách hàng sẽ thanh toán ${Number(order?.totalPrice || 0).toLocaleString('vi-VN')} đ cho tài xế khi nhận món.`}
                   </p>
