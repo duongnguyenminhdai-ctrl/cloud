@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag, CloudRain, Moon, Sun, RefreshCw, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { orderApi, paymentApi, voucherApi } from '../api/client';
 import AddressPickerModal from '../components/AddressPickerModal';
+import { calculateShippingFee } from '../utils/pricingEngine';
+import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -26,6 +28,38 @@ export default function Checkout() {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
   const [voucherError, setVoucherError] = useState(null);
+
+  // Trạng thái tính cước phí giao hàng động (Dynamic Surge Pricing & Demo Simulator)
+  const [shippingFeeData, setShippingFeeData] = useState(null);
+  const [demoHour, setDemoHour] = useState(null); // null: Giờ thực | 23: Đêm | 12: Trưa | 19: Tối
+  const [demoRain, setDemoRain] = useState(false); // false: Open-Meteo thật | true: Mô phỏng mưa
+
+  // Tính khoảng cách giữa khách hàng và quán ăn
+  const estimatedDistance = useMemo(() => {
+    if (userCoord?.lat && userCoord?.lng && currentRestaurant?.lat && currentRestaurant?.lng) {
+      const direct = calculateHaversineDistance(userCoord.lat, userCoord.lng, currentRestaurant.lat, currentRestaurant.lng);
+      return Math.max(0.5, Math.round(direct * 1.25 * 10) / 10);
+    }
+    return 3.5; // Mặc định 3.5 km
+  }, [userCoord, currentRestaurant]);
+
+  // Tự động tính phí giao hàng khi khoảng cách, tọa độ hoặc cờ mô phỏng thay đổi
+  useEffect(() => {
+    let isMounted = true;
+    calculateShippingFee({
+      distanceKm: estimatedDistance,
+      userCoords: userCoord || { lat: 10.78, lng: 106.70 },
+      mockParams: {
+        hour: demoHour !== null ? demoHour : undefined,
+        mock_hour: demoHour !== null ? demoHour : undefined,
+        isRaining: demoRain ? true : undefined,
+        simulate_rain: demoRain ? true : undefined
+      }
+    }).then((res) => {
+      if (isMounted) setShippingFeeData(res);
+    });
+    return () => { isMounted = false; };
+  }, [estimatedDistance, userCoord, demoHour, demoRain]);
 
   useEffect(() => {
     if (userCoord?.address) {
@@ -61,7 +95,9 @@ export default function Checkout() {
     setVoucherError(null);
   };
 
-  const payableTotal = appliedVoucher ? appliedVoucher.final_total : totalPrice;
+  const currentShippingFee = shippingFeeData ? shippingFeeData.totalShippingFee : 16000;
+  const foodTotal = appliedVoucher ? appliedVoucher.final_total : totalPrice;
+  const payableTotal = foodTotal + currentShippingFee;
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -91,6 +127,8 @@ export default function Checkout() {
         originalTotal: totalPrice,
         discountAmount: appliedVoucher?.discount_amount || 0,
         voucherCode: appliedVoucher?.voucher_code || null,
+        shippingFee: currentShippingFee,
+        shippingFeeDetails: shippingFeeData,
         paymentMethod,
         deliveryAddress: address,
       };
@@ -413,10 +451,119 @@ export default function Checkout() {
                   <span>- {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ</span>
                 </div>
               )}
-              <div className="flex justify-between text-gray-500">
-                <span>Phí vận chuyển</span>
-                <span className="text-emerald-600 font-semibold">Miễn phí</span>
+              <div className="space-y-1.5 pt-1 border-t border-dashed border-gray-200">
+                <div className="flex justify-between items-center text-gray-700 font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <span>Phí vận chuyển ({estimatedDistance} km)</span>
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    {currentShippingFee.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+
+                {shippingFeeData && (
+                  <div className="text-[11px] space-y-1 text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                    <div className="flex justify-between">
+                      <span>• Cước cơ bản ({estimatedDistance} km):</span>
+                      <span className="font-medium text-gray-700">{shippingFeeData.baseFee.toLocaleString('vi-VN')} đ</span>
+                    </div>
+
+                    {shippingFeeData.surcharges?.time?.amount > 0 && (
+                      <div className="flex justify-between text-amber-700 font-medium animate-fadeIn">
+                        <span className="flex items-center gap-1">
+                          <Moon className="w-3 h-3 text-amber-600 shrink-0" />
+                          <span>{shippingFeeData.surcharges.time.reason}:</span>
+                        </span>
+                        <span>+{shippingFeeData.surcharges.time.amount.toLocaleString('vi-VN')} đ</span>
+                      </div>
+                    )}
+
+                    {shippingFeeData.surcharges?.weather?.amount > 0 && (
+                      <div className="flex justify-between text-blue-700 font-medium animate-fadeIn">
+                        <span className="flex items-center gap-1">
+                          <CloudRain className="w-3 h-3 text-blue-600 shrink-0" />
+                          <span>{shippingFeeData.surcharges.weather.reason}:</span>
+                        </span>
+                        <span>+{shippingFeeData.surcharges.weather.amount.toLocaleString('vi-VN')} đ</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Box Demo Simulator dành cho Giảng viên / Hội đồng */}
+              <div className="p-3 bg-gradient-to-br from-amber-50/80 to-orange-50/80 rounded-2xl border border-amber-200/60 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
+                  <span className="flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Mô phỏng Demo Hội đồng (Surge Pricing)</span>
+                  </span>
+                  {(demoHour !== null || demoRain) && (
+                    <button
+                      type="button"
+                      onClick={() => { setDemoHour(null); setDemoRain(false); }}
+                      className="text-[10px] text-amber-700 hover:text-amber-900 underline flex items-center gap-0.5"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" /> Reset
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setDemoRain(!demoRain)}
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
+                      demoRain
+                        ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
+                    }`}
+                  >
+                    <CloudRain className="w-3 h-3" />
+                    <span>{demoRain ? 'Đang mưa (+5k)' : 'Mô phỏng mưa'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDemoHour(demoHour === 23 ? null : 23)}
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
+                      demoHour === 23
+                        ? 'bg-indigo-600 text-white font-bold border-indigo-600 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-400'
+                    }`}
+                  >
+                    <Moon className="w-3 h-3" />
+                    <span>{demoHour === 23 ? 'Đêm 23h (+8k)' : 'Mô phỏng 23h'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDemoHour(demoHour === 12 ? null : 12)}
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
+                      demoHour === 12
+                        ? 'bg-amber-600 text-white font-bold border-amber-600 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-amber-400'
+                    }`}
+                  >
+                    <Sun className="w-3 h-3" />
+                    <span>{demoHour === 12 ? 'Trưa 12h (+5k)' : 'Cao điểm trưa'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDemoHour(demoHour === 19 ? null : 19)}
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
+                      demoHour === 19
+                        ? 'bg-orange-600 text-white font-bold border-orange-600 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-orange-400'
+                    }`}
+                  >
+                    <Sun className="w-3 h-3" />
+                    <span>{demoHour === 19 ? 'Tối 19h (+5k)' : 'Cao điểm tối'}</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
                 <span className="font-bold text-gray-900">Tổng thanh toán</span>
                 <span className="text-2xl font-extrabold text-orange-600">

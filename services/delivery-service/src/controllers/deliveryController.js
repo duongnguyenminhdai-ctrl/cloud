@@ -6,6 +6,7 @@ const {
   completeDeliveryJob,
   updateDeliveryLocation
 } = require('../services/deliveryStateMachine');
+const { calculateShippingFee } = require('../utils/pricingEngine');
 
 /**
  * 1. Theo dõi tiến trình giao hàng theo order_id (GET /api/v1/deliveries/track/:order_id)
@@ -204,3 +205,42 @@ exports.updateDeliveryStatus = async (req, res) => {
     });
   }
 };
+
+/**
+ * 8. Tính phí giao hàng linh hoạt (Dynamic Surge Pricing theo giờ & thời tiết)
+ * (GET / POST /api/v1/deliveries/shipping-fee)
+ */
+exports.getShippingFee = async (req, res) => {
+  try {
+    const rawDistance = req.method === 'POST' ? req.body.distanceKm : (req.query.distanceKm || req.query.distance);
+    const distanceKm = Number(rawDistance !== undefined ? rawDistance : 2.0);
+
+    const lat = Number(req.query.lat || req.body?.lat || req.query.latitude || req.body?.latitude || 10.78);
+    const lng = Number(req.query.lng || req.body?.lng || req.query.longitude || req.body?.longitude || 106.70);
+
+    const mockParams = {
+      hour: req.query.mock_hour || req.body?.mock_hour || req.query.hour || req.body?.hour || req.headers['x-mock-hour'],
+      simulate_rain: req.query.simulate_rain !== undefined ? req.query.simulate_rain : (req.body?.simulate_rain !== undefined ? req.body?.simulate_rain : req.headers['x-simulate-rain']),
+      isRaining: req.query.isRaining !== undefined ? req.query.isRaining : req.body?.isRaining
+    };
+
+    const feeCalculation = await calculateShippingFee({
+      distanceKm,
+      userCoords: { lat, lng },
+      mockParams
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Tính cước phí giao hàng thành công',
+      data: feeCalculation
+    });
+  } catch (error) {
+    console.error('[deliveryController] ❌ Lỗi tính cước phí giao hàng:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi tính cước giao hàng: ' + error.message
+    });
+  }
+};
+

@@ -12,7 +12,11 @@ router.patch(['/:id/pick-up', '/deliveries/:id/pick-up'], deliveryController.pic
 router.patch(['/:id/complete', '/deliveries/:id/complete'], deliveryController.completeDelivery);
 router.patch(['/:id/location', '/deliveries/:id/location'], deliveryController.updateLocation);
 
-// 3. Quản lý danh sách & Cập nhật cũ (Tương thích ngược)
+// 3. Tính phí giao hàng linh hoạt (Dynamic Surge Pricing theo giờ & thời tiết)
+router.get(['/shipping-fee', '/deliveries/shipping-fee'], deliveryController.getShippingFee);
+router.post(['/shipping-fee', '/deliveries/shipping-fee'], deliveryController.getShippingFee);
+
+// 4. Quản lý danh sách & Cập nhật cũ (Tương thích ngược)
 router.get(['/', '/deliveries'], deliveryController.getAllDeliveries);
 router.put(['/order/:orderId/status', '/deliveries/order/:orderId/status'], deliveryController.updateDeliveryStatus);
 

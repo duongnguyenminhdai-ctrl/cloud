@@ -282,6 +282,27 @@ export const deliveryApi = {
   // Lấy toàn bộ danh sách vận đơn
   getAll: async () => {
     return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, '/deliveries'));
+  },
+  // Tính cước phí giao hàng động (Dynamic Surge Pricing theo giờ & thời tiết)
+  getShippingFee: async ({ distanceKm, lat, lng, mockParams = {} }) => {
+    try {
+      const params = {
+        distanceKm,
+        lat,
+        lng,
+        ...mockParams
+      };
+      return await apiClient.get(buildUrl(DELIVERY_SERVICE_URL, '/deliveries/shipping-fee'), { params });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !DELIVERY_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3004/api/v1/deliveries/shipping-fee', {
+            params: { distanceKm, lat, lng, ...mockParams }
+          });
+        } catch {}
+      }
+      throw err;
+    }
   }
 };
 
