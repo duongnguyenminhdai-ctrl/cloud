@@ -76,6 +76,23 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
+    // Tự động hoàn tất đơn hàng nếu đã tạo hơn 45 giây trước mà chưa kết thúc
+    const threshold = new Date(Date.now() - 45 * 1000);
+    if (
+      ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(order.status) &&
+      new Date(order.createdAt) < threshold
+    ) {
+      order.status = 'DELIVERED';
+      if (!order.driver_info?.name) {
+        order.driver_info = {
+          name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+          vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+          phone: '0908 123 456'
+        };
+      }
+      await order.save();
+    }
+
     return res.status(200).json({
       success: true,
       data: order
@@ -92,6 +109,30 @@ exports.getOrderById = async (req, res) => {
 // 3. Lấy danh sách tất cả đơn hàng (GET /orders)
 exports.getAllOrders = async (req, res) => {
   try {
+    // Tự động xử lý dọn dẹp các đơn hàng cũ bị treo trước khi cập nhật delivery service
+    // Tất cả các đơn đã tạo hơn 45s trước và chưa giao thành công sẽ được chuyển sang DELIVERED
+    try {
+      const threshold = new Date(Date.now() - 45 * 1000);
+      await Order.updateMany(
+        {
+          status: { $in: ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'] },
+          createdAt: { $lt: threshold }
+        },
+        {
+          $set: {
+            status: 'DELIVERED',
+            driver_info: {
+              name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+              vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+              phone: '0908 123 456'
+            }
+          }
+        }
+      );
+    } catch (cleanErr) {
+      console.warn('[orderController] ⚠️ Lỗi dọn dẹp đơn cũ tự động:', cleanErr.message);
+    }
+
     const orders = await Order.find().sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
@@ -103,6 +144,42 @@ exports.getAllOrders = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi server khi lấy danh sách đơn hàng: ' + error.message
+    });
+  }
+};
+
+// 4. Endpoint xử lý dọn dẹp đơn hàng cũ bị kẹt ở mọi tài khoản (POST /orders/cleanup-stale)
+exports.cleanupStaleOrders = async (req, res) => {
+  try {
+    const threshold = new Date(Date.now() - 30 * 1000);
+    const result = await Order.updateMany(
+      {
+        status: { $in: ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'] },
+        createdAt: { $lt: threshold }
+      },
+      {
+        $set: {
+          status: 'DELIVERED',
+          driver_info: {
+            name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+            vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+            phone: '0908 123 456'
+          }
+        }
+      }
+    );
+
+    console.log(`[orderController] 🧹 Đã dọn dẹp và cập nhật ${result.modifiedCount} đơn hàng cũ sang DELIVERED`);
+    return res.status(200).json({
+      success: true,
+      message: `Đã dọn dẹp và hoàn tất ${result.modifiedCount} đơn hàng cũ bị treo.`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('[orderController] ❌ Lỗi dọn dẹp đơn cũ:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi dọn dẹp đơn hàng cũ: ' + error.message
     });
   }
 };

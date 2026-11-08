@@ -41,7 +41,7 @@ export default function MerchantStatus() {
 
   return (
     <div className="min-h-screen bg-gray-50/60 pb-16">
-      {/* Header Cam Tiêu Chuẩn Giống Ảnh Shopee */}
+      {/* Header Cam Tiêu Chuẩn FoodFast */}
       <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

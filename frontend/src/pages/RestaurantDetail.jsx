@@ -551,7 +551,7 @@ export default function RestaurantDetail() {
         </div>
       )}
 
-      {/* Modal chọn địa chỉ giao hàng phong cách ShopeeFood */}
+      {/* Modal chọn địa chỉ giao hàng phong cách FoodFast */}
       <AddressPickerModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}

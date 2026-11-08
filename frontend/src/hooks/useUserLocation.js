@@ -15,7 +15,7 @@ const STORAGE_KEY = 'foodfast_user_location';
  * Custom Hook quản lý vị trí giao hàng của người dùng
  * - Lưu trữ địa chỉ thực tế (tên đường, phường, quận, thành phố)
  * - Tự động Reverse Geocoding khi người dùng bật GPS
- * - Cho phép chọn vị trí thủ công từ Bản đồ & Thanh tìm kiếm ShopeeFood
+ * - Cho phép chọn vị trí thủ công từ Bản đồ & Thanh tìm kiếm FoodFast
  */
 export function useUserLocation() {
   const [location, setLocation] = useState(() => {

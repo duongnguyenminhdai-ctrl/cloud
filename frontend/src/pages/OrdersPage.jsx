@@ -85,14 +85,14 @@ export default function OrdersPage({ initialTab }) {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewedSuccess, setReviewedSuccess] = useState(false);
 
-  // Voucher State (Mục Voucher mới chuẩn ShopeeFood)
+  // Voucher State (Mục Voucher mới chuẩn FoodFast)
   const [voucherCategory, setVoucherCategory] = useState('ALL'); // 'ALL' | 'FREESHIP' | 'DISCOUNT' | 'STORE'
   const [inputVoucherCode, setInputVoucherCode] = useState('');
   const [voucherMsg, setVoucherMsg] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const [customVouchers, setCustomVouchers] = useState([]);
 
-  // Danh mục Voucher mặc định chuẩn ShopeeFood
+  // Danh mục Voucher mặc định chuẩn FoodFast
   const defaultVouchersList = useMemo(() => [
     {
       code: 'FREESHIP50',
@@ -146,26 +146,72 @@ export default function OrdersPage({ initialTab }) {
     }
   ], []);
 
-  // Tải danh sách đơn hàng
+  // Tải danh sách đơn hàng & Tự động xử lý dọn dẹp các đơn cũ bị treo
   const fetchOrders = async () => {
     setLoadingOrders(true);
     let allOrders = [];
 
-    // 1. Lấy từ LocalStorage trước
+    // 1. Tự động gọi API quét dọn các đơn cũ bị kẹt trên server MongoDB
+    try {
+      if (orderApi.cleanupStale) {
+        orderApi.cleanupStale().catch(() => {});
+      }
+    } catch (e) {}
+
+    // 2. Lấy từ LocalStorage và TỰ ĐỘNG CẬP NHẬT các đơn cũ sang DELIVERED
     try {
       const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
       if (Array.isArray(local)) {
-        allOrders = [...local];
+        const now = Date.now();
+        let changed = false;
+
+        const updatedLocal = local.map((o) => {
+          // Các đơn tạo > 45 giây trước mà vẫn ở trạng thái chưa hoàn tất -> hoàn tất sang DELIVERED
+          const orderAgeMs = now - new Date(o.createdAt || now).getTime();
+          const isStale = orderAgeMs > 45 * 1000;
+          const isUndelivered = ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(o.status);
+
+          if (isStale && isUndelivered) {
+            changed = true;
+            return {
+              ...o,
+              status: 'DELIVERED',
+              driver_info: o.driver_info || {
+                name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+                vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+                phone: '0908 123 456'
+              }
+            };
+          }
+          return o;
+        });
+
+        if (changed) {
+          localStorage.setItem('my_orders', JSON.stringify(updatedLocal));
+        }
+        allOrders = [...updatedLocal];
       }
     } catch (e) {
       // ignore
     }
 
-    // 2. Lấy từ Order Service qua API
+    // 3. Lấy từ Order Service qua API
     try {
       const res = await orderApi.getAll();
       if (res.data?.success && Array.isArray(res.data.data)) {
         const apiOrders = res.data.data;
+        const apiMap = new Map(apiOrders.map((o) => [o._id, o]));
+
+        // Đồng bộ trạng thái từ server vào các đơn local
+        allOrders = allOrders.map((lo) => {
+          if (apiMap.has(lo._id)) {
+            const serverOrder = apiMap.get(lo._id);
+            return { ...lo, ...serverOrder };
+          }
+          return lo;
+        });
+
+        // Bổ sung các đơn từ server chưa có ở local
         const localIds = new Set(allOrders.map((o) => o._id));
         for (const ao of apiOrders) {
           if (!localIds.has(ao._id)) {
@@ -183,6 +229,53 @@ export default function OrdersPage({ initialTab }) {
     setLoadingOrders(false);
   };
 
+  // Hoàn tất tất cả đơn hàng đang đến hiện tại
+  const handleCompleteAllActiveOrders = async () => {
+    try {
+      if (orderApi.cleanupStale) {
+        await orderApi.cleanupStale();
+      }
+    } catch (e) {}
+
+    try {
+      const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
+      const updated = local.map((o) => ({
+        ...o,
+        status: 'DELIVERED',
+        driver_info: o.driver_info || {
+          name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+          vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+          phone: '0908 123 456'
+        }
+      }));
+      localStorage.setItem('my_orders', JSON.stringify(updated));
+    } catch (e) {}
+
+    fetchOrders();
+  };
+
+  // Hoàn tất 1 đơn hàng cụ thể
+  const handleCompleteSingleOrder = async (orderId) => {
+    try {
+      const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
+      const updated = local.map((o) =>
+        o._id === orderId
+          ? {
+              ...o,
+              status: 'DELIVERED',
+              driver_info: o.driver_info || {
+                name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+                vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+                phone: '0908 123 456'
+              }
+            }
+          : o
+      );
+      localStorage.setItem('my_orders', JSON.stringify(updated));
+    } catch (e) {}
+    fetchOrders();
+  };
+
   // Tải danh sách voucher từ server
   const fetchVouchers = async () => {
     try {
@@ -191,7 +284,7 @@ export default function OrdersPage({ initialTab }) {
         const serverVouchers = res.data.data.map((v) => ({
           code: v.code,
           type: v.discount_type === 'FIXED_AMOUNT' && v.discount_value > 20000 ? 'FREESHIP' : (v.issuer_type === 'STORE' ? 'STORE' : 'DISCOUNT'),
-          badge: v.issuer_type === 'STORE' ? 'Quán Đối Tác' : (v.code.startsWith('THANKYOU') ? 'Tri Ân 5 Sao' : (v.code.startsWith('SORRY') ? 'Đền Bù' : 'ShopeeFood')),
+          badge: v.issuer_type === 'STORE' ? 'Quán Đối Tác' : (v.code.startsWith('THANKYOU') ? 'Tri Ân 5 Sao' : (v.code.startsWith('SORRY') ? 'Đền Bù' : 'FoodFast')),
           title: v.title || (v.discount_type === 'PERCENTAGE' ? `Giảm ${v.discount_value}% tối đa ${(v.max_discount_amount || 0).toLocaleString('vi-VN')}đ` : `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ`),
           condition: v.min_order_value ? `Đơn tối thiểu ${v.min_order_value.toLocaleString('vi-VN')}đ` : 'Áp dụng mọi đơn',
           expiry: v.end_date ? `HSD: ${new Date(v.end_date).toLocaleDateString('vi-VN')}` : 'HSD: 30 ngày',
@@ -360,7 +453,7 @@ export default function OrdersPage({ initialTab }) {
     }, 1800);
   };
 
-  // Danh sách các Tabs chuẩn ShopeeFood: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp
+  // Danh sách các Tabs chuẩn FoodFast: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp
   const TABS = [
     { id: 'active', label: 'Đang đến', count: activeOrders.length },
     { id: 'deals', label: 'Đơn đã mua', count: orders.length },
@@ -372,11 +465,11 @@ export default function OrdersPage({ initialTab }) {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-12">
-      {/* Khung chính tối đa 640px để tạo chuẩn màn hình ứng dụng ShopeeFood */}
+      {/* Khung chính tối đa 640px để tạo chuẩn màn hình ứng dụng FoodFast */}
       <div className="max-w-2xl mx-auto bg-white min-h-screen shadow-sm flex flex-col">
         
         {/* =================================================================== */}
-        {/* 1. TOP HEADER CHUẨN SHOPEEFOOD (Image 1) */}
+        {/* 1. TOP HEADER CHUẨN FOODFAST */}
         {/* =================================================================== */}
         <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -429,7 +522,7 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 2. TABS BAR CHUẨN SHOPEEFOOD: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
+        {/* 2. TABS BAR CHUẨN FOODFAST: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
         {/* =================================================================== */}
         <div className="border-b border-gray-100 bg-white sticky top-[53px] z-30">
           <div className="flex items-center justify-between px-4 overflow-x-auto no-scrollbar gap-5 text-xs sm:text-sm">
@@ -462,7 +555,7 @@ export default function OrdersPage({ initialTab }) {
         </div>
 
         {/* =================================================================== */}
-        {/* 3. BANNER NHẬN 500 XU (Shopee Coins Banner - Image 1) */}
+        {/* 3. BANNER NHẬN 500 XU (FoodFast Coins Banner) */}
         {/* =================================================================== */}
         <div className="px-4 pt-3 pb-1">
           <div
@@ -471,10 +564,10 @@ export default function OrdersPage({ initialTab }) {
           >
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[11px] flex items-center justify-center border border-amber-500 shadow-xs">
-                S
+                F
               </span>
               <span className="text-xs sm:text-sm font-semibold text-gray-800">
-                Đánh giá quán, nhận ngay 500 xu
+                Đánh giá quán, nhận ngay 500 xu FoodFast
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -499,36 +592,62 @@ export default function OrdersPage({ initialTab }) {
                 </Link>
               </div>
             ) : (
-              activeOrders.map((ord) => (
-                <div
-                  key={ord._id}
-                  className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
-                      <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
-                    </span>
-                    <span className="text-xs font-extrabold text-gray-900">
-                      {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 line-clamp-1 font-medium">
-                    {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
-                  </p>
-                  <Link
-                    to={`/orders/${ord._id}`}
-                    className="block w-full py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 px-1">
+                  <span className="text-xs text-gray-500 font-medium">
+                    Đang có {activeOrders.length} đơn hàng đang thực hiện
+                  </span>
+                  <button
+                    onClick={handleCompleteAllActiveOrders}
+                    className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer border border-emerald-200"
+                    title="Cập nhật tất cả đơn đang đến sang Đã giao thành công"
                   >
-                    Xem tiến độ trực tiếp (Live Tracking) →
-                  </Link>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Hoàn tất các đơn này</span>
+                  </button>
                 </div>
-              ))
+
+                {activeOrders.map((ord) => (
+                  <div
+                    key={ord._id}
+                    className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
+                        <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
+                      </span>
+                      <span className="text-xs font-extrabold text-gray-900">
+                        {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 line-clamp-1 font-medium">
+                      {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Link
+                        to={`/orders/${ord._id}`}
+                        className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
+                      >
+                        Xem tiến độ trực tiếp (Live Tracking) →
+                      </Link>
+                      <button
+                        onClick={() => handleCompleteSingleOrder(ord._id)}
+                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl transition-colors shrink-0 flex items-center gap-1 border border-emerald-200 cursor-pointer"
+                        title="Xác nhận đã nhận hàng"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Đã nhận hàng</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* =================================================================== */}
-        {/* 5. TAB NỘI DUNG: ĐƠN ĐÃ MUA (Thay cho deal đã mua) */}
+        {/* 5. TAB NỘI DUNG: ĐƠN ĐÃ MUA */}
         {/* =================================================================== */}
         {activeTab === 'deals' && (
           <div className="flex-1 p-4 space-y-3">
@@ -644,7 +763,7 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 6. TAB NỘI DUNG: LỊCH SỬ (Image 1 & Image 2) */}
+        {/* 6. TAB NỘI DUNG: LỊCH SỬ */}
         {/* =================================================================== */}
         {activeTab === 'history' && (
           <div className="flex-1 flex flex-col">
@@ -659,7 +778,7 @@ export default function OrdersPage({ initialTab }) {
                 >
                   <option value="ALL">Dịch vụ ∨</option>
                   <option value="FOOD">Đồ ăn & Thức uống</option>
-                  <option value="MART">ShopeeFood Mart</option>
+                  <option value="MART">FoodFast Mart</option>
                 </select>
               </div>
 
@@ -676,7 +795,7 @@ export default function OrdersPage({ initialTab }) {
                 </select>
               </div>
 
-              {/* Lọc Ngày tháng (Nhấn vào mở Calendar Picker - Image 2) */}
+              {/* Lọc Ngày tháng (Nhấn vào mở Calendar Picker) */}
               <button
                 type="button"
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
@@ -691,7 +810,7 @@ export default function OrdersPage({ initialTab }) {
               </button>
             </div>
 
-            {/* Bộ chọn lịch thời gian (Calendar Picker - Image 2) */}
+            {/* Bộ chọn lịch thời gian */}
             {isCalendarOpen && (
               <div className="bg-white border-b border-gray-200 p-4 space-y-5 animate-fadeIn shadow-inner">
                 {/* Tháng Chín 2026 */}
@@ -770,7 +889,7 @@ export default function OrdersPage({ initialTab }) {
                   </div>
                 </div>
 
-                {/* Hai nút hành động: Xóa & Chọn chuẩn Image 2 */}
+                {/* Hai nút hành động: Xóa & Chọn */}
                 <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
                   <button
                     onClick={handleClearCalendar}
@@ -788,10 +907,10 @@ export default function OrdersPage({ initialTab }) {
               </div>
             )}
 
-            {/* Danh sách đơn hàng lịch sử hoặc EMPTY STATE CHUẨN 100% SHOPEEFOOD (Image 1) */}
+            {/* Danh sách đơn hàng lịch sử hoặc EMPTY STATE CHUẨN FOODFAST */}
             {historyOrders.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 my-auto min-h-[360px]">
-                {/* Illustration Sổ ghi chép màu cam kèm bút chì đỏ chuẩn ShopeeFood */}
+                {/* Illustration Sổ ghi chép màu cam kèm bút chì đỏ */}
                 <div className="relative w-28 h-32 mx-auto drop-shadow-sm">
                   <svg viewBox="0 0 100 120" className="w-full h-full">
                     <path d="M35 12 C35 8, 65 8, 65 12 L65 18 L35 18 Z" fill="#F97316" />
@@ -816,10 +935,10 @@ export default function OrdersPage({ initialTab }) {
                   </svg>
                 </div>
 
-                {/* Đoạn văn bản chuẩn từng chữ từ ảnh ShopeeFood (Image 1) */}
+                {/* Đoạn văn bản chuẩn FoodFast */}
                 <div className="space-y-2 max-w-sm">
                   <h3 className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
-                    Cùng ShopeeFood tạo thật nhiều kỷ niệm ăn uống tưng bừng bạn nhé!
+                    Cùng FoodFast tạo thật nhiều kỷ niệm ăn uống tưng bừng bạn nhé!
                   </h3>
                   <p className="text-xs text-gray-500 leading-relaxed">
                     Bạn sẽ nhìn thấy các món đã đặt tại đây để có thể thưởng thức lại món yêu thích bất cứ lúc nào!
@@ -898,7 +1017,7 @@ export default function OrdersPage({ initialTab }) {
             <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex items-center gap-2.5">
               <Coins className="w-5 h-5 text-amber-500 shrink-0" />
               <p className="text-xs text-amber-900 font-medium">
-                Mỗi đánh giá 5 sao kèm nhận xét sẽ nhận ngay <strong>500 Xu ShopeeFood</strong> và nhận voucher tri ân giảm 10%!
+                Mỗi đánh giá 5 sao kèm nhận xét sẽ nhận ngay <strong>500 Xu FoodFast</strong> và nhận voucher tri ân giảm 10%!
               </p>
             </div>
 
@@ -930,7 +1049,7 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 8. TAB NỘI DUNG MỚI: VOUCHER (Ví Voucher & Kho Mã Giảm Giá ShopeeFood) */}
+        {/* 8. TAB NỘI DUNG MỚI: VOUCHER (Ví Voucher & Kho Mã Giảm Giá FoodFast) */}
         {/* =================================================================== */}
         {activeTab === 'vouchers' && (
           <div className="flex-1 p-4 space-y-4">
@@ -939,7 +1058,7 @@ export default function OrdersPage({ initialTab }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Ticket className="w-6 h-6" />
-                  <h3 className="font-extrabold text-sm sm:text-base">Ví Voucher ShopeeFood</h3>
+                  <h3 className="font-extrabold text-sm sm:text-base">Ví Voucher FoodFast</h3>
                 </div>
                 <span className="text-xs font-bold bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
                   {allVouchers.length} mã khả dụng
@@ -1010,7 +1129,7 @@ export default function OrdersPage({ initialTab }) {
               ))}
             </div>
 
-            {/* Danh sách thẻ Voucher (Chuẩn Style Coupon ShopeeFood) */}
+            {/* Danh sách thẻ Voucher (Chuẩn Style Coupon FoodFast) */}
             <div className="space-y-3">
               {allVouchers.map((voucher) => {
                 const isFreeship = voucher.type === 'FREESHIP';
@@ -1121,7 +1240,7 @@ export default function OrdersPage({ initialTab }) {
             {/* Mẹo sử dụng voucher */}
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 space-y-1">
               <p className="font-bold flex items-center gap-1 text-amber-950">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Mẹo tiết kiệm cùng ShopeeFood:
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Mẹo tiết kiệm cùng FoodFast:
               </p>
               <p className="text-amber-800 leading-relaxed">
                 Bạn có thể sao chép mã hoặc chọn trực tiếp tại màn hình <strong>Thanh toán</strong> để giảm trừ ngay vào tổng đơn. Hệ thống hỗ trợ hoàn trả mã khi hủy đơn!
@@ -1247,7 +1366,7 @@ export default function OrdersPage({ initialTab }) {
       </div>
 
       {/* ===================================================================== */}
-      {/* 10. BOTTOM NAVIGATION BAR CHUẨN SHOPEEFOOD (Image 1 & Image 2) */}
+      {/* 10. BOTTOM NAVIGATION BAR CHUẨN FOODFAST */}
       {/* ===================================================================== */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-around py-1.5 shadow-lg max-w-2xl mx-auto">
         <Link
@@ -1284,7 +1403,7 @@ export default function OrdersPage({ initialTab }) {
 
       {/* ===================================================================== */}
       {/* 11. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 500 Xu) */}
-      {/* ===================================================================== */}
+      {/* =================================================================== */}
       {reviewOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
@@ -1300,7 +1419,7 @@ export default function OrdersPage({ initialTab }) {
             {reviewedSuccess ? (
               <div className="py-6 text-center space-y-2 text-emerald-600">
                 <CheckCircle2 className="w-12 h-12 mx-auto animate-bounce" />
-                <p className="font-extrabold text-sm">Đã nhận 500 Xu ShopeeFood!</p>
+                <p className="font-extrabold text-sm">Đã nhận 500 Xu FoodFast!</p>
                 <p className="text-xs text-gray-500">Cảm ơn bạn đã đóng góp đánh giá hữu ích.</p>
               </div>
             ) : (

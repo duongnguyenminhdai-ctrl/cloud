@@ -41,7 +41,7 @@ export default function CitySelector() {
 
   return (
     <div className="relative" ref={popoverRef}>
-      {/* Pill Badge Trigger - Phong cách ShopeeFood (TP. HCM ▼) */}
+      {/* Pill Badge Trigger - Phong cách FoodFast (TP. HCM ▼) */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

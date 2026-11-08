@@ -61,7 +61,7 @@ export default function OrderTracking() {
         // Payment đang xử lý
       }
 
-      // Cập nhật trạng thái vào LocalStorage để đồng bộ trang Lịch sử đơn hàng ShopeeFood
+      // Cập nhật trạng thái vào LocalStorage để đồng bộ trang Lịch sử đơn hàng FoodFast
       try {
         const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
         const idx = local.findIndex((o) => o._id === orderId);

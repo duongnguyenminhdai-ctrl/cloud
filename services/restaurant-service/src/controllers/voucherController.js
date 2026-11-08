@@ -201,7 +201,7 @@ exports.applyVoucher = async (req, res) => {
 
 /**
  * 3. GET /api/v1/vouchers
- * Lấy danh sách voucher khả dụng (Shopee Style)
+ * Lấy danh sách voucher khả dụng (FoodFast Style)
  */
 exports.getVouchers = async (req, res) => {
   try {

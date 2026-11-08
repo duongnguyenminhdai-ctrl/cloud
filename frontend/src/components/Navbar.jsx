@@ -45,7 +45,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo & City Selector (ShopeeFood Style) */}
+        {/* Logo & City Selector (FoodFast Style) */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
@@ -56,12 +56,12 @@ export default function Navbar() {
                 FoodFast
               </span>
               <span className="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-orange-100 text-orange-700">
-                ShopeeFood Theme
+                Giao siêu tốc
               </span>
             </div>
           </Link>
 
-          {/* ShopeeFood City Selector (Chuẩn 63 Tỉnh Thành) */}
+          {/* FoodFast City Selector (Chuẩn 63 Tỉnh Thành) */}
           <div className="flex items-center">
             <CitySelector />
           </div>
@@ -99,7 +99,7 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Nút Đơn hàng ShopeeFood */}
+          {/* Nút Đơn hàng FoodFast */}
           <Link
             to="/orders?tab=history"
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 hover:text-[#EE4D2D] hover:bg-orange-50 font-bold text-xs sm:text-sm transition-all"

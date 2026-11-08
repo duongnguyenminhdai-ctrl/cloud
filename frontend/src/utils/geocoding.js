@@ -1,7 +1,7 @@
 /**
  * Tiện ích Reverse Geocoding & Address Search tối ưu cho Việt Nam
  * Kết hợp Photon API (Komoot Elasticsearch) và OpenStreetMap Nominatim
- * - Tìm kiếm được số nhà, số hẻm, tên đường, tòa nhà chi tiết như ShopeeFood
+ * - Tìm kiếm được số nhà, số hẻm, tên đường, tòa nhà chi tiết như FoodFast
  * - Tự động định vị tọa độ và đồng bộ với bản đồ
  */
 
@@ -209,7 +209,7 @@ export async function reverseGeocode(lat, lng) {
 }
 
 /**
- * Tìm kiếm địa chỉ chi tiết theo số nhà, tên đường, phường, quận (ShopeeFood style)
+ * Tìm kiếm địa chỉ chi tiết theo số nhà, tên đường, phường, quận (FoodFast style)
  * @param {string} query Từ khóa tìm kiếm
  * @param {number} [centerLat=10.7769] Tọa độ ưu tiên
  * @param {number} [centerLng=106.7009]

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { reverseGeocode, searchAddress } from '../utils/geocoding';
 
 /**
- * Modal "Bạn muốn giao đến đâu?" chuẩn ShopeeFood
+ * Modal "Bạn muốn giao đến đâu?" chuẩn FoodFast
  * - Sử dụng Google Maps Tiles công cộng (tiếng Việt, không watermark CartoDB, không cần API Key)
  * - Nút "Done" luôn hiển thị trọn vẹn ở đáy, không bao giờ bị chìm/tràn viền màn hình
  * - Kéo thả bản đồ mượt mà, định vị lại vị trí và Reverse Geocode tự động
@@ -87,7 +87,7 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Google Maps Tiles công cộng (giống ShopeeFood, tiếng Việt đầy đủ, KHÔNG cần API Key, không watermark)
+    // Google Maps Tiles công cộng (giống FoodFast, tiếng Việt đầy đủ, KHÔNG cần API Key, không watermark)
     const googleTiles = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
       maxZoom: 20
@@ -325,7 +325,7 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
             style={{ zIndex: 1 }}
           />
 
-          {/* Ghim đỏ chính giữa bản đồ (Center Pin ShopeeFood) */}
+          {/* Ghim đỏ chính giữa bản đồ (Center Pin FoodFast) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-[1000] flex flex-col items-center">
             {/* Tooltip trạng thái geocoding */}
             <div className="mb-1 px-2.5 py-0.5 rounded-full bg-slate-900/90 text-white text-[11px] font-medium shadow-xl backdrop-blur-sm whitespace-nowrap animate-bounce flex items-center gap-1.5">
@@ -342,7 +342,7 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
               )}
             </div>
 
-            {/* Icon Pin đỏ ShopeeFood */}
+            {/* Icon Pin đỏ FoodFast */}
             <div className="relative">
               <svg width="34" height="42" viewBox="0 0 24 28" fill="none" className="drop-shadow-xl">
                 <path
@@ -392,7 +392,7 @@ export default function AddressPickerModal({ isOpen, onClose, currentLocation, o
             />
           </div>
 
-          {/* Hàng 3: NÚT DONE NỔI BẬT CHUẨN SHOPEEFOOD - LUÔN HIỂN THỊ 100% */}
+          {/* Hàng 3: NÚT DONE NỔI BẬT CHUẨN FOODFAST - LUÔN HIỂN THỊ 100% */}
           <button
             type="button"
             onClick={handleConfirm}

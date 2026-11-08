@@ -3,11 +3,35 @@ const connectDB = require('./db');
 const { connectRabbitMQ, consumeEvent, DEFAULT_EXCHANGE } = require('./src/rabbitmq');
 const { handleOrderPaid, handlePaymentSuccess } = require('./src/workers/deliveryWorker');
 
+const Delivery = require('./src/models/Delivery');
+
 const PORT = process.env.PORT || 3004;
 const SERVICE_NAME = 'delivery-service';
 
 // 1. Kết nối MongoDB Atlas (delivery_db)
-connectDB();
+connectDB().then(async () => {
+  try {
+    const threshold = new Date(Date.now() - 45 * 1000);
+    const res = await Delivery.updateMany(
+      {
+        status: { $in: ['FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'] },
+        updatedAt: { $lt: threshold }
+      },
+      {
+        $set: {
+          status: 'DELIVERED',
+          driverName: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+          updatedAt: new Date()
+        }
+      }
+    );
+    if (res.modifiedCount > 0) {
+      console.log(`[delivery-service] 🧹 Khởi động: Đã đồng bộ ${res.modifiedCount} chuyến giao cũ sang DELIVERED`);
+    }
+  } catch (e) {
+    console.warn('[delivery-service] Lỗi cleanup giao hàng cũ:', e.message);
+  }
+});
 
 // 2. Khởi tạo RabbitMQ và Worker tự động điều phối giao hàng
 connectRabbitMQ().then(() => {

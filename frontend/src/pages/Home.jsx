@@ -26,8 +26,8 @@ import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 
-// Danh sách quán ăn mẫu chuẩn ShopeeFood (Hiển thị ngay khi database chưa có dữ liệu)
-const DEFAULT_SHOPEE_STORES = [
+// Danh sách quán ăn mẫu chuẩn FoodFast (Hiển thị ngay khi database chưa có dữ liệu)
+const DEFAULT_FOODFAST_STORES = [
   {
     _id: 'store_mcdonalds',
     name: "Gà Rán & Burger McDonald's",
@@ -156,8 +156,8 @@ const getPromoTag = (store) => {
   return 'Mã giảm 20%';
 };
 
-// Các danh mục món ăn chuẩn phong cách ShopeeFood (Image 1)
-const SHOPEE_CATEGORIES = [
+// Các danh mục món ăn chuẩn phong cách FoodFast (Image 1)
+const FOODFAST_CATEGORIES = [
   { id: 'All', label: 'All' },
   { id: 'Đồ ăn', label: 'Đồ ăn' },
   { id: 'Đồ uống', label: 'Đồ uống' },
@@ -182,7 +182,7 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Tabs ShopeeFood: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá)
+  // Tabs FoodFast: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá)
   const [activeTab, setActiveTab] = useState('near');
   // Lọc theo Quận/Huyện
   const [selectedDistrict, setSelectedDistrict] = useState('ALL');
@@ -234,7 +234,7 @@ export default function Home() {
   // Danh sách quán gốc (Kết hợp API và demo fallback khi trống)
   const storeList = useMemo(() => {
     if (restaurants.length > 0) return restaurants;
-    if (selectedCity?.code === 'hcm' || !selectedCity?.code) return DEFAULT_SHOPEE_STORES;
+    if (selectedCity?.code === 'hcm' || !selectedCity?.code) return DEFAULT_FOODFAST_STORES;
     return [];
   }, [restaurants, selectedCity?.code]);
 
@@ -271,7 +271,7 @@ export default function Home() {
         }
       }
 
-      // 2. Lọc theo danh mục ShopeeFood
+      // 2. Lọc theo danh mục FoodFast
       if (selectedCategory !== 'All') {
         const cat = selectedCategory.toLowerCase();
         const matchName = res.name?.toLowerCase().includes(cat);
@@ -297,7 +297,7 @@ export default function Home() {
       return true;
     });
 
-    // 4. Sắp xếp theo Tab ShopeeFood
+    // 4. Sắp xếp theo Tab FoodFast
     const uLat = userCoord?.lat || selectedCity?.lat || 10.7769;
     const uLng = userCoord?.lng || selectedCity?.lng || 106.7009;
 
@@ -319,10 +319,10 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
       {/* ===================================================================== */}
-      {/* 1. HERO BANNER CHUẨN SHOPEEFOOD.VN (Image 1) */}
+      {/* 1. HERO BANNER CHUẨN FOODFAST (Image 1) */}
       {/* ===================================================================== */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-slate-800">
-        {/* Ảnh nền đêm đô thị phong cách ShopeeFood */}
+        {/* Ảnh nền đêm đô thị phong cách FoodFast */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
           style={{
@@ -333,7 +333,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-transparent" />
 
         <div className="relative z-10 p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Cột trái: Tiêu đề, Thanh tìm kiếm & Danh mục Shopee */}
+          {/* Cột trái: Tiêu đề, Thanh tìm kiếm & Danh mục FoodFast */}
           <div className="lg:col-span-7 space-y-5">
             <div className="space-y-1.5">
               <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
@@ -361,9 +361,9 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Danh sách Tags Danh mục ShopeeFood */}
+            {/* Danh sách Tags Danh mục FoodFast */}
             <div className="flex flex-wrap gap-2 pt-1">
-              {SHOPEE_CATEGORIES.map((cat) => {
+              {FOODFAST_CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 return (
                   <button
@@ -397,7 +397,7 @@ export default function Home() {
 
           {/* Cột phải: Trigger chọn địa chỉ & Thẻ Ưu đãi (Image 1) */}
           <div className="lg:col-span-5 space-y-4">
-            {/* Thanh điều hướng Chọn địa chỉ giao hàng ShopeeFood */}
+            {/* Thanh điều hướng Chọn địa chỉ giao hàng FoodFast */}
             <button
               onClick={() => setIsAddressModalOpen(true)}
               className="w-full bg-white text-gray-900 p-3 sm:p-3.5 rounded-2xl shadow-xl border border-gray-100 flex items-center justify-between hover:border-orange-400 hover:shadow-orange-500/10 transition-all group"
@@ -530,7 +530,7 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 3. TABS CHUẨN SHOPEEFOOD: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
+      {/* 3. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
       {/* ===================================================================== */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-4">
         {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá) - Đã bỏ Giao nhanh theo yêu cầu */}
@@ -617,7 +617,7 @@ export default function Home() {
       )}
 
       {/* ===================================================================== */}
-      {/* 4. DANH SÁCH NHÀ HÀNG DẠNG THẺ NGANG CHUẨN SHOPEEFOOD (Image Upload) */}
+      {/* 4. DANH SÁCH NHÀ HÀNG DẠNG THẺ NGANG CHUẨN FOODFAST (Image Upload) */}
       {/* ===================================================================== */}
       {!loading && (
         displayedRestaurants.length === 0 ? (
@@ -663,14 +663,14 @@ export default function Home() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
-                  {/* Chấm xanh trạng thái trực tuyến chuẩn ShopeeFood */}
+                  {/* Chấm xanh trạng thái trực tuyến chuẩn FoodFast */}
                   <span
                     className="absolute top-1.5 left-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
                     title="Đang mở cửa / phục vụ"
                   />
                 </div>
 
-                {/* Right: Thông tin quán chuẩn ShopeeFood */}
+                {/* Right: Thông tin quán chuẩn FoodFast */}
                 <div className="min-w-0 flex-1 flex flex-col justify-between h-full py-0.5 space-y-1">
                   {/* Hàng 1: Icon cam xác thực + Tên Quán */}
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -684,7 +684,7 @@ export default function Home() {
                     </h3>
                   </div>
 
-                  {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương ShopeeFood */}
+                  {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương FoodFast */}
                   <p className="text-xs font-semibold text-[#0084ff] truncate">
                     {getLocationCountText(res)}
                   </p>

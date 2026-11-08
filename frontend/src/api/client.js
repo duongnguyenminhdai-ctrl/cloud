@@ -223,6 +223,9 @@ export const orderApi = {
   },
   getAll: () =>
     apiClient.get(buildUrl(ORDER_SERVICE_URL, '/orders')),
+  cleanupStale: async () => {
+    return await apiClient.post(buildUrl(ORDER_SERVICE_URL, '/orders/cleanup-stale'));
+  },
 };
 
 // -----------------------------------------------------------------------------
@@ -335,7 +338,7 @@ export const storeApi = {
 };
 
 // -----------------------------------------------------------------------------
-// 7. Voucher Service Endpoints (Shopee Style & Redis Concurrency Control)
+// 7. Voucher Service Endpoints (FoodFast Style & Redis Concurrency Control)
 // -----------------------------------------------------------------------------
 export const voucherApi = {
   apply: async ({ voucher_code, cart_total, store_id }) => {

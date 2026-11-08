@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Schema Mã giảm giá / Voucher (Chuẩn Shopee Style)
+// Schema Mã giảm giá / Voucher (Chuẩn FoodFast Style)
 const voucherSchema = new mongoose.Schema(
   {
     code: {

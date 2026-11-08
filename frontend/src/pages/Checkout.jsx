@@ -21,7 +21,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Trạng thái mã giảm giá (Shopee Style Voucher)
+  // Trạng thái mã giảm giá (FoodFast Voucher)
   const [voucherCode, setVoucherCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
@@ -99,7 +99,7 @@ export default function Checkout() {
       if (res.data?.success) {
         const orderId = res.data.data?._id || res.data.order?._id || res.data.data?.orderId;
 
-        // Lưu đơn hàng vào LocalStorage để đồng bộ ngay lập tức với trang Đơn hàng ShopeeFood
+        // Lưu đơn hàng vào LocalStorage để đồng bộ ngay lập tức với trang Đơn hàng FoodFast
         try {
           const prevOrders = JSON.parse(localStorage.getItem('my_orders') || '[]');
           const newOrder = {
@@ -329,11 +329,11 @@ export default function Checkout() {
 
         {/* Right: Order Summary */}
         <div className="space-y-6">
-          {/* Card Áp dụng Voucher (Shopee Style) */}
+          {/* Card Áp dụng Voucher (FoodFast Style) */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
               <Tag className="w-4 h-4 text-orange-600" />
-              <span>Mã Giảm Giá / Voucher (ShopeeFood)</span>
+              <span>Mã Giảm Giá / Voucher (FoodFast)</span>
             </div>
 
             {appliedVoucher ? (

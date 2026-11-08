@@ -17,7 +17,7 @@ export default function MerchantRegister() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Form State đầy đủ theo quy trình 11 ảnh của Shopee
+  // Form State đầy đủ theo quy trình của FoodFast
   const [formData, setFormData] = useState({
     // Bước 1: Thông tin quán cơ bản
     brandName: '',

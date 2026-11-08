@@ -93,7 +93,7 @@ router.get(
 );
 
 // -----------------------------------------------------------------------------
-// 4. Hệ thống Voucher (Shopee Style & Concurrency Control với Redis)
+// 4. Hệ thống Voucher (FoodFast Style & Concurrency Control với Redis)
 // -----------------------------------------------------------------------------
 router.post(
   ['/vouchers/apply', '/api/v1/vouchers/apply', '/apply'],

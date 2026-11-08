@@ -214,7 +214,7 @@ exports.getStoreStatus = async (req, res) => {
   }
 };
 
-// 6. Đăng ký cửa hàng người bán mới (Shopee Onboarding Process)
+// 6. Đăng ký cửa hàng người bán mới (FoodFast Onboarding Process)
 exports.registerStore = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -273,7 +273,7 @@ exports.registerStore = async (req, res) => {
       prep_time
     } = req.body;
 
-    // Tạo tên quán đầy đủ theo format chuẩn Shopee
+    // Tạo tên quán đầy đủ theo format chuẩn FoodFast
     let fullStoreName = name;
     if (!fullStoreName && brandName) {
       const parts = [brandName, specialtyDish, areaStreet].filter(Boolean);
