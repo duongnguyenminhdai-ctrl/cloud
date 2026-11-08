@@ -229,7 +229,7 @@ export default function Checkout() {
           };
           localStorage.setItem(userOrderKey, JSON.stringify([newOrder, ...prevOrders]));
           localStorage.removeItem('my_orders');
-        } catch (e) {}
+        } catch (e) { }
 
         // Trừ số xu tích lũy đã dùng
         if (useCoins && coinDiscountAmount > 0) {
@@ -237,7 +237,7 @@ export default function Checkout() {
           setUserCoins(remainingCoins);
           try {
             localStorage.setItem(coinsStorageKey, remainingCoins.toString());
-          } catch (e) {}
+          } catch (e) { }
         }
 
         clearCart();
@@ -467,11 +467,10 @@ export default function Checkout() {
                     key={m.id}
                     type="button"
                     onClick={() => setPaymentMethod(m.id)}
-                    className={`relative p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 ${
-                      isSelected
+                    className={`relative p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 ${isSelected
                         ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-500/20'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
+                      }`}
                   >
                     {m.badge && (
                       <span className="absolute -top-2.5 right-3 px-2 py-0.5 text-[9px] font-bold bg-gradient-to-r from-orange-600 to-amber-500 text-white rounded-full shadow-sm">
@@ -692,11 +691,10 @@ export default function Checkout() {
                   <button
                     type="button"
                     onClick={() => setDemoRain(!demoRain)}
-                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
-                      demoRain
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${demoRain
                         ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
-                    }`}
+                      }`}
                   >
                     <CloudRain className="w-3 h-3" />
                     <span>{demoRain ? 'Đang mưa (+5k)' : 'Mô phỏng mưa'}</span>
@@ -705,11 +703,10 @@ export default function Checkout() {
                   <button
                     type="button"
                     onClick={() => setDemoHour(demoHour === 23 ? null : 23)}
-                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
-                      demoHour === 23
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${demoHour === 23
                         ? 'bg-indigo-600 text-white font-bold border-indigo-600 shadow-sm'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-400'
-                    }`}
+                      }`}
                   >
                     <Moon className="w-3 h-3" />
                     <span>{demoHour === 23 ? 'Đêm 23h (+8k)' : 'Mô phỏng 23h'}</span>
@@ -718,11 +715,10 @@ export default function Checkout() {
                   <button
                     type="button"
                     onClick={() => setDemoHour(demoHour === 12 ? null : 12)}
-                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
-                      demoHour === 12
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${demoHour === 12
                         ? 'bg-amber-600 text-white font-bold border-amber-600 shadow-sm'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-amber-400'
-                    }`}
+                      }`}
                   >
                     <Sun className="w-3 h-3" />
                     <span>{demoHour === 12 ? 'Trưa 12h (+5k)' : 'Cao điểm trưa'}</span>
@@ -731,11 +727,10 @@ export default function Checkout() {
                   <button
                     type="button"
                     onClick={() => setDemoHour(demoHour === 19 ? null : 19)}
-                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${
-                      demoHour === 19
+                    className={`px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1 transition-all ${demoHour === 19
                         ? 'bg-orange-600 text-white font-bold border-orange-600 shadow-sm'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-orange-400'
-                    }`}
+                      }`}
                   >
                     <Sun className="w-3 h-3" />
                     <span>{demoHour === 19 ? 'Tối 19h (+5k)' : 'Cao điểm tối'}</span>

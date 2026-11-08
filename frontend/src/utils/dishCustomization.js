@@ -1,133 +1,85 @@
 /**
  * Bộ quy tắc cấu hình Tùy biến món ăn (Dish Customization) chuẩn ShopeeFood:
- * - Kích cỡ (Size: Vừa/Lớn)
- * - Mức độ ngọt/đá (cho đồ uống) hoặc mức cay/sốt (cho đồ ăn)
- * - Topping kèm giá cộng thêm (+x.000đ)
- * - Ghi chú cho quán (Ví dụ: không hành, ớt để riêng...)
+ * DO CHÍNH NGƯỜI BÁN (MERCHANT / QUÁN ĂN) THIẾT LẬP VÀ QUY ĐỊNH.
+ *
+ * Quy tắc cốt lõi:
+ * 1. Nếu quán chỉ có 1 kích cỡ: Tuyệt đối KHÔNG hiển thị bước chọn Size (khách không phải chọn size).
+ * 2. Nước sốt / Tùy chọn đi kèm: Chỉ hiển thị các nhóm tùy chọn do quán thiết lập (vd: Nước sốt, Mức đá, Mức đường, Độ cay...).
+ * 3. Topping: Chỉ hiển thị danh sách topping do quán tạo kèm giá cộng thêm.
+ * 4. Món không có tùy chọn: Mặc định là món 1 size chuẩn, không ép buộc chọn size hay nước sốt.
  */
 
+/**
+ * Lấy cấu hình tùy biến của món ăn dựa trên dữ liệu quán thiết lập
+ * @param {object} dish - Món ăn
+ * @returns {object} Cấu hình tùy biến
+ */
 export const getDishCustomizationConfig = (dish) => {
-  const name = (dish?.name || '').toLowerCase();
+  if (!dish) return null;
 
-  // 1. Nhóm Đồ uống: Trà sữa, Trà đào, Cà phê, Nước ngọt, v.v.
-  if (
-    name.includes('trà') ||
-    name.includes('cà phê') ||
-    name.includes('sữa') ||
-    name.includes('nước') ||
-    name.includes('coca') ||
-    name.includes('pepsi') ||
-    name.includes('đá xay')
-  ) {
+  // 1. Cấu hình do chính Chủ quán (Merchant) thiết lập cho món ăn
+  if (dish.customization && (dish.customization.hasCustomization || dish.customization.sizes?.length > 0 || dish.customization.optionGroups?.length > 0 || dish.customization.toppings?.length > 0)) {
+    const cust = dish.customization;
+    const rawSizes = Array.isArray(cust.sizes) ? cust.sizes : [];
+    const rawOptionGroups = Array.isArray(cust.optionGroups) ? cust.optionGroups : [];
+    const rawToppings = Array.isArray(cust.toppings) ? cust.toppings : [];
+
+    // Chỉ khi quán thiết lập từ 2 kích cỡ trở lên thì khách mới cần chọn size.
+    // Nếu quán chỉ có 0 hoặc 1 size, sizes = [] để không hiển thị bước chọn size!
+    const effectiveSizes = rawSizes.length > 1 ? rawSizes.map((s, idx) => ({
+      id: s.id || s._id || `size_${idx}`,
+      name: s.name,
+      price: Number(s.price || s.priceBonus || 0),
+      isDefault: s.isDefault || idx === 0
+    })) : [];
+
+    const effectiveOptionGroups = rawOptionGroups.map((og, idx) => ({
+      id: og.id || og._id || `opt_${idx}`,
+      name: og.name,
+      required: og.required !== false,
+      options: Array.isArray(og.options) ? og.options : [],
+      defaultOption: og.defaultOption || (Array.isArray(og.options) && og.options.length > 0 ? og.options[0] : '')
+    }));
+
+    const effectiveToppings = rawToppings.map((t, idx) => ({
+      id: t.id || t._id || `top_${idx}`,
+      name: t.name,
+      price: Number(t.price || 0)
+    }));
+
     return {
-      type: 'BEVERAGE',
-      sizes: [
-        { id: 'M', name: 'Size Vừa (M)', price: 0, default: true },
-        { id: 'L', name: 'Size Lớn (L)', price: 10000 }
-      ],
-      sugarLevels: [
-        '100% Đường',
-        '70% Đường (Chuẩn)',
-        '50% Đường',
-        '30% Đường',
-        'Không đường'
-      ],
-      iceLevels: [
-        '100% Đá',
-        '70% Đá (Chuẩn)',
-        '50% Đá',
-        'Ít đá',
-        'Không đá'
-      ],
-      defaultSugar: '70% Đường (Chuẩn)',
-      defaultIce: '70% Đá (Chuẩn)',
-      toppings: [
-        { id: 'top_boba', name: 'Trân châu đường đen dẻo', price: 8000 },
-        { id: 'top_cheese', name: 'Thạch phô mai tươi', price: 10000 },
-        { id: 'top_pudding', name: 'Pudding trứng béo ngậy', price: 8000 },
-        { id: 'top_macchiato', name: 'Kem sữa Macchiato', price: 12000 },
-        { id: 'top_white_pearl', name: 'Trân châu trắng giòn 3Q', price: 8000 }
-      ],
-      notePlaceholder: 'Ví dụ: ít đá, ngọt dịu, lấy thêm ống hút to...'
+      type: 'MERCHANT_CUSTOM',
+      sizes: effectiveSizes,
+      optionGroups: effectiveOptionGroups,
+      toppings: effectiveToppings,
+      allowNotes: cust.allowNotes !== false,
+      notePlaceholder: cust.notePlaceholder || 'Ghi chú cho quán (không hành, ít cay, để riêng nước sốt...)'
     };
   }
 
-  // 2. Nhóm Burger / Pizza / Gà rán / Fast food
-  if (
-    name.includes('burger') ||
-    name.includes('pizza') ||
-    name.includes('gà rán') ||
-    name.includes('khoai tây') ||
-    name.includes('fast')
-  ) {
-    return {
-      type: 'FASTFOOD',
-      sizes: [
-        { id: 'std', name: 'Khẩu phần Tiêu chuẩn', price: 0, default: true },
-        { id: 'double', name: 'Double Size (Gấp đôi nhân)', price: 15000 }
-      ],
-      sauces: [
-        'Sốt Phô mai đặc biệt (Chuẩn)',
-        'Sốt Cay Gochujang Hàn Quốc',
-        'Sốt Tiêu đen nướng BBQ',
-        'Sốt Mayonnaise tương cà'
-      ],
-      defaultSauce: 'Sốt Phô mai đặc biệt (Chuẩn)',
-      toppings: [
-        { id: 'top_cheddar', name: 'Thêm lát Phô mai Cheddar Mỹ', price: 8000 },
-        { id: 'top_bacon', name: 'Thịt xông khói áp chảo giòn', price: 12000 },
-        { id: 'top_fries', name: 'Khoai tây chiên giòn ăn kèm', price: 15000 },
-        { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 7000 }
-      ],
-      notePlaceholder: 'Ví dụ: không lấy dưa chuột muối, nước sốt để riêng, thêm khăn ướt...'
-    };
-  }
-
-  // 3. Nhóm Cơm tấm / Bún / Phở / Món Việt
-  if (
-    name.includes('cơm') ||
-    name.includes('sườn') ||
-    name.includes('bún') ||
-    name.includes('phở') ||
-    name.includes('xôi') ||
-    name.includes('bánh mì')
-  ) {
-    return {
-      type: 'VIETNAMESE',
-      sizes: [
-        { id: 'std', name: 'Phần Tiêu chuẩn', price: 0, default: true },
-        { id: 'extra', name: 'Phần Đặc biệt (Thêm thịt & cơm)', price: 12000 }
-      ],
-      spiceLevels: [
-        'Không cay',
-        'Cay nhẹ (Chuẩn)',
-        'Cay vừa',
-        'Cay nhiều'
-      ],
-      defaultSpice: 'Cay nhẹ (Chuẩn)',
-      toppings: [
-        { id: 'top_egg', name: 'Trứng ốp la lòng đào', price: 7000 },
-        { id: 'top_cha', name: 'Chả trứng thịt nướng thêm', price: 12000 },
-        { id: 'top_bi', name: 'Bì heo thơm sợi giòn', price: 10000 },
-        { id: 'top_soup', name: 'Chén canh khổ qua dồn thịt', price: 15000 },
-        { id: 'top_pickles', name: 'Đồ chua & dưa leo thêm', price: 5000 }
-      ],
-      notePlaceholder: 'Ví dụ: không lấy hành lá, sườn nướng cháy xém, nước mắm ngọt...'
-    };
-  }
-
-  // 4. Món ăn chung khác (Default General Food)
+  // 2. Món chưa có cấu hình riêng (Món 1 size chuẩn mặc định):
+  // Không ép khách chọn size, không ép chọn nước sốt
   return {
-    type: 'GENERAL',
-    sizes: [
-      { id: 'std', name: 'Khẩu phần Tiêu chuẩn', price: 0, default: true },
-      { id: 'large', name: 'Khẩu phần Lớn (Nhiều hơn)', price: 10000 }
-    ],
-    toppings: [
-      { id: 'top_sauce', name: 'Thêm chén sốt đặc biệt', price: 5000 },
-      { id: 'top_egg', name: 'Trứng ốp la', price: 7000 },
-      { id: 'top_cheese', name: 'Phô mai lát', price: 8000 }
-    ],
-    notePlaceholder: 'Ví dụ: không hành, cay vừa, để riêng nước chấm...'
+    type: 'SINGLE_SIZE',
+    sizes: [], // 0 hoặc 1 size -> Không hiển thị chọn size
+    optionGroups: [],
+    toppings: [],
+    allowNotes: true,
+    notePlaceholder: 'Ghi chú cho quán (không hành, ít cay, để riêng nước chấm...)'
   };
+};
+
+/**
+ * Kiểm tra xem một món ăn có các tùy chọn (Size, Nước sốt, Topping) do quán thiết lập hay không
+ * @param {object} dish - Món ăn
+ * @returns {boolean} true nếu có ít nhất 1 tùy chọn
+ */
+export const hasDishCustomization = (dish) => {
+  if (!dish) return false;
+  const config = getDishCustomizationConfig(dish);
+  if (!config) return false;
+  const hasMultipleSizes = Array.isArray(config.sizes) && config.sizes.length > 1;
+  const hasOptionGroups = Array.isArray(config.optionGroups) && config.optionGroups.length > 0;
+  const hasToppings = Array.isArray(config.toppings) && config.toppings.length > 0;
+  return hasMultipleSizes || hasOptionGroups || hasToppings;
 };

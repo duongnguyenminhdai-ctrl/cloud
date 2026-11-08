@@ -25,6 +25,48 @@ const menuItemSchema = new mongoose.Schema(
     isAvailable: {
       type: Boolean,
       default: true
+    },
+    // Cấu hình Kích cỡ, Tùy chọn đi kèm & Topping do chính người bán (Merchant/Shop) thiết lập
+    customization: {
+      hasCustomization: {
+        type: Boolean,
+        default: false
+      },
+      // Kích cỡ do quán quy định (Nếu quán chỉ có 1 size thì mảng này để trống hoặc có 1 phần tử)
+      sizes: [
+        {
+          id: { type: String, default: '' },
+          name: { type: String, required: true },
+          price: { type: Number, default: 0 },
+          isDefault: { type: Boolean, default: false }
+        }
+      ],
+      // Các nhóm tùy chọn đi kèm (vd: Nước sốt, Mức đá, Mức đường, Độ cay...) do quán thiết lập
+      optionGroups: [
+        {
+          id: { type: String, default: '' },
+          name: { type: String, required: true },
+          required: { type: Boolean, default: false },
+          options: [{ type: String }],
+          defaultOption: { type: String, default: '' }
+        }
+      ],
+      // Các món/topping thêm do quán thiết lập kèm giá
+      toppings: [
+        {
+          id: { type: String, default: '' },
+          name: { type: String, required: true },
+          price: { type: Number, required: true, default: 0 }
+        }
+      ],
+      allowNotes: {
+        type: Boolean,
+        default: true
+      },
+      notePlaceholder: {
+        type: String,
+        default: 'Ghi chú cho quán (không hành, ít cay...)'
+      }
     }
   },
   { _id: true }

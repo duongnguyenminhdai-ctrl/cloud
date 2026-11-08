@@ -24,6 +24,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 import DishCustomizationModal from '../components/DishCustomizationModal';
+import { hasDishCustomization } from '../utils/dishCustomization';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -166,7 +167,33 @@ export default function RestaurantDetail() {
   };
 
   const handleAdd = (item) => {
-    handleOpenCustomization(item);
+    // Nếu món có cấu hình tùy chọn (Size, sốt, topping do quán đặt) -> mở Modal tùy chọn
+    if (hasDishCustomization(item)) {
+      handleOpenCustomization(item);
+    } else {
+      // Món chỉ có 1 size chuẩn, không topping -> thêm ngay vào giỏ hàng
+      const directItem = {
+        ...item,
+        menuItemId: item._id || item.menuItemId || item.name,
+        name: item.name,
+        price: Number(item.price) || 0,
+        basePrice: Number(item.price) || 0,
+        quantity: 1,
+        selectedSize: null,
+        selectedToppings: [],
+        options: {},
+        note: '',
+        cartItemId: `${item._id || item.name}_std`
+      };
+      const success = addToCart(directItem, restaurant);
+      if (success) {
+        const itemId = item._id || item.menuItemId || item.name;
+        setAddedItemIds((prev) => [...prev, itemId]);
+        setTimeout(() => {
+          setAddedItemIds((prev) => prev.filter((id) => id !== itemId));
+        }, 1200);
+      }
+    }
   };
 
   if (loading) {
@@ -342,9 +369,13 @@ export default function RestaurantDetail() {
                         <>
                           <Check className="w-3.5 h-3.5" /> Đã thêm
                         </>
-                      ) : (
+                      ) : hasDishCustomization(item) ? (
                         <>
                           <Plus className="w-3.5 h-3.5" /> Tùy chọn & Thêm
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" /> Thêm vào giỏ
                         </>
                       )}
                     </button>

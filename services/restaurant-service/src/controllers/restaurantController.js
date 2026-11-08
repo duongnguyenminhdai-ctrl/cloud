@@ -418,7 +418,7 @@ exports.updateMyStore = async (req, res) => {
   }
 };
 
-// 9. Thêm món ăn vào thực đơn quán của tôi
+// 9. Thêm món ăn vào thực đơn quán của tôi (kèm cấu hình kích cỡ & tùy chọn do quán thiết lập)
 exports.addMenuItem = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -427,17 +427,27 @@ exports.addMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
     }
 
-    const { name, price, description, image } = req.body;
+    const { name, price, description, image, customization } = req.body;
     if (!name || price === undefined) {
       return res.status(400).json({ success: false, message: 'Tên món và giá món không được để trống.' });
     }
+
+    const formattedCustomization = customization || {
+      hasCustomization: false,
+      sizes: [],
+      optionGroups: [],
+      toppings: [],
+      allowNotes: true,
+      notePlaceholder: 'Ghi chú cho quán (không hành, ít cay...)'
+    };
 
     store.menuItems.push({
       name,
       price: Number(price),
       description: description || '',
       image: image || '',
-      isAvailable: true
+      isAvailable: true,
+      customization: formattedCustomization
     });
 
     await store.save();
@@ -453,7 +463,7 @@ exports.addMenuItem = async (req, res) => {
   }
 };
 
-// 10. Sửa món ăn trong thực đơn quán
+// 10. Sửa món ăn trong thực đơn quán (cập nhật thông tin, kích cỡ, topping do quán quy định)
 exports.updateMenuItem = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -468,12 +478,13 @@ exports.updateMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn.' });
     }
 
-    const { name, price, description, image, isAvailable } = req.body;
+    const { name, price, description, image, isAvailable, customization } = req.body;
     if (name) item.name = name;
     if (price !== undefined) item.price = Number(price);
     if (description !== undefined) item.description = description;
     if (image !== undefined) item.image = image;
     if (isAvailable !== undefined) item.isAvailable = isAvailable;
+    if (customization !== undefined) item.customization = customization;
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());

@@ -9,21 +9,40 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
   const config = useMemo(() => getDishCustomizationConfig(dish), [dish]);
   const dishImage = dish.image || dish.imageUrl || getDishImageByName(dish.name);
 
-  // States tùy chọn
+  // Kích cỡ (Size): chỉ áp dụng khi quán thiết lập >= 2 kích cỡ
+  const hasMultipleSizes = Boolean(config?.sizes && config.sizes.length > 1);
   const [selectedSize, setSelectedSize] = useState(() => {
-    return config.sizes?.[0] || { id: 'std', name: 'Tiêu chuẩn', price: 0 };
+    if (hasMultipleSizes) {
+      return config.sizes.find((s) => s.isDefault) || config.sizes[0];
+    }
+    return null;
   });
 
-  const [selectedSugar, setSelectedSugar] = useState(config.defaultSugar || '70% Đường (Chuẩn)');
-  const [selectedIce, setSelectedIce] = useState(config.defaultIce || '70% Đá (Chuẩn)');
-  const [selectedSpice, setSelectedSpice] = useState(config.defaultSpice || 'Cay nhẹ (Chuẩn)');
-  const [selectedSauce, setSelectedSauce] = useState(config.defaultSauce || 'Sốt Phô mai đặc biệt (Chuẩn)');
+  // Tùy chọn đi kèm (Option Groups do quán thiết lập: vd Nước sốt, Mức đường, Mức đá, Độ cay...)
+  const [selectedOptions, setSelectedOptions] = useState(() => {
+    const initial = {};
+    if (Array.isArray(config?.optionGroups)) {
+      config.optionGroups.forEach((group) => {
+        const key = group.id || group.name;
+        initial[key] = group.defaultOption || (group.options?.[0] || '');
+      });
+    }
+    return initial;
+  });
 
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [customerNote, setCustomerNote] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  // Bật/tắt topping
+  // Cập nhật chọn option trong nhóm
+  const handleSelectOption = (groupKey, optionVal) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [groupKey]: optionVal
+    }));
+  };
+
+  // Bật/tắt topping do quán thiết lập
   const toggleTopping = (topping) => {
     setSelectedToppings((prev) => {
       const exists = prev.some((t) => t.id === topping.id);
@@ -35,13 +54,13 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
     });
   };
 
-  // Tính đơn giá 1 phần sau khi cộng size và toppings
+  // Tính đơn giá 1 phần sau khi cộng size (nếu có) và toppings
   const unitPrice = useMemo(() => {
     const base = Number(dish.price) || 0;
-    const sizeExtra = Number(selectedSize?.price) || 0;
+    const sizeExtra = hasMultipleSizes ? (Number(selectedSize?.price) || 0) : 0;
     const toppingsExtra = selectedToppings.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
     return base + sizeExtra + toppingsExtra;
-  }, [dish.price, selectedSize, selectedToppings]);
+  }, [dish.price, selectedSize, selectedToppings, hasMultipleSizes]);
 
   // Tổng tiền cho toàn bộ số lượng
   const totalPrice = unitPrice * quantity;
@@ -53,20 +72,15 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
       menuItemId: dish._id || dish.menuItemId || dish.id,
       name: dish.name,
       basePrice: Number(dish.price) || 0,
-      price: unitPrice, // Giá đã gồm size + toppings
+      price: unitPrice,
       quantity,
       image: dishImage,
-      selectedSize,
+      selectedSize: hasMultipleSizes ? selectedSize : null,
       selectedToppings,
-      options: {
-        sugar: config.type === 'BEVERAGE' ? selectedSugar : undefined,
-        ice: config.type === 'BEVERAGE' ? selectedIce : undefined,
-        spice: config.type === 'VIETNAMESE' ? selectedSpice : undefined,
-        sauce: config.type === 'FASTFOOD' ? selectedSauce : undefined
-      },
+      options: selectedOptions,
       note: customerNote.trim(),
       // Khóa định danh duy nhất trong giỏ hàng
-      cartItemId: `${dish._id || dish.name}_${selectedSize.id}_${selectedToppings.map(t => t.id).sort().join('-')}_${encodeURIComponent(customerNote.trim())}`
+      cartItemId: `${dish._id || dish.name}_${hasMultipleSizes ? selectedSize?.id : 'std'}_${selectedToppings.map(t => t.id).sort().join('-')}_${encodeURIComponent(JSON.stringify(selectedOptions))}_${encodeURIComponent(customerNote.trim())}`
     };
 
     onConfirm(customizedItem);
@@ -111,8 +125,8 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
 
         {/* Nội dung các nhóm tùy chọn cuộn dọc */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
-          {/* 1. Chọn Kích cỡ (Bắt buộc) */}
-          {config.sizes && config.sizes.length > 0 && (
+          {/* 1. Chọn Kích cỡ: CHỈ HIỂN THỊ KHI QUÁN THIẾT LẬP >= 2 SIZE */}
+          {hasMultipleSizes && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
@@ -157,129 +171,64 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
             </div>
           )}
 
-          {/* 2. Mức Đường & Mức Đá (Nếu là Đồ uống) */}
-          {config.type === 'BEVERAGE' && (
-            <>
-              {/* Mức đường */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-gray-900">
-                    Mức ngọt (Đường)
-                  </span>
-                  <span className="text-xs text-gray-400">Chọn 1</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {config.sugarLevels.map((lvl) => (
-                    <button
-                      type="button"
-                      key={lvl}
-                      onClick={() => setSelectedSugar(lvl)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                        selectedSugar === lvl
-                          ? 'bg-[#EE4D2D] text-white font-bold shadow-xs'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* 2. Các Nhóm Tùy Chọn Đi Kèm Do Quán Thiết Lập (vd: Nước sốt, Mức đá, Mức đường, Độ cay...) */}
+          {Array.isArray(config.optionGroups) && config.optionGroups.length > 0 && (
+            <div className="space-y-4">
+              {config.optionGroups.map((group) => {
+                const groupKey = group.id || group.name;
+                const currentVal = selectedOptions[groupKey];
 
-              {/* Mức đá */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-gray-900">
-                    Mức lạnh (Đá)
-                  </span>
-                  <span className="text-xs text-gray-400">Chọn 1</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {config.iceLevels.map((lvl) => (
-                    <button
-                      type="button"
-                      key={lvl}
-                      onClick={() => setSelectedIce(lvl)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                        selectedIce === lvl
-                          ? 'bg-[#EE4D2D] text-white font-bold shadow-xs'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* 3. Mức Cay (Nếu là Món Việt) */}
-          {config.type === 'VIETNAMESE' && config.spiceLevels && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold text-gray-900">
-                  Mức độ cay
-                </span>
-                <span className="text-xs text-gray-400">Chọn 1</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {config.spiceLevels.map((lvl) => (
-                  <button
-                    type="button"
-                    key={lvl}
-                    onClick={() => setSelectedSpice(lvl)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      selectedSpice === lvl
-                        ? 'bg-[#EE4D2D] text-white font-bold shadow-xs'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 4. Loại Sốt (Nếu là Fast food) */}
-          {config.type === 'FASTFOOD' && config.sauces && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold text-gray-900">
-                  Nước sốt đi kèm
-                </span>
-                <span className="text-xs text-gray-400">Chọn 1</span>
-              </div>
-              <div className="space-y-1.5">
-                {config.sauces.map((s) => (
-                  <label
-                    key={s}
-                    onClick={() => setSelectedSauce(s)}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
-                      selectedSauce === s ? 'border-[#EE4D2D] bg-orange-50/50 font-bold text-orange-950' : 'border-gray-100 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                        selectedSauce === s ? 'border-[#EE4D2D] bg-[#EE4D2D]' : 'border-gray-300'
-                      }`}
-                    >
-                      {selectedSauce === s && <div className="w-1 h-1 rounded-full bg-white" />}
+                return (
+                  <div key={groupKey} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                        <span>{group.name}</span>
+                        {group.required && (
+                          <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">
+                            Bắt buộc
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-gray-400">Chọn 1</span>
                     </div>
-                    <span>{s}</span>
-                  </label>
-                ))}
-              </div>
+
+                    <div className="space-y-1.5">
+                      {group.options?.map((opt) => {
+                        const isChosen = currentVal === opt;
+                        return (
+                          <label
+                            key={opt}
+                            onClick={() => handleSelectOption(groupKey, opt)}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
+                              isChosen
+                                ? 'border-[#EE4D2D] bg-orange-50/50 font-bold text-orange-950'
+                                : 'border-gray-100 hover:bg-gray-50 text-gray-700'
+                            }`}
+                          >
+                            <div
+                              className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                isChosen ? 'border-[#EE4D2D] bg-[#EE4D2D]' : 'border-gray-300'
+                              }`}
+                            >
+                              {isChosen && <div className="w-1 h-1 rounded-full bg-white" />}
+                            </div>
+                            <span>{opt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {/* 5. Danh sách Topping (Chọn nhiều) */}
-          {config.toppings && config.toppings.length > 0 && (
+          {/* 3. Danh sách Topping Do Quán Thiết Lập (Chọn nhiều) */}
+          {Array.isArray(config.toppings) && config.toppings.length > 0 && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs sm:text-sm font-bold text-gray-900">
-                  Topping gọi thêm
+                  Topping / Món ăn kèm
                 </span>
                 <span className="text-xs text-gray-400">Không bắt buộc</span>
               </div>
@@ -317,23 +266,25 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
             </div>
           )}
 
-          {/* 6. Ghi chú cho quán */}
-          <div className="space-y-1.5">
-            <label className="text-xs sm:text-sm font-bold text-gray-900 block">
-              Ghi chú cho quán
-            </label>
-            <textarea
-              value={customerNote}
-              onChange={(e) => setCustomerNote(e.target.value)}
-              placeholder={config.notePlaceholder || 'Ví dụ: không hành, ớt để riêng, ít ngọt...'}
-              maxLength={150}
-              rows={2}
-              className="w-full text-xs sm:text-sm p-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#EE4D2D] transition-colors resize-none placeholder:text-gray-400"
-            />
-            <div className="text-right text-[10px] text-gray-400">
-              {customerNote.length}/150
+          {/* 4. Ghi chú cho quán */}
+          {config.allowNotes && (
+            <div className="space-y-1.5">
+              <label className="text-xs sm:text-sm font-bold text-gray-900 block">
+                Ghi chú cho quán
+              </label>
+              <textarea
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                placeholder={config.notePlaceholder || 'Ví dụ: không hành, ớt để riêng, ít ngọt...'}
+                maxLength={150}
+                rows={2}
+                className="w-full text-xs sm:text-sm p-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#EE4D2D] transition-colors resize-none placeholder:text-gray-400"
+              />
+              <div className="text-right text-[10px] text-gray-400">
+                {customerNote.length}/150
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer: Bộ chọn số lượng & Nút Thêm vào giỏ */}
