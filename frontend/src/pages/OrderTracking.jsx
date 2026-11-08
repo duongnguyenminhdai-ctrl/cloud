@@ -410,32 +410,64 @@ export default function OrderTracking() {
             </p>
           </div>
         </div>
+
+        {/* Ghi chú cho tài xế giao hàng nếu có */}
+        {order?.driverNote && (
+          <div className="p-3.5 rounded-2xl bg-orange-50/80 border border-orange-200/60 flex items-start gap-2.5 text-xs text-orange-950 animate-fadeIn">
+            <Bike className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-orange-900">Ghi chú cho tài xế: </span>
+              <span className="italic text-orange-800">"{order.driverNote}"</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ordered Items List */}
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
         <h2 className="font-bold text-gray-900 text-base">Chi tiết các món ăn</h2>
         <div className="divide-y divide-gray-100">
-          {order.items?.map((item, idx) => (
-            <div key={idx} className="py-2.5 flex items-center justify-between text-sm">
-              <div className="flex items-center gap-3">
-                <img
-                  src={item.image || item.imageUrl || getDishImageByName(item.name)}
-                  alt={item.name}
-                  className="w-11 h-11 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs"
-                />
-                <div>
-                  <p className="font-semibold text-gray-800 text-xs sm:text-sm">
-                    <span className="font-bold text-orange-600 mr-1.5">{item.quantity}x</span>
-                    {item.name}
-                  </p>
+          {order.items?.map((item, idx) => {
+            const optionTexts = [
+              item.selectedSize?.name,
+              item.options?.sugar,
+              item.options?.ice,
+              item.options?.spice,
+              item.options?.sauce,
+              item.selectedToppings?.map((t) => t.name).join(', ')
+            ].filter(Boolean);
+
+            return (
+              <div key={idx} className="py-3 flex items-start justify-between text-sm">
+                <div className="flex items-start gap-3 min-w-0">
+                  <img
+                    src={item.image || item.imageUrl || getDishImageByName(item.name)}
+                    alt={item.name}
+                    className="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs mt-0.5"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="font-semibold text-gray-800 text-xs sm:text-sm">
+                      <span className="font-bold text-orange-600 mr-1.5">{item.quantity}x</span>
+                      {item.name}
+                    </p>
+                    {optionTexts.length > 0 && (
+                      <p className="text-[11px] text-gray-500">
+                        {optionTexts.join(' • ')}
+                      </p>
+                    )}
+                    {item.note && (
+                      <p className="text-[11px] text-amber-700 italic">
+                        Ghi chú quán: {item.note}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                <span className="font-bold text-gray-900 shrink-0 pl-3">
+                  {(Number(item.price) * Number(item.quantity)).toLocaleString('vi-VN')} đ
+                </span>
               </div>
-              <span className="font-bold text-gray-900">
-                {(Number(item.price) * Number(item.quantity)).toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

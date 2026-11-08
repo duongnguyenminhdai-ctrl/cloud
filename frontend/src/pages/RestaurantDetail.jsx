@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
+import DishCustomizationModal from '../components/DishCustomizationModal';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -147,15 +148,25 @@ export default function RestaurantDetail() {
     }
   };
 
-  const handleAdd = (item) => {
-    const success = addToCart(item, restaurant);
+  const [customizingDish, setCustomizingDish] = useState(null);
+
+  const handleOpenCustomization = (item) => {
+    setCustomizingDish(item);
+  };
+
+  const handleConfirmCustomization = (customizedItem) => {
+    const success = addToCart(customizedItem, restaurant);
     if (success) {
-      const itemId = item._id || item.menuItemId || item.name;
+      const itemId = customizedItem._id || customizedItem.menuItemId || customizedItem.name;
       setAddedItemIds((prev) => [...prev, itemId]);
       setTimeout(() => {
         setAddedItemIds((prev) => prev.filter((id) => id !== itemId));
       }, 1200);
     }
+  };
+
+  const handleAdd = (item) => {
+    handleOpenCustomization(item);
   };
 
   if (loading) {
@@ -333,7 +344,7 @@ export default function RestaurantDetail() {
                         </>
                       ) : (
                         <>
-                          <Plus className="w-3.5 h-3.5" /> Thêm món
+                          <Plus className="w-3.5 h-3.5" /> Tùy chọn & Thêm
                         </>
                       )}
                     </button>
@@ -557,6 +568,14 @@ export default function RestaurantDetail() {
         onClose={() => setIsAddressModalOpen(false)}
         currentLocation={userCoord}
         onSelectLocation={setManualLocation}
+      />
+
+      {/* Modal tùy biến món ăn chuẩn ShopeeFood (Size, Toppings, Mức ngọt/đá, Ghi chú quán) */}
+      <DishCustomizationModal
+        dish={customizingDish}
+        isOpen={!!customizingDish}
+        onClose={() => setCustomizingDish(null)}
+        onConfirm={handleConfirmCustomization}
       />
     </div>
   );

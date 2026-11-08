@@ -54,6 +54,16 @@ export const MENU_DISH_IMAGES = {
 export const DEFAULT_DISH_FALLBACK =
   'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80';
 
+export const isInvalidDishImage = (img) => {
+  if (!img || typeof img !== 'string') return true;
+  const clean = img.trim();
+  if (clean === '') return true;
+  // Bỏ qua ảnh không gian / nội thất quán ăn (bàn ghế, phòng ốc) để dùng ảnh món ăn thật
+  if (clean.includes('photo-1555396273-367ea4eb4db5')) return true;
+  if (clean.includes('photo-1517248135467-4c7edcad34c4')) return true;
+  return false;
+};
+
 /**
  * Tra cứu hình ảnh món ăn chính xác dựa trên tên món
  * @param {string} dishName - Tên món ăn (VD: "Burger Bò Phô Mai Kép")
@@ -80,7 +90,7 @@ export const getDishImageByName = (dishName) => {
 /**
  * Lấy hình ảnh món ăn đại diện chuẩn cho đơn hàng (đã đặt)
  * Ưu tiên:
- * 1. Image được lưu trực tiếp trong phần tử item của đơn
+ * 1. Image được lưu trực tiếp trong phần tử item của đơn (nếu là ảnh món ăn hợp lệ)
  * 2. Tra cứu theo tên món ăn đầu tiên trong danh sách items
  * 3. Tra cứu theo tên quán ăn
  * 4. Image quán ăn (nếu không phải ảnh phòng trống mặc định)
@@ -92,13 +102,13 @@ export const getDishImageByName = (dishName) => {
 export const getOrderDishImage = (order) => {
   if (!order) return DEFAULT_DISH_FALLBACK;
 
-  // 1. Kiểm tra ảnh trong items
+  // 1. Kiểm tra ảnh trong items (bỏ qua ảnh nội thất quán)
   if (Array.isArray(order.items) && order.items.length > 0) {
     for (const it of order.items) {
-      if (it?.image && typeof it.image === 'string' && it.image.trim() !== '') {
+      if (!isInvalidDishImage(it?.image)) {
         return it.image;
       }
-      if (it?.imageUrl && typeof it.imageUrl === 'string' && it.imageUrl.trim() !== '') {
+      if (!isInvalidDishImage(it?.imageUrl)) {
         return it.imageUrl;
       }
     }
@@ -128,7 +138,7 @@ export const getOrderDishImage = (order) => {
   }
 
   // 4. Nếu có ảnh quán ăn hợp lệ (không phải ảnh phòng nhà hàng trống 1555396273)
-  if (order.restaurantImage && !order.restaurantImage.includes('photo-1555396273-367ea4eb4db5')) {
+  if (!isInvalidDishImage(order.restaurantImage)) {
     return order.restaurantImage;
   }
 
@@ -145,7 +155,10 @@ export const enrichOrderWithDishImages = (order) => {
 
   const enrichedItems = Array.isArray(order.items)
     ? order.items.map((it) => {
-        const image = it.image || it.imageUrl || getDishImageByName(it.name);
+        let image = it.image || it.imageUrl;
+        if (isInvalidDishImage(image)) {
+          image = getDishImageByName(it.name);
+        }
         return { ...it, image };
       })
     : [];
@@ -159,3 +172,4 @@ export const enrichOrderWithDishImages = (order) => {
     dishImage: displayImage
   };
 };
+

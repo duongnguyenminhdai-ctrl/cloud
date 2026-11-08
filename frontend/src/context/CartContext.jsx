@@ -66,13 +66,16 @@ export const CartProvider = ({ children }) => {
       return false;
     }
 
+    const addQty = Number(item.quantity) || 1;
+    const targetKey = item.cartItemId || item.menuItemId || item._id;
+
     // Nếu thêm món từ quán khác, làm mới giỏ hàng theo quán mới
     if (currentRestaurant && currentRestaurant._id !== restaurant._id && cartItems.length > 0) {
       const confirmChange = window.confirm(
         `Giỏ hàng của bạn đang có món từ "${currentRestaurant.name}". Bạn có muốn đổi sang đặt món từ "${restaurant.name}" không?`
       );
       if (!confirmChange) return false;
-      setCartItems([{ ...item, quantity: 1 }]);
+      setCartItems([{ ...item, cartItemId: targetKey, quantity: addQty }]);
       setCurrentRestaurant(restaurant);
       return true;
     }
@@ -83,15 +86,23 @@ export const CartProvider = ({ children }) => {
 
     setCartItems((prevItems) => {
       const existingIndex = prevItems.findIndex(
-        (i) => (i.menuItemId || i._id) === (item.menuItemId || item._id)
+        (i) => (i.cartItemId || i.menuItemId || i._id) === targetKey
       );
 
       if (existingIndex > -1) {
         const newItems = [...prevItems];
-        newItems[existingIndex].quantity += 1;
+        newItems[existingIndex].quantity += addQty;
         return newItems;
       } else {
-        return [...prevItems, { ...item, menuItemId: item._id || item.menuItemId, quantity: 1 }];
+        return [
+          ...prevItems,
+          {
+            ...item,
+            cartItemId: targetKey,
+            menuItemId: item._id || item.menuItemId,
+            quantity: addQty
+          }
+        ];
       }
     });
 
@@ -101,13 +112,13 @@ export const CartProvider = ({ children }) => {
   // Giảm bớt số lượng hoặc xóa món
   const removeFromCart = (itemId) => {
     setCartItems((prevItems) => {
-      const existing = prevItems.find((i) => (i.menuItemId || i._id) === itemId);
+      const existing = prevItems.find((i) => (i.cartItemId || i.menuItemId || i._id) === itemId);
       if (existing && existing.quantity > 1) {
         return prevItems.map((i) =>
-          (i.menuItemId || i._id) === itemId ? { ...i, quantity: i.quantity - 1 } : i
+          (i.cartItemId || i.menuItemId || i._id) === itemId ? { ...i, quantity: i.quantity - 1 } : i
         );
       }
-      const filtered = prevItems.filter((i) => (i.menuItemId || i._id) !== itemId);
+      const filtered = prevItems.filter((i) => (i.cartItemId || i.menuItemId || i._id) !== itemId);
       if (filtered.length === 0) {
         setCurrentRestaurant(null);
       }
@@ -123,7 +134,7 @@ export const CartProvider = ({ children }) => {
     }
     setCartItems((prevItems) =>
       prevItems.map((i) =>
-        (i.menuItemId || i._id) === itemId ? { ...i, quantity } : i
+        (i.cartItemId || i.menuItemId || i._id) === itemId ? { ...i, quantity } : i
       )
     );
   };

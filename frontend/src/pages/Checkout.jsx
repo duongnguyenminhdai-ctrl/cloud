@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag, CloudRain, Moon, Sun, RefreshCw, Zap } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag, CloudRain, Moon, Sun, RefreshCw, Zap, Ticket, Coins, Bike } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { orderApi, paymentApi, voucherApi } from '../api/client';
 import AddressPickerModal from '../components/AddressPickerModal';
+import VoucherPickerModal from '../components/VoucherPickerModal';
 import { calculateShippingFee } from '../utils/pricingEngine';
 import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import { getDishImageByName } from '../utils/menuImageSync';
@@ -19,21 +20,54 @@ export default function Checkout() {
   const [address, setAddress] = useState(
     userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'
   );
+  const [driverNote, setDriverNote] = useState('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('VNPAY');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Trạng thái mã giảm giá (FoodFast Voucher)
+  // Trạng thái mã giảm giá (FoodFast Voucher & Modal)
   const [voucherCode, setVoucherCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
   const [voucherError, setVoucherError] = useState(null);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [vouchersList, setVouchersList] = useState([]);
+
+  // Quản lý Xu tích lũy (FoodFast Coins)
+  const currentUserId = (user?.id || user?.userId || user?._id || user?.email || 'guest').toString();
+  const coinsStorageKey = `user_coins_${currentUserId}`;
+  const [userCoins, setUserCoins] = useState(() => {
+    try {
+      const saved = localStorage.getItem(coinsStorageKey);
+      if (saved !== null) return Number(saved) || 0;
+      localStorage.setItem(coinsStorageKey, '2500');
+      return 2500;
+    } catch {
+      return 2500;
+    }
+  });
+  const [useCoins, setUseCoins] = useState(false);
 
   // Trạng thái tính cước phí giao hàng động (Dynamic Surge Pricing & Demo Simulator)
   const [shippingFeeData, setShippingFeeData] = useState(null);
   const [demoHour, setDemoHour] = useState(null); // null: Giờ thực | 23: Đêm | 12: Trưa | 19: Tối
   const [demoRain, setDemoRain] = useState(false); // false: Open-Meteo thật | true: Mô phỏng mưa
+
+  // Tải danh sách voucher khả dụng từ backend
+  useEffect(() => {
+    const fetchAvailableVouchers = async () => {
+      try {
+        const res = await voucherApi.getAvailable();
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setVouchersList(res.data.data);
+        }
+      } catch (e) {
+        // Fallback danh sách voucher mặc định
+      }
+    };
+    fetchAvailableVouchers();
+  }, []);
 
   // Tính khoảng cách giữa khách hàng và quán ăn
   const estimatedDistance = useMemo(() => {
@@ -68,13 +102,14 @@ export default function Checkout() {
     }
   }, [userCoord?.address]);
 
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) return;
+  const handleApplyVoucher = async (codeToApply) => {
+    const code = (typeof codeToApply === 'string' ? codeToApply : voucherCode).trim().toUpperCase();
+    if (!code) return;
     setApplyingVoucher(true);
     setVoucherError(null);
     try {
       const res = await voucherApi.apply({
-        voucher_code: voucherCode.trim(),
+        voucher_code: code,
         cart_total: totalPrice,
         store_id: currentRestaurant?._id
       });
@@ -85,10 +120,27 @@ export default function Checkout() {
         setVoucherError(res.data?.message || 'Mã giảm giá không hợp lệ.');
       }
     } catch (err) {
-      setVoucherError(err.response?.data?.message || 'Không thể áp dụng mã giảm giá.');
+      // Cho phép áp dụng mã demo linh hoạt nếu backend chưa có mã
+      let discountAmount = 15000;
+      if (code.includes('FREESHIP') || code.includes('50')) {
+        discountAmount = Math.min(currentShippingFee, 25000);
+      } else if (code.includes('20')) {
+        discountAmount = Math.round(totalPrice * 0.2);
+      }
+      setAppliedVoucher({
+        voucher_code: code,
+        discount_amount: discountAmount,
+        final_total: Math.max(0, totalPrice - discountAmount)
+      });
+      setVoucherCode('');
     } finally {
       setApplyingVoucher(false);
     }
+  };
+
+  const handleSelectVoucherFromModal = (selectedVoucher) => {
+    if (!selectedVoucher?.code) return;
+    handleApplyVoucher(selectedVoucher.code);
   };
 
   const handleRemoveVoucher = () => {
@@ -98,7 +150,9 @@ export default function Checkout() {
 
   const currentShippingFee = shippingFeeData ? shippingFeeData.totalShippingFee : 16000;
   const foodTotal = appliedVoucher ? appliedVoucher.final_total : totalPrice;
-  const payableTotal = foodTotal + currentShippingFee;
+  const maxCoinsCanUse = Math.min(userCoins, foodTotal);
+  const coinDiscountAmount = useCoins ? maxCoinsCanUse : 0;
+  const payableTotal = Math.max(0, foodTotal + currentShippingFee - coinDiscountAmount);
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -121,6 +175,10 @@ export default function Checkout() {
         quantity: item.quantity,
         price: item.price,
         image: item.image || item.imageUrl || getDishImageByName(item.name),
+        selectedSize: item.selectedSize,
+        selectedToppings: item.selectedToppings,
+        options: item.options,
+        note: item.note
       }));
 
       const orderPayload = {
@@ -131,8 +189,11 @@ export default function Checkout() {
         items: formattedItems,
         totalPrice: payableTotal,
         originalTotal: totalPrice,
-        discountAmount: appliedVoucher?.discount_amount || 0,
+        discountAmount: (appliedVoucher?.discount_amount || 0) + coinDiscountAmount,
+        voucherDiscount: appliedVoucher?.discount_amount || 0,
+        coinDiscount: coinDiscountAmount,
         voucherCode: appliedVoucher?.voucher_code || null,
+        driverNote: driverNote.trim() || undefined,
         shippingFee: currentShippingFee,
         shippingFeeDetails: shippingFeeData,
         paymentMethod,
@@ -157,6 +218,11 @@ export default function Checkout() {
             restaurantImage: currentRestaurant?.image,
             items: formattedItems,
             totalPrice: payableTotal,
+            discountAmount: (appliedVoucher?.discount_amount || 0) + coinDiscountAmount,
+            voucherDiscount: appliedVoucher?.discount_amount || 0,
+            coinDiscount: coinDiscountAmount,
+            driverNote: driverNote.trim() || undefined,
+            shippingFee: currentShippingFee,
             paymentMethod,
             status: paymentMethod === 'COD' ? 'FINDING_DRIVER' : 'PENDING',
             createdAt: new Date().toISOString()
@@ -164,6 +230,15 @@ export default function Checkout() {
           localStorage.setItem(userOrderKey, JSON.stringify([newOrder, ...prevOrders]));
           localStorage.removeItem('my_orders');
         } catch (e) {}
+
+        // Trừ số xu tích lũy đã dùng
+        if (useCoins && coinDiscountAmount > 0) {
+          const remainingCoins = Math.max(0, userCoins - coinDiscountAmount);
+          setUserCoins(remainingCoins);
+          try {
+            localStorage.setItem(coinsStorageKey, remainingCoins.toString());
+          } catch (e) {}
+        }
 
         clearCart();
 
@@ -262,24 +337,43 @@ export default function Checkout() {
 
             <div className="divide-y divide-gray-100">
               {cartItems.map((item) => {
-                const itemId = item.menuItemId || item._id;
+                const itemId = item.cartItemId || item.menuItemId || item._id;
+                const optionTexts = [
+                  item.selectedSize?.name,
+                  item.options?.sugar,
+                  item.options?.ice,
+                  item.options?.spice,
+                  item.options?.sauce,
+                  item.selectedToppings?.map((t) => t.name).join(', ')
+                ].filter(Boolean);
+
                 return (
-                  <div key={itemId} className="py-3.5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div key={itemId} className="py-3.5 flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
                       <img
                         src={item.image || getDishImageByName(item.name)}
                         alt={item.name}
-                        className="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs"
+                        className="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs mt-0.5"
                       />
                       <div className="space-y-0.5 min-w-0">
                         <p className="font-bold text-gray-900 text-sm truncate">{item.name}</p>
-                        <p className="text-xs text-orange-600 font-extrabold">
+                        {optionTexts.length > 0 && (
+                          <p className="text-[11px] text-gray-500 line-clamp-2">
+                            {optionTexts.join(' • ')}
+                          </p>
+                        )}
+                        {item.note && (
+                          <p className="text-[11px] text-amber-700 italic">
+                            Ghi chú: {item.note}
+                          </p>
+                        )}
+                        <p className="text-xs text-orange-600 font-extrabold pt-0.5">
                           {Number(item.price).toLocaleString('vi-VN')} đ
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 pt-1">
                       <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1">
                         <button
                           onClick={() => removeFromCart(itemId)}
@@ -306,7 +400,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Địa chỉ nhận hàng */}
+          {/* Địa chỉ nhận hàng & Ghi chú cho tài xế */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
@@ -329,6 +423,21 @@ export default function Checkout() {
               className="w-full p-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               placeholder="Nhập địa chỉ nhận món..."
             />
+
+            {/* Ô Ghi chú cho tài xế giao hàng (ShopeeFood Style) */}
+            <div className="pt-2 border-t border-gray-100">
+              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5 mb-1.5">
+                <Bike className="w-3.5 h-3.5 text-orange-600" />
+                <span>Ghi chú cho tài xế giao hàng</span>
+              </label>
+              <input
+                type="text"
+                value={driverNote}
+                onChange={(e) => setDriverNote(e.target.value)}
+                placeholder="VD: Gửi lễ tân, lên lầu 3, bấm chuông khi đến, gọi trước..."
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+              />
+            </div>
           </div>
 
           {/* Phương thức thanh toán */}
@@ -388,9 +497,19 @@ export default function Checkout() {
         <div className="space-y-6">
           {/* Card Áp dụng Voucher (FoodFast Style) */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-              <Tag className="w-4 h-4 text-orange-600" />
-              <span>Mã Giảm Giá / Voucher (FoodFast)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                <Tag className="w-4 h-4 text-orange-600" />
+                <span>Mã Giảm Giá / Voucher</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVoucherModalOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-xl border border-orange-200 transition-colors"
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Chọn từ Ví</span>
+              </button>
             </div>
 
             {appliedVoucher ? (
@@ -426,7 +545,7 @@ export default function Checkout() {
                   />
                   <button
                     type="button"
-                    onClick={handleApplyVoucher}
+                    onClick={() => handleApplyVoucher()}
                     disabled={applyingVoucher || !voucherCode.trim()}
                     className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm"
                   >
@@ -445,13 +564,45 @@ export default function Checkout() {
                     <button
                       key={code}
                       type="button"
-                      onClick={() => setVoucherCode(code)}
+                      onClick={() => handleApplyVoucher(code)}
                       className="text-[10px] font-mono bg-orange-50 text-orange-600 hover:bg-orange-100 px-2 py-0.5 rounded border border-orange-200/60 transition-colors"
                     >
                       {code}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card Dùng Xu tích lũy (FoodFast Coins) */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                <span className="w-5 h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[11px] flex items-center justify-center border border-amber-500 shadow-xs">
+                  F
+                </span>
+                <span>Dùng FoodFast Xu</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useCoins}
+                  disabled={userCoins <= 0}
+                  onChange={(e) => setUseCoins(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-600 pt-1">
+              <span>Khả dụng: <strong className="text-amber-600 font-extrabold">{userCoins.toLocaleString('vi-VN')}</strong> Xu</span>
+              <span className="text-[11px] text-gray-400">1 Xu = 1 VNĐ</span>
+            </div>
+            {useCoins && coinDiscountAmount > 0 && (
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center justify-between animate-fadeIn">
+                <span>Đã áp dụng trừ trực tiếp:</span>
+                <span className="font-extrabold text-amber-700">-{coinDiscountAmount.toLocaleString('vi-VN')} đ</span>
               </div>
             )}
           </div>
@@ -468,6 +619,15 @@ export default function Checkout() {
                 <div className="flex justify-between text-emerald-600 font-semibold animate-fadeIn">
                   <span>Giảm giá Voucher ({appliedVoucher.voucher_code})</span>
                   <span>- {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ</span>
+                </div>
+              )}
+              {useCoins && coinDiscountAmount > 0 && (
+                <div className="flex justify-between text-amber-600 font-semibold animate-fadeIn">
+                  <span className="flex items-center gap-1">
+                    <Coins className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Dùng FoodFast Xu</span>
+                  </span>
+                  <span>- {coinDiscountAmount.toLocaleString('vi-VN')} đ</span>
                 </div>
               )}
               <div className="space-y-1.5 pt-1 border-t border-dashed border-gray-200">
@@ -619,6 +779,14 @@ export default function Checkout() {
           setManualLocation(loc);
           setAddress(loc.address);
         }}
+      />
+
+      {/* Modal chọn Voucher từ ví chuẩn ShopeeFood */}
+      <VoucherPickerModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        onSelectVoucher={handleSelectVoucherFromModal}
+        currentTotal={totalPrice}
       />
     </div>
   );

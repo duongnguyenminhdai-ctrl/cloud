@@ -1406,44 +1406,66 @@ export default function OrdersPage({ initialTab }) {
 
                 {/* Danh sách các món trong giỏ */}
                 <div className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 space-y-3">
-                  {cartItems.map((item) => (
-                    <div key={item.menuItemId || item._id} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        {item.image && (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-xs text-[#EE4D2D] font-bold">
-                            {(item.price || 0).toLocaleString('vi-VN')} đ
-                          </p>
+                  {cartItems.map((item) => {
+                    const itemKey = item.cartItemId || item.menuItemId || item._id;
+                    const optionTexts = [
+                      item.selectedSize?.name,
+                      item.options?.sugar,
+                      item.options?.ice,
+                      item.options?.spice,
+                      item.options?.sauce,
+                      item.selectedToppings?.map((t) => t.name).join(', ')
+                    ].filter(Boolean);
+
+                    return (
+                      <div key={itemKey} className="pt-3 first:pt-0 flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 rounded-lg object-cover shrink-0 mt-0.5 border border-gray-100"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <p className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">{item.name}</p>
+                            {optionTexts.length > 0 && (
+                              <p className="text-[11px] text-gray-500 line-clamp-2">
+                                {optionTexts.join(' • ')}
+                              </p>
+                            )}
+                            {item.note && (
+                              <p className="text-[11px] text-amber-700 italic">
+                                Ghi chú: {item.note}
+                              </p>
+                            )}
+                            <p className="text-xs text-[#EE4D2D] font-extrabold pt-0.5">
+                              {(item.price || 0).toLocaleString('vi-VN')} đ
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Bộ đếm số lượng */}
+                        <div className="flex items-center gap-2 shrink-0 pt-1">
+                          <button
+                            onClick={() => updateQuantity(itemKey, item.quantity - 1)}
+                            className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-bold text-gray-900 w-5 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(itemKey, item.quantity + 1)}
+                            className="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-200 flex items-center justify-center text-orange-700 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
-
-                      {/* Bộ đếm số lượng */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity - 1)}
-                          className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold text-gray-900 w-5 text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.menuItemId || item._id, item.quantity + 1)}
-                          className="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-200 flex items-center justify-center text-orange-700 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Tổng tiền & Nút Đặt hàng */}

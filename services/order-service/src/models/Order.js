@@ -42,6 +42,22 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       default: 'VNPAY'
+    },
+    driverNote: {
+      type: String,
+      default: ''
+    },
+    coinDiscount: {
+      type: Number,
+      default: 0
+    },
+    voucherDiscount: {
+      type: Number,
+      default: 0
+    },
+    shippingFee: {
+      type: Number,
+      default: 16000
     }
   },
   {
