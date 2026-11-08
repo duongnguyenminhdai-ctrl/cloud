@@ -96,3 +96,4 @@ module.exports = {
   getWeatherStatus,
   WEATHER_CACHE_TTL
 };
+

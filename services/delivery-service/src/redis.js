@@ -17,7 +17,10 @@ function maskUrl(url) {
 const clientOptions = {
   url: REDIS_URL,
   socket: {
-    reconnectStrategy: (retries) => Math.min(retries * 500, 5000)
+    reconnectStrategy: (retries) => {
+      if (retries > 3) return new Error('Retry exhausted');
+      return Math.min(retries * 500, 2000);
+    }
   }
 };
 
