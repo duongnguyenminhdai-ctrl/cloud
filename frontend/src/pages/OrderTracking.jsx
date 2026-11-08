@@ -16,8 +16,10 @@ import {
   Phone
 } from 'lucide-react';
 import { orderApi, deliveryApi, paymentApi } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function OrderTracking() {
+  const { user } = useAuth();
   const { orderId } = useParams();
   const [searchParams] = useSearchParams();
   const paymentQueryStatus = searchParams.get('payment');
@@ -61,15 +63,19 @@ export default function OrderTracking() {
         // Payment đang xử lý
       }
 
-      // Cập nhật trạng thái vào LocalStorage để đồng bộ trang Lịch sử đơn hàng FoodFast
+      // Cập nhật trạng thái vào LocalStorage riêng để đồng bộ trang Lịch sử đơn hàng FoodFast
       try {
-        const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
+        const currentUserId = (user?.id || user?.userId || user?._id || '').toString();
+        const currentUserEmail = (user?.email || '').toString().toLowerCase();
+        const userOrderKey = currentUserId || currentUserEmail ? `my_orders_${currentUserId || currentUserEmail}` : 'my_orders';
+
+        const local = JSON.parse(localStorage.getItem(userOrderKey) || '[]');
         const idx = local.findIndex((o) => o._id === orderId);
         if (idx !== -1) {
           const currentStatus = delivery?.status || orderRes.data?.data?.status;
           if (currentStatus) {
             local[idx].status = currentStatus;
-            localStorage.setItem('my_orders', JSON.stringify(local));
+            localStorage.setItem(userOrderKey, JSON.stringify(local));
           }
         }
       } catch (e) {}

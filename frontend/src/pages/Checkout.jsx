@@ -137,11 +137,16 @@ export default function Checkout() {
       if (res.data?.success) {
         const orderId = res.data.data?._id || res.data.order?._id || res.data.data?.orderId;
 
-        // Lưu đơn hàng vào LocalStorage để đồng bộ ngay lập tức với trang Đơn hàng FoodFast
+        // Lưu đơn hàng vào LocalStorage riêng của tài khoản này
         try {
-          const prevOrders = JSON.parse(localStorage.getItem('my_orders') || '[]');
+          const currentUserId = (user?.id || user?.userId || user?._id || '').toString();
+          const currentUserEmail = (user?.email || '').toString().toLowerCase();
+          const userOrderKey = `my_orders_${currentUserId || currentUserEmail}`;
+
+          const prevOrders = JSON.parse(localStorage.getItem(userOrderKey) || '[]');
           const newOrder = {
             _id: orderId,
+            customerId: currentUserId,
             restaurantName: currentRestaurant?.name || 'Quán ăn ngon',
             restaurantImage: currentRestaurant?.image,
             items: [...cartItems],
@@ -150,7 +155,8 @@ export default function Checkout() {
             status: paymentMethod === 'COD' ? 'FINDING_DRIVER' : 'PENDING',
             createdAt: new Date().toISOString()
           };
-          localStorage.setItem('my_orders', JSON.stringify([newOrder, ...prevOrders]));
+          localStorage.setItem(userOrderKey, JSON.stringify([newOrder, ...prevOrders]));
+          localStorage.removeItem('my_orders');
         } catch (e) {}
 
         clearCart();

@@ -77,10 +77,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    const currentUserId = user?.id || user?.userId || user?._id || user?.email;
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('cart_items');
+    localStorage.removeItem('cart_restaurant');
+    localStorage.removeItem('my_orders');
+    if (currentUserId) {
+      localStorage.removeItem(`cart_items_${currentUserId}`);
+      localStorage.removeItem(`cart_restaurant_${currentUserId}`);
+      localStorage.removeItem(`my_orders_${currentUserId}`);
+    }
   };
 
   return (

@@ -1,38 +1,71 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('cart_items');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { user, isAuthenticated } = useAuth();
+  const userId = user?.id || user?.userId || user?._id || user?.email;
 
-  const [currentRestaurant, setCurrentRestaurant] = useState(() => {
-    try {
-      const saved = localStorage.getItem('cart_restaurant');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [cartItems, setCartItems] = useState([]);
+  const [currentRestaurant, setCurrentRestaurant] = useState(null);
 
-  // Lưu vào LocalStorage khi giỏ hàng thay đổi
+  // Đồng bộ giỏ hàng theo trạng thái xác thực của người dùng
   useEffect(() => {
-    localStorage.setItem('cart_items', JSON.stringify(cartItems));
-    if (currentRestaurant) {
-      localStorage.setItem('cart_restaurant', JSON.stringify(currentRestaurant));
-    } else {
+    if (!isAuthenticated || !userId) {
+      // Khi CHƯA ĐĂNG NHẬP: Giỏ hàng bắt buộc rỗng 100%
+      setCartItems([]);
+      setCurrentRestaurant(null);
+      // Dọn dẹp các key giỏ hàng vãng lai cũ nếu có
+      localStorage.removeItem('cart_items');
       localStorage.removeItem('cart_restaurant');
+    } else {
+      // Khi ĐÃ ĐĂNG NHẬP: Tải giỏ hàng riêng biệt theo userId
+      try {
+        const userCartKey = `cart_items_${userId}`;
+        const userRestKey = `cart_restaurant_${userId}`;
+        const savedItems = localStorage.getItem(userCartKey) || localStorage.getItem('cart_items');
+        const savedRest = localStorage.getItem(userRestKey) || localStorage.getItem('cart_restaurant');
+
+        setCartItems(savedItems ? JSON.parse(savedItems) : []);
+        setCurrentRestaurant(savedRest ? JSON.parse(savedRest) : null);
+
+        // Xóa key dùng chung để tránh rò rỉ dữ liệu giữa các phiên
+        localStorage.removeItem('cart_items');
+        localStorage.removeItem('cart_restaurant');
+      } catch {
+        setCartItems([]);
+        setCurrentRestaurant(null);
+      }
     }
-  }, [cartItems, currentRestaurant]);
+  }, [isAuthenticated, userId]);
+
+  // Lưu giỏ hàng vào LocalStorage riêng của từng user
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      const userCartKey = `cart_items_${userId}`;
+      const userRestKey = `cart_restaurant_${userId}`;
+
+      if (cartItems.length > 0) {
+        localStorage.setItem(userCartKey, JSON.stringify(cartItems));
+        if (currentRestaurant) {
+          localStorage.setItem(userRestKey, JSON.stringify(currentRestaurant));
+        }
+      } else {
+        localStorage.removeItem(userCartKey);
+        localStorage.removeItem(userRestKey);
+      }
+    }
+  }, [cartItems, currentRestaurant, isAuthenticated, userId]);
 
   // Thêm món vào giỏ hàng
   const addToCart = (item, restaurant) => {
+    if (!isAuthenticated) {
+      alert('Vui lòng đăng nhập để thêm món vào giỏ hàng và đặt món!');
+      window.location.href = '/login';
+      return false;
+    }
+
     // Nếu thêm món từ quán khác, làm mới giỏ hàng theo quán mới
     if (currentRestaurant && currentRestaurant._id !== restaurant._id && cartItems.length > 0) {
       const confirmChange = window.confirm(
@@ -99,28 +132,37 @@ export const CartProvider = ({ children }) => {
   const clearCart = () => {
     setCartItems([]);
     setCurrentRestaurant(null);
+    if (userId) {
+      localStorage.removeItem(`cart_items_${userId}`);
+      localStorage.removeItem(`cart_restaurant_${userId}`);
+    }
     localStorage.removeItem('cart_items');
     localStorage.removeItem('cart_restaurant');
   };
 
-  // Tính tổng tiền & tổng số lượng món
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
-    0
-  );
+  // Tính tổng tiền & tổng số lượng món (Nếu chưa đăng nhập luôn trả về 0)
+  const totalPrice = isAuthenticated
+    ? cartItems.reduce(
+        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+        0
+      )
+    : 0;
 
-  const totalItems = cartItems.reduce(
-    (sum, item) => sum + (Number(item.quantity) || 1),
-    0
-  );
+  const totalItems = isAuthenticated
+    ? cartItems.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 1),
+        0
+      )
+    : 0;
 
   return (
     <CartContext.Provider
       value={{
-        cartItems,
-        currentRestaurant,
+        cartItems: isAuthenticated ? cartItems : [],
+        currentRestaurant: isAuthenticated ? currentRestaurant : null,
         totalPrice,
         totalItems,
+        subtotal: totalPrice,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -139,4 +181,3 @@ export const useCart = () => {
   }
   return context;
 };
-

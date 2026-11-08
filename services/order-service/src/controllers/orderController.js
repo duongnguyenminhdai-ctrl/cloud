@@ -133,7 +133,12 @@ exports.getAllOrders = async (req, res) => {
       console.warn('[orderController] ⚠️ Lỗi dọn dẹp đơn cũ tự động:', cleanErr.message);
     }
 
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const filter = {};
+    if (req.query.customerId) {
+      filter.customerId = req.query.customerId;
+    }
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
       count: orders.length,

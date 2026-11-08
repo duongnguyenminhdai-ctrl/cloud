@@ -39,6 +39,11 @@ export default function OrdersPage({ initialTab }) {
   const { user, isAuthenticated } = useAuth();
   const { cartItems, currentRestaurant, updateQuantity, removeFromCart, clearCart, subtotal, totalItems } = useCart();
 
+  // Định danh tài khoản người dùng đang đăng nhập
+  const currentUserId = user?.id || user?.userId || user?._id;
+  const currentUserEmail = user?.email;
+  const userOrderKey = (currentUserId || currentUserEmail) ? `my_orders_${currentUserId || currentUserEmail}` : null;
+
   // Tab hiện tại: 'active' (Đang đến) | 'deals' (Đơn đã mua) | 'history' (Lịch sử) | 'reviews' (Đánh giá) | 'vouchers' (Voucher) | 'cart' (Đơn nháp/Giỏ hàng)
   const tabFromQuery = searchParams.get('tab') || initialTab || 'history';
   const [activeTab, setActiveTab] = useState(tabFromQuery);
@@ -148,6 +153,13 @@ export default function OrdersPage({ initialTab }) {
 
   // Tải danh sách đơn hàng & Tự động xử lý dọn dẹp các đơn cũ bị treo
   const fetchOrders = async () => {
+    // Nếu chưa đăng nhập: Tuyệt đối không hiển thị đơn của người khác và làm rỗng danh sách
+    if (!isAuthenticated || (!currentUserId && !currentUserEmail)) {
+      setOrders([]);
+      setLoadingOrders(false);
+      return;
+    }
+
     setLoadingOrders(true);
     let allOrders = [];
 
@@ -158,48 +170,69 @@ export default function OrdersPage({ initialTab }) {
       }
     } catch (e) {}
 
-    // 2. Lấy từ LocalStorage và TỰ ĐỘNG CẬP NHẬT các đơn cũ sang DELIVERED
+    // 2. Lấy từ LocalStorage theo userOrderKey và TỰ ĐỘNG CẬP NHẬT các đơn cũ sang DELIVERED
     try {
-      const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
-      if (Array.isArray(local)) {
-        const now = Date.now();
-        let changed = false;
+      // Dọn dẹp key dùng chung cũ nếu còn sót
+      localStorage.removeItem('my_orders');
 
-        const updatedLocal = local.map((o) => {
-          // Các đơn tạo > 45 giây trước mà vẫn ở trạng thái chưa hoàn tất -> hoàn tất sang DELIVERED
-          const orderAgeMs = now - new Date(o.createdAt || now).getTime();
-          const isStale = orderAgeMs > 45 * 1000;
-          const isUndelivered = ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(o.status);
+      if (userOrderKey) {
+        const local = JSON.parse(localStorage.getItem(userOrderKey) || '[]');
+        if (Array.isArray(local)) {
+          const now = Date.now();
+          let changed = false;
 
-          if (isStale && isUndelivered) {
-            changed = true;
-            return {
-              ...o,
-              status: 'DELIVERED',
-              driver_info: o.driver_info || {
-                name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
-                vehicle: 'Honda Wave Alpha • 59-X1 888.88',
-                phone: '0908 123 456'
-              }
-            };
+          const updatedLocal = local.map((o) => {
+            // Các đơn tạo > 45 giây trước mà vẫn ở trạng thái chưa hoàn tất -> hoàn tất sang DELIVERED
+            const orderAgeMs = now - new Date(o.createdAt || now).getTime();
+            const isStale = orderAgeMs > 45 * 1000;
+            const isUndelivered = ['PENDING', 'CONFIRMED', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(o.status);
+
+            if (isStale && isUndelivered) {
+              changed = true;
+              return {
+                ...o,
+                status: 'DELIVERED',
+                driver_info: o.driver_info || {
+                  name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+                  vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+                  phone: '0908 123 456'
+                }
+              };
+            }
+            return o;
+          });
+
+          if (changed) {
+            localStorage.setItem(userOrderKey, JSON.stringify(updatedLocal));
           }
-          return o;
-        });
-
-        if (changed) {
-          localStorage.setItem('my_orders', JSON.stringify(updatedLocal));
+          allOrders = [...updatedLocal];
         }
-        allOrders = [...updatedLocal];
       }
     } catch (e) {
       // ignore
     }
 
-    // 3. Lấy từ Order Service qua API
+    // 3. Lấy từ Order Service qua API được lọc riêng theo customerId
     try {
-      const res = await orderApi.getAll();
+      const res = await orderApi.getAll({ customerId: currentUserId });
       if (res.data?.success && Array.isArray(res.data.data)) {
-        const apiOrders = res.data.data;
+        // Lọc kỹ lại chỉ giữ đơn của tài khoản đang đăng nhập
+        const apiOrders = res.data.data.filter((ao) => {
+          const matchId = currentUserId && (
+            ao.customerId === currentUserId ||
+            ao.userId === currentUserId ||
+            ao.user === currentUserId ||
+            ao.user?._id === currentUserId ||
+            ao.user?.id === currentUserId
+          );
+          const matchEmail = currentUserEmail && (
+            ao.customerEmail === currentUserEmail ||
+            ao.email === currentUserEmail ||
+            ao.user?.email === currentUserEmail
+          );
+          return matchId || matchEmail;
+        });
+
         const apiMap = new Map(apiOrders.map((o) => [o._id, o]));
 
         // Đồng bộ trạng thái từ server vào các đơn local
@@ -237,47 +270,55 @@ export default function OrdersPage({ initialTab }) {
       }
     } catch (e) {}
 
-    try {
-      const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
-      const updated = local.map((o) => ({
-        ...o,
-        status: 'DELIVERED',
-        driver_info: o.driver_info || {
-          name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
-          vehicle: 'Honda Wave Alpha • 59-X1 888.88',
-          phone: '0908 123 456'
-        }
-      }));
-      localStorage.setItem('my_orders', JSON.stringify(updated));
-    } catch (e) {}
+    if (userOrderKey) {
+      try {
+        const local = JSON.parse(localStorage.getItem(userOrderKey) || '[]');
+        const updated = local.map((o) => ({
+          ...o,
+          status: 'DELIVERED',
+          driver_info: o.driver_info || {
+            name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+            vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+            phone: '0908 123 456'
+          }
+        }));
+        localStorage.setItem(userOrderKey, JSON.stringify(updated));
+      } catch (e) {}
+    }
 
     fetchOrders();
   };
 
   // Hoàn tất 1 đơn hàng cụ thể
   const handleCompleteSingleOrder = async (orderId) => {
-    try {
-      const local = JSON.parse(localStorage.getItem('my_orders') || '[]');
-      const updated = local.map((o) =>
-        o._id === orderId
-          ? {
-              ...o,
-              status: 'DELIVERED',
-              driver_info: o.driver_info || {
-                name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
-                vehicle: 'Honda Wave Alpha • 59-X1 888.88',
-                phone: '0908 123 456'
+    if (userOrderKey) {
+      try {
+        const local = JSON.parse(localStorage.getItem(userOrderKey) || '[]');
+        const updated = local.map((o) =>
+          o._id === orderId
+            ? {
+                ...o,
+                status: 'DELIVERED',
+                driver_info: o.driver_info || {
+                  name: 'Trần Văn Vận Chuyển (Đối tác Cloud)',
+                  vehicle: 'Honda Wave Alpha • 59-X1 888.88',
+                  phone: '0908 123 456'
+                }
               }
-            }
-          : o
-      );
-      localStorage.setItem('my_orders', JSON.stringify(updated));
-    } catch (e) {}
+            : o
+        );
+        localStorage.setItem(userOrderKey, JSON.stringify(updated));
+      } catch (e) {}
+    }
     fetchOrders();
   };
 
   // Tải danh sách voucher từ server
   const fetchVouchers = async () => {
+    if (!isAuthenticated) {
+      setCustomVouchers([]);
+      return;
+    }
     try {
       const res = await voucherApi.getAvailable();
       if (res.data?.success && Array.isArray(res.data.data)) {
@@ -307,7 +348,7 @@ export default function OrdersPage({ initialTab }) {
   useEffect(() => {
     fetchOrders();
     fetchVouchers();
-  }, []);
+  }, [isAuthenticated, user]);
 
   // Phân loại đơn: Đang đến (Active) vs Lịch sử (Completed / Cancelled)
   const activeOrders = useMemo(() => {
@@ -346,12 +387,13 @@ export default function OrdersPage({ initialTab }) {
     return orders.filter((o) => o.status === 'DELIVERED');
   }, [orders]);
 
-  // Toàn bộ danh sách voucher tổng hợp
+  // Toàn bộ danh sách voucher tổng hợp (Chỉ hiển thị khi đã đăng nhập)
   const allVouchers = useMemo(() => {
+    if (!isAuthenticated) return [];
     const combined = [...defaultVouchersList, ...customVouchers];
     if (voucherCategory === 'ALL') return combined;
     return combined.filter((v) => v.type === voucherCategory);
-  }, [defaultVouchersList, customVouchers, voucherCategory]);
+  }, [defaultVouchersList, customVouchers, voucherCategory, isAuthenticated]);
 
   // Sao chép mã voucher vào clipboard
   const handleCopyCode = (code) => {
@@ -454,13 +496,14 @@ export default function OrdersPage({ initialTab }) {
   };
 
   // Danh sách các Tabs chuẩn FoodFast: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp
+  // Chỉ hiển thị số lượng badge khi đã đăng nhập
   const TABS = [
-    { id: 'active', label: 'Đang đến', count: activeOrders.length },
-    { id: 'deals', label: 'Đơn đã mua', count: orders.length },
+    { id: 'active', label: 'Đang đến', count: isAuthenticated ? activeOrders.length : 0 },
+    { id: 'deals', label: 'Đơn đã mua', count: isAuthenticated ? orders.length : 0 },
     { id: 'history', label: 'Lịch sử' },
-    { id: 'reviews', label: 'Đánh giá', count: reviewableOrders.length },
-    { id: 'vouchers', label: 'Voucher', count: allVouchers.length },
-    { id: 'cart', label: 'Đơn nháp', count: totalItems }
+    { id: 'reviews', label: 'Đánh giá', count: isAuthenticated ? reviewableOrders.length : 0 },
+    { id: 'vouchers', label: 'Voucher', count: isAuthenticated ? allVouchers.length : 0 },
+    { id: 'cart', label: 'Đơn nháp', count: isAuthenticated ? totalItems : 0 }
   ];
 
   return (
@@ -559,7 +602,13 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         <div className="px-4 pt-3 pb-1">
           <div
-            onClick={() => handleTabChange('reviews')}
+            onClick={() => {
+              if (!isAuthenticated) {
+                navigate('/login?redirect=/orders?tab=reviews');
+              } else {
+                handleTabChange('reviews');
+              }
+            }}
             className="bg-[#FFF9E6] border border-[#FFE8B3] rounded-xl px-3.5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-[#FFF3D1] transition-colors shadow-xs"
           >
             <div className="flex items-center gap-2">
@@ -574,6 +623,35 @@ export default function OrdersPage({ initialTab }) {
           </div>
         </div>
 
+        {/* =================================================================== */}
+        {/* NỘI DUNG CHÍNH (CHƯA ĐĂNG NHẬP VS ĐÃ ĐĂNG NHẬP) */}
+        {/* =================================================================== */}
+        {!isAuthenticated ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto min-h-[460px]">
+            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-4 text-[#EE4D2D]">
+              <User className="w-10 h-10 stroke-[1.8]" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Bạn chưa đăng nhập</h3>
+            <p className="text-sm text-gray-500 max-w-sm mb-6 leading-relaxed">
+              Vui lòng đăng nhập hoặc tạo tài khoản để theo dõi đơn hàng thời gian thực, quản lý voucher ưu đãi và xem lịch sử mua sắm của bạn trên FoodFast.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+              <Link
+                to={`/login?redirect=/orders${activeTab ? `?tab=${activeTab}` : ''}`}
+                className="flex-1 py-2.5 px-4 bg-[#EE4D2D] hover:bg-[#d73211] text-white font-bold rounded-xl text-center text-sm shadow-md shadow-orange-500/20 transition-all"
+              >
+                Đăng nhập ngay
+              </Link>
+              <Link
+                to={`/register?redirect=/orders${activeTab ? `?tab=${activeTab}` : ''}`}
+                className="flex-1 py-2.5 px-4 bg-white border border-gray-300 hover:border-[#EE4D2D] hover:text-[#EE4D2D] text-gray-700 font-semibold rounded-xl text-center text-sm transition-colors"
+              >
+                Đăng ký
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* =================================================================== */}
         {/* 4. TAB NỘI DUNG: ĐANG ĐẾN (Đơn hàng đang xử lý & giao) */}
         {/* =================================================================== */}
@@ -1361,6 +1439,8 @@ export default function OrdersPage({ initialTab }) {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
 
       </div>

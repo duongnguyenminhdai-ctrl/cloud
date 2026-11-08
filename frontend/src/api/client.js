@@ -221,8 +221,8 @@ export const orderApi = {
       throw err;
     }
   },
-  getAll: () =>
-    apiClient.get(buildUrl(ORDER_SERVICE_URL, '/orders')),
+  getAll: (params = {}) =>
+    apiClient.get(buildUrl(ORDER_SERVICE_URL, '/orders'), { params }),
   cleanupStale: async () => {
     return await apiClient.post(buildUrl(ORDER_SERVICE_URL, '/orders/cleanup-stale'));
   },
