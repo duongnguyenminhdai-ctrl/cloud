@@ -8,6 +8,7 @@ import { orderApi, paymentApi, voucherApi } from '../api/client';
 import AddressPickerModal from '../components/AddressPickerModal';
 import { calculateShippingFee } from '../utils/pricingEngine';
 import { calculateHaversineDistance } from '../utils/deliveryEstimate';
+import { getDishImageByName } from '../utils/menuImageSync';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -114,15 +115,20 @@ export default function Checkout() {
     setError(null);
 
     try {
+      const formattedItems = cartItems.map((item) => ({
+        menuItemId: item.menuItemId || item._id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || item.imageUrl || getDishImageByName(item.name),
+      }));
+
       const orderPayload = {
         customerId: user?.id || user?.userId || 'guest_user',
         restaurantId: currentRestaurant?._id || 'default_restaurant',
-        items: cartItems.map((item) => ({
-          menuItemId: item.menuItemId || item._id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+        restaurantName: currentRestaurant?.name || 'Quán ăn ngon',
+        restaurantImage: currentRestaurant?.image,
+        items: formattedItems,
         totalPrice: payableTotal,
         originalTotal: totalPrice,
         discountAmount: appliedVoucher?.discount_amount || 0,
@@ -149,7 +155,7 @@ export default function Checkout() {
             customerId: currentUserId,
             restaurantName: currentRestaurant?.name || 'Quán ăn ngon',
             restaurantImage: currentRestaurant?.image,
-            items: [...cartItems],
+            items: formattedItems,
             totalPrice: payableTotal,
             paymentMethod,
             status: paymentMethod === 'COD' ? 'FINDING_DRIVER' : 'PENDING',
@@ -259,11 +265,18 @@ export default function Checkout() {
                 const itemId = item.menuItemId || item._id;
                 return (
                   <div key={itemId} className="py-3.5 flex items-center justify-between gap-4">
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-gray-900 text-sm">{item.name}</p>
-                      <p className="text-xs text-orange-600 font-extrabold">
-                        {Number(item.price).toLocaleString('vi-VN')} đ
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={item.image || getDishImageByName(item.name)}
+                        alt={item.name}
+                        className="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs"
+                      />
+                      <div className="space-y-0.5 min-w-0">
+                        <p className="font-bold text-gray-900 text-sm truncate">{item.name}</p>
+                        <p className="text-xs text-orange-600 font-extrabold">
+                          {Number(item.price).toLocaleString('vi-VN')} đ
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">

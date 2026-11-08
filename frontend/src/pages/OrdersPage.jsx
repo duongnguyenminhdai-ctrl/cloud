@@ -32,6 +32,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderApi, voucherApi } from '../api/client';
+import { getOrderDishImage, enrichOrderWithDishImages } from '../utils/menuImageSync';
 
 export default function OrdersPage({ initialTab }) {
   const navigate = useNavigate();
@@ -202,10 +203,12 @@ export default function OrdersPage({ initialTab }) {
             return o;
           });
 
-          if (changed) {
-            localStorage.setItem(userOrderKey, JSON.stringify(updatedLocal));
+          // Đồng bộ hình ảnh món ăn từ thực đơn vào từng đơn hàng lưu trữ
+          const enrichedLocal = updatedLocal.map((o) => enrichOrderWithDishImages(o));
+          if (changed || JSON.stringify(enrichedLocal) !== JSON.stringify(local)) {
+            localStorage.setItem(userOrderKey, JSON.stringify(enrichedLocal));
           }
-          allOrders = [...updatedLocal];
+          allOrders = [...enrichedLocal];
         }
       }
     } catch (e) {
@@ -255,6 +258,9 @@ export default function OrdersPage({ initialTab }) {
     } catch (err) {
       console.warn('Không thể tải đơn hàng từ server:', err.message);
     }
+
+    // Đồng bộ hình ảnh món ăn chuẩn từ thực đơn cho toàn bộ đơn hàng
+    allOrders = allOrders.map((o) => enrichOrderWithDishImages(o));
 
     // Sắp xếp đơn mới nhất lên đầu
     allOrders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -690,18 +696,32 @@ export default function OrdersPage({ initialTab }) {
                     key={ord._id}
                     className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
-                        <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
-                      </span>
-                      <span className="text-xs font-extrabold text-gray-900">
-                        {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
-                      </span>
+                    <div className="flex items-start gap-3">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-orange-100 shadow-xs">
+                        <img
+                          src={getOrderDishImage(ord)}
+                          alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
+                            <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
+                          </span>
+                          <span className="text-xs font-extrabold text-gray-900">
+                            {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-800 line-clamp-1 font-semibold">
+                          {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
+                        </p>
+                        <p className="text-[11px] text-gray-400">
+                          {ord.restaurantName || 'Quán đối tác FoodFast'}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-600 line-clamp-1 font-medium">
-                      {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-50">
                       <Link
                         to={`/orders/${ord._id}`}
                         className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
@@ -781,10 +801,10 @@ export default function OrdersPage({ initialTab }) {
 
                     {/* Chi tiết món & Hình ảnh */}
                     <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
                         <img
-                          src={ord.restaurantImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80'}
-                          alt={ord.restaurantName || 'Quán ăn'}
+                          src={getOrderDishImage(ord)}
+                          alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -1045,10 +1065,10 @@ export default function OrdersPage({ initialTab }) {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
                         <img
-                          src={ord.restaurantImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80'}
-                          alt={ord.restaurantName}
+                          src={getOrderDishImage(ord)}
+                          alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -1106,12 +1126,26 @@ export default function OrdersPage({ initialTab }) {
               </div>
             ) : (
               reviewableOrders.map((ord) => (
-                <div key={ord._id} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-gray-900">{ord.restaurantName || 'Quán ăn'}</p>
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}
-                    </span>
+                <div key={ord._id} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-2.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                      <img
+                        src={getOrderDishImage(ord)}
+                        alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-gray-900">{ord.restaurantName || 'Quán ăn'}</p>
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 line-clamp-1 font-medium">
+                        {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
+                      </p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setReviewOrderModal(ord)}

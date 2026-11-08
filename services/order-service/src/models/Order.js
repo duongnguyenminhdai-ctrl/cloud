@@ -12,6 +12,14 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    restaurantName: {
+      type: String,
+      default: null
+    },
+    restaurantImage: {
+      type: String,
+      default: null
+    },
     items: {
       type: Array,
       required: [true, 'items không được để trống'],

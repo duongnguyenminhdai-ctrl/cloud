@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { orderApi, deliveryApi, paymentApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getDishImageByName } from '../utils/menuImageSync';
 
 export default function OrderTracking() {
   const { user } = useAuth();
@@ -417,9 +418,18 @@ export default function OrderTracking() {
         <div className="divide-y divide-gray-100">
           {order.items?.map((item, idx) => (
             <div key={idx} className="py-2.5 flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-orange-600">{item.quantity}x</span>
-                <span className="font-semibold text-gray-800">{item.name}</span>
+              <div className="flex items-center gap-3">
+                <img
+                  src={item.image || item.imageUrl || getDishImageByName(item.name)}
+                  alt={item.name}
+                  className="w-11 h-11 rounded-xl object-cover shrink-0 border border-gray-100 shadow-xs"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 text-xs sm:text-sm">
+                    <span className="font-bold text-orange-600 mr-1.5">{item.quantity}x</span>
+                    {item.name}
+                  </p>
+                </div>
               </div>
               <span className="font-bold text-gray-900">
                 {(Number(item.price) * Number(item.quantity)).toLocaleString('vi-VN')} đ

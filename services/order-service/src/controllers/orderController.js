@@ -4,7 +4,7 @@ const { publishEvent, DEFAULT_EXCHANGE } = require('../rabbitmq');
 // 1. Tạo đơn hàng mới (POST /orders)
 exports.createOrder = async (req, res) => {
   try {
-    const { restaurantId, customerId, items, totalPrice, paymentMethod } = req.body;
+    const { restaurantId, customerId, items, totalPrice, paymentMethod, restaurantName, restaurantImage } = req.body;
 
     if (!restaurantId || !customerId || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -22,6 +22,8 @@ exports.createOrder = async (req, res) => {
     const newOrder = new Order({
       restaurantId,
       customerId,
+      restaurantName: restaurantName || null,
+      restaurantImage: restaurantImage || null,
       items,
       totalPrice: calculatedTotal,
       status: 'PENDING',
