@@ -29,11 +29,11 @@ import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 import PromotionPopupModal from '../components/PromotionPopupModal';
 
-// Danh sách quán ăn mẫu chuẩn FoodFast (Hiển thị ngay khi database chưa có dữ liệu)
+// Danh sách quán ăn mẫu chuẩn FoodFast (Bao phủ đầy đủ 100% các danh mục món ăn)
 const DEFAULT_FOODFAST_STORES = [
   {
     _id: 'store_mcdonalds',
-    name: "Gà Rán & Burger McDonald's",
+    name: "Gà Rán & Burger McDonald's - Đa Kao",
     image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80',
     district: 'Quận 1',
     address: 'Đa Kao, Quận 1, TP. Hồ Chí Minh',
@@ -44,26 +44,19 @@ const DEFAULT_FOODFAST_STORES = [
     isVerified: true,
     promo: 'Giảm món',
     latitude: 10.7769,
-    longitude: 106.7009
-  },
-  {
-    _id: 'store_xoichien',
-    name: 'Xôi Chiên',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-    district: 'Quận 3',
-    address: 'Phường 4, Quận 3, TP. Hồ Chí Minh',
-    rating: 4.7,
-    completed_orders: 860,
-    locationsCount: 4,
-    min_order_value: 20000,
-    isVerified: true,
-    promo: 'Giảm món',
-    latitude: 10.7725,
-    longitude: 106.6980
+    longitude: 106.7009,
+    cuisineTypes: ['Burger', 'Gà rán', 'Pizza/Burger', 'Fast food', 'Đồ ăn'],
+    serviceTypes: ['Giao hàng tiêu chuẩn', 'Món ăn nhanh'],
+    specialtyDish: 'Burger Bò Big Mac & Gà Giòn Cay',
+    menuItems: [
+      { name: 'Burger Bò Big Mac', price: 79000, description: 'Burger 2 tầng bò nướng phô mai béo ngậy' },
+      { name: 'Gà Rán Giòn Cay (2 Miếng)', price: 69000, description: 'Gà tươi ướp đậm vị chiên giòn tan' },
+      { name: 'Khoai Tây Chiên Lắc Phô Mai', price: 35000, description: 'Khoai tây giòn rụm thơm lừng' }
+    ]
   },
   {
     _id: 'store_sundaybasic',
-    name: 'Trà Sữa Sunday Basic',
+    name: 'Trà Sữa Sunday Basic - 3 Tháng 2',
     image: 'https://images.unsplash.com/photo-1558857563-b37cf5288219?auto=format&fit=crop&w=400&q=80',
     district: 'Quận 10',
     address: 'Đường 3 Tháng 2, Quận 10, TP. Hồ Chí Minh',
@@ -71,40 +64,110 @@ const DEFAULT_FOODFAST_STORES = [
     completed_orders: 2150,
     locationsCount: 42,
     min_order_value: 20000,
-    isVerified: false,
-    promo: 'Giảm món',
+    isVerified: true,
+    promo: 'Giảm 10k',
     latitude: 10.7690,
-    longitude: 106.6730
+    longitude: 106.6730,
+    cuisineTypes: ['Đồ uống', 'Trà sữa', 'Cà phê', 'Trà trái cây', 'Đá xay'],
+    serviceTypes: ['Thức uống giao ngay', 'Trà sữa tự chọn topping'],
+    specialtyDish: 'Trà Sữa Oolong Nướng & Trân Châu Hoàng Kim',
+    menuItems: [
+      { name: 'Trà Sữa Oolong Nướng Đậm Vị', price: 35000, description: 'Trà rang thơm lừng, sữa béo ngọt thanh' },
+      { name: 'Trà Đào Cam Sả Tươi Mát', price: 39000, description: 'Đào ngâm giòn ngọt thanh sảng khoái' },
+      { name: 'Cà Phê Muối Sữa Đặc Biệt', price: 29000, description: 'Cà phê đậm đà với lớp kem muối béo mặn' }
+    ]
   },
   {
-    _id: 'store_comtamsaigon',
-    name: 'Cơm Tấm Sài Gòn - Nguyễn Trãi',
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80',
-    district: 'Quận 5',
-    address: 'Nguyễn Trãi, Quận 5, TP. Hồ Chí Minh',
+    _id: 'store_comchaybode',
+    name: 'Cơm Chay Bồ Đề Tâm - Giác Ngộ',
+    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 3',
+    address: 'Võ Văn Tần, Phường 5, Quận 3, TP. Hồ Chí Minh',
     rating: 4.9,
-    completed_orders: 1980,
-    locationsCount: 8,
+    completed_orders: 1120,
+    locationsCount: 3,
     min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm 15k',
+    latitude: 10.7735,
+    longitude: 106.6890,
+    cuisineTypes: ['Đồ chay', 'Cơm chay', 'Món chay', 'Thanh tịnh', 'Healthy', 'Đồ ăn'],
+    serviceTypes: ['Món chay thuần khiết', 'Cơm trưa văn phòng chay'],
+    specialtyDish: 'Cơm Chiên Hạt Sen Bồ Đề & Lẩu Nấm Chay',
+    menuItems: [
+      { name: 'Cơm Chiên Hạt Sen Bồ Đề', price: 45000, description: 'Hạt sen bùi thơm, rau củ thanh mát' },
+      { name: 'Hủ Tiếu Nam Vang Chay Thanh Tịnh', price: 40000, description: 'Nước dùng củ quả hầm ngọt tự nhiên' },
+      { name: 'Nấm Đùi Gà Kho Tiêu Chay', price: 50000, description: 'Nấm thơm dẻo đậm đà ăn kèm cơm nóng' }
+    ]
+  },
+  {
+    _id: 'store_sweetbakery',
+    name: 'Sweet Bakery - Bánh Kem & Tráng Miệng',
+    image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 1',
+    address: 'Hai Bà Trưng, Phường Tân Định, Quận 1, TP. Hồ Chí Minh',
+    rating: 4.9,
+    completed_orders: 870,
+    locationsCount: 2,
+    min_order_value: 50000,
     isVerified: true,
     promo: 'Mã giảm 20%',
-    latitude: 10.7550,
-    longitude: 106.6660
+    latitude: 10.7900,
+    longitude: 106.6940,
+    cuisineTypes: ['Bánh kem', 'Tráng miệng', 'Bánh sinh nhật', 'Bakery', 'Bánh ngọt'],
+    serviceTypes: ['Bánh ngọt cao cấp', 'Giao bánh kem tươi'],
+    specialtyDish: 'Bánh Kem Bắp Phô Mai & Tiramisu Trái Cây',
+    menuItems: [
+      { name: 'Bánh Kem Bắp Phô Mai Mini', price: 120000, description: 'Cốt bánh mềm mịn nhân bắp phô mai ngậy' },
+      { name: 'Bánh Tiramisu Hộp Nhỏ', price: 48000, description: 'Hương vị cà phê nồng nàn cùng kem mascarpone' },
+      { name: 'Bánh Bông Lan Trứng Muối Chà Bông', price: 55000, description: 'Sốt phô mai béo ngậy kèm trứng muối thơm' }
+    ]
   },
   {
-    _id: 'store_bunbohue',
-    name: 'Bún Bò Huế Cay Nồng',
-    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=400&q=80',
-    district: 'Bình Thạnh',
-    address: 'Điện Biên Phủ, Bình Thạnh, TP. Hồ Chí Minh',
+    _id: 'store_chethaiyphuong',
+    name: 'Chè Thái Ý Phương & Tráng Miệng Sài Gòn',
+    image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 10',
+    address: 'Nguyễn Tri Phương, Phường 4, Quận 10, TP. Hồ Chí Minh',
     rating: 4.8,
-    completed_orders: 1240,
-    locationsCount: 6,
+    completed_orders: 3100,
+    locationsCount: 5,
     min_order_value: 20000,
     isVerified: true,
     promo: 'Giảm món',
-    latitude: 10.7950,
-    longitude: 106.7218
+    latitude: 10.7630,
+    longitude: 106.6690,
+    cuisineTypes: ['Tráng miệng', 'Chè', 'Đồ uống', 'Kem', 'Ăn vặt'],
+    serviceTypes: ['Chè tươi thơm ngon', 'Món tráng miệng truyền thống'],
+    specialtyDish: 'Chè Thái Sầu Riêng Đặc Biệt & Bingsu Xoài',
+    menuItems: [
+      { name: 'Chè Thái Sầu Riêng Thơm Béo', price: 38000, description: 'Thạch thốt nốt, mít tươi và cơm sầu riêng hảo hạng' },
+      { name: 'Chè Khúc Bạch Hạnh Nhân Phô Mai', price: 35000, description: 'Khúc bạch dẻo mềm nước đường phèn thanh mát' },
+      { name: 'Bingsu Xoài Tuyết Sữa Tươi', price: 55000, description: 'Đá bào sữa xoài tươi đẫm sốt thơm lừng' }
+    ]
+  },
+  {
+    _id: 'store_kpubhotpot',
+    name: 'Lẩu & Nướng Tokbokki K-Pub Korean BBQ',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 7',
+    address: 'Nguyễn Thị Thập, Tân Phú, Quận 7, TP. Hồ Chí Minh',
+    rating: 4.7,
+    completed_orders: 990,
+    locationsCount: 7,
+    min_order_value: 100000,
+    isVerified: true,
+    promo: 'Freeship 50k',
+    latitude: 10.7380,
+    longitude: 106.7110,
+    cuisineTypes: ['Món lẩu', 'Lẩu', 'Nướng', 'BBQ', 'Món Hàn', 'Đồ ăn'],
+    serviceTypes: ['Lẩu nóng giao tận nơi', 'BBQ Hàn Quốc chuẩn vị'],
+    specialtyDish: 'Set Lẩu Kimchi Bò Mỹ & Nướng Thùng Phuy',
+    menuItems: [
+      { name: 'Set Lẩu Kimchi Bò Mỹ (2-3 người)', price: 199000, description: 'Nước lẩu kimchi chua cay, thịt bò ba chỉ cuộn nấm' },
+      { name: 'Lẩu Thái Chua Cay Hải Sản', price: 219000, description: 'Tôm tươi, mực giòn cùng rau muống nấm kim châm' },
+      { name: 'Tokbokki Phô Mai Kéo Sợi', price: 65000, description: 'Bánh gạo dẻo mềm sốt tương ớt Hàn Quốc' }
+    ]
   },
   {
     _id: 'store_sushihokkaido',
@@ -119,7 +182,107 @@ const DEFAULT_FOODFAST_STORES = [
     isVerified: true,
     promo: 'Freeship 50k',
     latitude: 10.7761,
-    longitude: 106.7042
+    longitude: 106.7042,
+    cuisineTypes: ['Sushi', 'Sashimi', 'Món Nhật', 'Đồ ăn'],
+    serviceTypes: ['Ẩm thực Nhật Bản cao cấp', 'Sushi tươi trong ngày'],
+    specialtyDish: 'Sashimi Cá Hồi Tươi & Set Nigiri Sushi',
+    menuItems: [
+      { name: 'Set Sushi Cá Hồi 8 Miếng', price: 155000, description: 'Cá hồi tươi nhập khẩu béo ngậy' },
+      { name: 'Sashimi Thập Cẩm Cao Cấp', price: 280000, description: 'Cá ngừ, cá hồi, sò đỏ, bạch tuộc tươi mát' },
+      { name: 'Mì Ramen Xương Hầm Nước Tương', price: 110000, description: 'Thịt chashu hầm mềm, trứng lòng đào ngâm tương' }
+    ]
+  },
+  {
+    _id: 'store_bunbohue',
+    name: 'Bún Bò Huế Cay Nồng - O Lan',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=400&q=80',
+    district: 'Bình Thạnh',
+    address: 'Điện Biên Phủ, Bình Thạnh, TP. Hồ Chí Minh',
+    rating: 4.8,
+    completed_orders: 1240,
+    locationsCount: 6,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm món',
+    latitude: 10.7950,
+    longitude: 106.7218,
+    cuisineTypes: ['Mì phở', 'Bún bò', 'Bún', 'Phở', 'Đồ ăn'],
+    serviceTypes: ['Món nước nóng sốt', 'Ẩm thực cố đô Huế'],
+    specialtyDish: 'Bún Bò Nạm Gân Chả Cua Đậm Đà',
+    menuItems: [
+      { name: 'Bún Bò Nạm Gân Chả Cua', price: 50000, description: 'Nước dùng ruốc sả thơm nức, gân bò mềm giòn' },
+      { name: 'Bún Bò Giò Nạc Đặc Biệt', price: 65000, description: 'Khoanh giò nạc to bự cùng thịt bò tái mềm' },
+      { name: 'Phở Bò Tái Nạm Gia Truyền', price: 55000, description: 'Bánh phở dẻo mềm cùng nước dùng thanh ngọt' }
+    ]
+  },
+  {
+    _id: 'store_comtamsaigon',
+    name: 'Cơm Tấm Sài Gòn - Nguyễn Trãi',
+    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 5',
+    address: 'Nguyễn Trãi, Quận 5, TP. Hồ Chí Minh',
+    rating: 4.9,
+    completed_orders: 1980,
+    locationsCount: 8,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Mã giảm 20%',
+    latitude: 10.7550,
+    longitude: 106.6660,
+    cuisineTypes: ['Cơm hộp', 'Cơm tấm', 'Cơm sườn', 'Cơm trưa', 'Đồ ăn'],
+    serviceTypes: ['Cơm hộp văn phòng', 'Cơm tấm nướng than hoa'],
+    specialtyDish: 'Cơm Tấm Sườn Cốt Lết Nướng & Bì Chả Trứng',
+    menuItems: [
+      { name: 'Cơm Tấm Sườn Nướng Mật Ong', price: 45000, description: 'Sườn cốt lết dày dặn ướp đậm đà mềm ngọt' },
+      { name: 'Cơm Tấm Sườn Bì Chả Trứng Ốp La', price: 65000, description: 'Đầy đủ topping truyền thống cùng mỡ hành tóp mỡ giòn' },
+      { name: 'Canh Khổ Qua Nhồi Thịt Nóng Hổi', price: 20000, description: 'Vị đắng thanh mát giải ngấy tuyệt hảo' }
+    ]
+  },
+  {
+    _id: 'store_xoichien',
+    name: 'Xôi Chiên Giòn & Bánh Mì Sài Gòn',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+    district: 'Quận 3',
+    address: 'Phường 4, Quận 3, TP. Hồ Chí Minh',
+    rating: 4.7,
+    completed_orders: 860,
+    locationsCount: 4,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm món',
+    latitude: 10.7725,
+    longitude: 106.6980,
+    cuisineTypes: ['Đồ ăn', 'Cơm hộp', 'Ăn vặt', 'Xôi chiên', 'Bánh mì'],
+    serviceTypes: ['Ăn xế chiều', 'Đồ ăn nhanh đường phố'],
+    specialtyDish: 'Xôi Chiên Thịt Bằm Pát-tê & Bánh Mì Giòn',
+    menuItems: [
+      { name: 'Xôi Chiên Nhân Thịt Pát-tê (5 cái)', price: 35000, description: 'Vỏ xôi vàng ươm giòn rụm, nhân thịt mộc nhĩ đậm đà' },
+      { name: 'Bánh Mì Thịt Nướng Sa Tế', price: 30000, description: 'Bánh mì nóng giòn rụm kẹp thịt nướng xiên thơm' },
+      { name: 'Bánh Tráng Trộn Tép Mỡ Hành Phi', price: 25000, description: 'Đậm đà sốt me bò cùng trứng cút lòng đào' }
+    ]
+  },
+  {
+    _id: 'store_dfood',
+    name: 'DFOOD - Chè Thái & Trà Sữa - Thủ Đức',
+    image: 'https://images.unsplash.com/photo-1558857563-b37cf5288219?auto=format&fit=crop&w=400&q=80',
+    district: 'TP. Thủ Đức',
+    address: 'Số 2 Đường Đỗ Xuân Hợp, Phường Phú Hữu, Thành phố Thủ Đức, TP. Hồ Chí Minh',
+    rating: 5.0,
+    completed_orders: 540,
+    locationsCount: 1,
+    min_order_value: 20000,
+    isVerified: true,
+    promo: 'Giảm 10k',
+    latitude: 10.7769,
+    longitude: 106.7009,
+    cuisineTypes: ['Đồ uống', 'Trà sữa', 'Chè', 'Tráng miệng', 'Cà phê'],
+    serviceTypes: ['Trà sữa & chè giao tận nơi', 'Quán mới khai trương'],
+    specialtyDish: 'Chè Thái Sầu Riêng Thơm Béo & Coca Ướp Lạnh',
+    menuItems: [
+      { name: 'Coca-Cola Tươi Mát Lạnh 500ml', price: 18000, description: 'Nước ngọt có gas ướp lạnh sảng khoái' },
+      { name: 'Trà Sữa Trân Châu Đường Đen', price: 32000, description: 'Trà sữa đậm đà kèm trân châu nấu mềm dẻo' },
+      { name: 'Chè Thái Thập Cẩm Sầu Riêng', price: 35000, description: 'Nước cốt dừa thơm béo, sầu riêng thật 100%' }
+    ]
   }
 ];
 
@@ -148,7 +311,7 @@ const getPriceRangeText = (store) => {
       return `Giá từ ${Math.min(...prices) / 1000}k`;
     }
   }
-  return 'Giá 0';
+  return 'Giá từ 20k';
 };
 
 // Helper hiển thị tag khuyến mãi
@@ -174,13 +337,90 @@ const FOODFAST_CATEGORIES = [
   { id: 'Cơm hộp', label: 'Cơm hộp' }
 ];
 
+// Bản đồ từ khóa tiếng Việt phong phú để lọc danh mục chuẩn xác ngữ nghĩa
+const CATEGORY_KEYWORDS_MAP = {
+  'Đồ uống': [
+    'trà sữa', 'cà phê', 'cafe', 'coffee', 'trà', 'nước', 'sinh tố',
+    'juice', 'sữa chua', 'sữa', 'chè', 'đồ uống', 'boba', 'drink',
+    'beverage', 'nước ép', 'macchiato', 'đá xay', 'thức uống', 'topping',
+    'coca', 'pepsi', 'chè thái', 'dfood', 'sunday'
+  ],
+  'Đồ ăn': [
+    'cơm', 'bún', 'phở', 'mì', 'gà rán', 'burger', 'xôi', 'sushi',
+    'pizza', 'bánh mì', 'lẩu', 'nướng', 'bbq', 'bít tết', 'chay',
+    'món ăn', 'cơm hộp', 'thịt', 'hải sản', 'gà', 'bò', 'heo', 'vịt', 'ăn vặt',
+    'bánh canh', 'hủ tiếu', 'nem', 'chả'
+  ],
+  'Đồ chay': [
+    'chay', 'thanh tịnh', 'bồ đề', 'rau củ', 'nấm', 'đậu hũ',
+    'vegetarian', 'vegan', 'chay âu', 'chay việt', 'cơm chay', 'hủ tiếu chay', 'lẩu nấm'
+  ],
+  'Bánh kem': [
+    'bánh kem', 'bánh sinh nhật', 'cake', 'bakery', 'cupcake',
+    'bánh ngọt', 'tiramisu', 'mousse', 'bánh bông lan', 'bánh mỳ ngọt', 'sweet'
+  ],
+  'Tráng miệng': [
+    'chè', 'kem', 'tráng miệng', 'dessert', 'flan', 'tàu hũ',
+    'bingsu', 'sữa chua', 'pudding', 'sâm bổ lượng', 'thạch', 'khúc bạch'
+  ],
+  'Pizza/Burger': [
+    'pizza', 'burger', 'mcdonald', 'hamburger', 'fastfood',
+    'khoai tây', 'gà rán burger', 'fast food'
+  ],
+  'Món lẩu': [
+    'lẩu', 'hotpot', 'nướng', 'bbq', 'tokbokki', 'lẩu thái',
+    'lẩu bò', 'lẩu gà', 'k-pub', 'haidilao', 'korean'
+  ],
+  'Sushi': [
+    'sushi', 'sashimi', 'nhật', 'japan', 'hokkaido', 'tokyo',
+    'maki', 'nigiri', 'cá hồi', 'udon', 'tempura'
+  ],
+  'Mì phở': [
+    'mì', 'phở', 'bún', 'hủ tiếu', 'miến', 'bánh canh', 'ramen',
+    'noodle', 'bún bò', 'phở bò', 'bún chả', 'mì quảng', 'hủ tíu', 'bún riêu'
+  ],
+  'Cơm hộp': [
+    'cơm', 'cơm tấm', 'cơm niêu', 'cơm gà', 'xôi', 'bento',
+    'rice', 'cơm sườn', 'cơm văn phòng', 'cơm thố'
+  ]
+};
+
+// Bản đồ đồng bộ 2 chiều giữa FoodFast Category Pills và ShopeeFood 20 Icons Grid
+const FOODFAST_TO_SHOPEE_MAP = {
+  'All': 'all',
+  'Đồ uống': 'milk_tea',
+  'Đồ chay': 'veg',
+  'Cơm hộp': 'rice',
+  'Mì phở': 'bun_pho',
+  'Pizza/Burger': 'burger',
+  'Món lẩu': 'bbq',
+  'Đồ ăn': 'all',
+  'Sushi': 'all',
+  'Bánh kem': 'all',
+  'Tráng miệng': 'all'
+};
+
+const SHOPEE_TO_FOODFAST_MAP = {
+  'all': 'All',
+  'milk_tea': 'Đồ uống',
+  'veg': 'Đồ chay',
+  'rice': 'Cơm hộp',
+  'bun_pho': 'Mì phở',
+  'burger': 'Pizza/Burger',
+  'pizza': 'Pizza/Burger',
+  'bbq': 'Món lẩu',
+  'fastfood': 'Pizza/Burger',
+  'fried_chicken': 'Đồ ăn',
+  'sandwich': 'Đồ ăn'
+};
+
 // 20 Danh mục đặc trưng chuẩn ShopeeFood (Kèm Icon 3D chính hãng từ shopeefood-app-main)
 const SHOPEEFOOD_TOP_CATEGORIES = [
   { id: 'all', name: 'Tất cả', icon: '/icons/nice-shop.png', keyword: '' },
   { id: 'deal', name: 'Hot Deal', icon: '/icons/flash-deals.png', keyword: 'giảm|deal|khuyến mãi' },
   { id: 'rice', name: 'Cơm Trưa', icon: '/icons/rice.png', keyword: 'cơm' },
   { id: 'bun_pho', name: 'Bún Mì Phở', icon: '/icons/bun-pho.png', keyword: 'bún|phở|mì|hủ tiếu' },
-  { id: 'milk_tea', name: 'Trà Sữa', icon: '/icons/sweet-food.png', keyword: 'trà sữa|chè|nước ngọt|trà' },
+  { id: 'milk_tea', name: 'Trà Sữa', icon: '/icons/sweet-food.png', keyword: 'trà sữa|chè|nước ngọt|trà|cà phê|đồ uống' },
   { id: 'fastfood', name: 'Fast Food', icon: '/icons/fastfood.png', keyword: 'burger|gà rán|fast food|khoai tây' },
   { id: 'bbq', name: 'BBQ Nướng', icon: '/icons/bbq.png', keyword: 'nướng|bbq|lẩu' },
   { id: 'pizza', name: 'Pizza', icon: '/icons/Pizza.png', keyword: 'pizza' },
@@ -366,10 +606,88 @@ export default function Home() {
     return list;
   }, [selectedCity?.code, storeList]);
 
+  // Helper kiểm tra xem quán ăn có phù hợp với danh mục FoodFast hay không (Quét từ khóa tiếng Việt thông minh)
+  const matchCategory = (res, categoryId) => {
+    if (!categoryId || categoryId === 'All') return true;
+    const keywords = CATEGORY_KEYWORDS_MAP[categoryId];
+    if (!keywords || keywords.length === 0) return true;
+
+    // Tổng hợp toàn bộ thông tin nhận diện của quán ăn: tên, món đặc trưng, ẩm thực, mô tả, các món trong thực đơn
+    const textPool = [
+      res.name || '',
+      res.specialtyDish || '',
+      res.district || '',
+      res.address || '',
+      ...(res.cuisineTypes || []),
+      ...(res.serviceTypes || []),
+      ...(res.menuItems || []).map((m) => m.name || ''),
+      ...(res.menuItems || []).map((m) => m.description || '')
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return keywords.some((kw) => textPool.includes(kw.toLowerCase()));
+  };
+
+  // Helper kiểm tra xem quán ăn có phù hợp với danh mục ShopeeFood (20 Icon) hay không
+  const matchTopCategory = (res, topCatId) => {
+    if (!topCatId || topCatId === 'all') return true;
+    const topCat = SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === topCatId);
+    if (!topCat || !topCat.keyword) return true;
+
+    const regex = new RegExp(topCat.keyword, 'i');
+    const textPool = [
+      res.name || '',
+      res.specialtyDish || '',
+      res.district || '',
+      res.address || '',
+      ...(res.cuisineTypes || []),
+      ...(res.serviceTypes || []),
+      ...(res.menuItems || []).map((m) => m.name || ''),
+      ...(res.menuItems || []).map((m) => m.description || '')
+    ].join(' ');
+
+    return regex.test(textPool);
+  };
+
+  // Hàm xử lý khi người dùng click vào Tab Danh mục FoodFast ở Hero Banner
+  const handleSelectFoodfastCategory = (catId) => {
+    if (catId === 'All') {
+      setSelectedCategory('All');
+      setSelectedTopCatId('all');
+    } else {
+      setSelectedCategory(catId);
+      const mappedShopeeId = FOODFAST_TO_SHOPEE_MAP[catId];
+      if (mappedShopeeId && mappedShopeeId !== 'all') {
+        setSelectedTopCatId(mappedShopeeId);
+      } else {
+        setSelectedTopCatId('all');
+      }
+    }
+    if (activeTab === 'favorites') setActiveTab('near');
+  };
+
+  // Hàm xử lý khi người dùng click vào Icon Danh mục ShopeeFood (20 Icon Grid)
+  const handleSelectShopeeCategory = (catId) => {
+    if (catId === 'all' || selectedTopCatId === catId) {
+      setSelectedTopCatId('all');
+      setSelectedCategory('All');
+    } else {
+      setSelectedTopCatId(catId);
+      const mappedFoodfastId = SHOPEE_TO_FOODFAST_MAP[catId];
+      if (mappedFoodfastId) {
+        setSelectedCategory(mappedFoodfastId);
+      } else {
+        setSelectedCategory('All');
+      }
+    }
+    if (activeTab === 'favorites') setActiveTab('near');
+  };
+
   // Lọc và sắp xếp quán ăn theo Tab (Gần tôi / Bán chạy / Đánh giá) và Quận/Huyện
   const displayedRestaurants = useMemo(() => {
     let list = storeList.filter((res) => {
-      // 1. Tìm kiếm theo tên quán, địa chỉ, món ăn
+      // 1. Tìm kiếm theo từ khóa (tên quán, địa chỉ, món đặc trưng, thực đơn)
       if (searchKeyword.trim()) {
         const q = searchKeyword.toLowerCase();
         const matchName = res.name?.toLowerCase().includes(q);
@@ -381,30 +699,13 @@ export default function Home() {
         }
       }
 
-      // 2. Lọc theo danh mục ShopeeFood (Top 20 Categories Grid)
-      if (selectedTopCatId !== 'all') {
-        const topCat = SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId);
-        if (topCat && topCat.keyword) {
-          const regex = new RegExp(topCat.keyword, 'i');
-          const matchName = regex.test(res.name || '');
-          const matchDish = regex.test(res.specialtyDish || '');
-          const matchCuisine = (res.cuisineTypes || []).some((c) => regex.test(c));
-          const matchItems = (res.menuItems || []).some((item) => regex.test(item.name || ''));
-          if (!matchName && !matchDish && !matchCuisine && !matchItems) {
-            return false;
-          }
-        }
-      }
-
-      // 2.1 Lọc theo danh mục FoodFast
+      // 2. Lọc theo danh mục đã chọn (Đồng bộ thông minh, ưu tiên FoodFast Category nếu khác All)
       if (selectedCategory !== 'All') {
-        const cat = selectedCategory.toLowerCase();
-        const matchName = res.name?.toLowerCase().includes(cat);
-        const matchCuisine = res.cuisineTypes?.some((c) => c.toLowerCase().includes(cat));
-        const matchService = res.serviceTypes?.some((s) => s.toLowerCase().includes(cat));
-        const matchDish = res.specialtyDish?.toLowerCase().includes(cat);
-        const matchItems = res.menuItems?.some((item) => item.name?.toLowerCase().includes(cat));
-        if (!matchName && !matchCuisine && !matchService && !matchDish && !matchItems) {
+        if (!matchCategory(res, selectedCategory)) {
+          return false;
+        }
+      } else if (selectedTopCatId !== 'all') {
+        if (!matchTopCategory(res, selectedTopCatId)) {
           return false;
         }
       }
@@ -492,10 +793,10 @@ export default function Home() {
                 return (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                    onClick={() => handleSelectFoodfastCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                       isActive
-                        ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30'
+                        ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30 font-bold scale-105'
                         : 'bg-white/10 hover:bg-white/20 text-white/90 border-white/10 backdrop-blur-sm'
                     }`}
                   >
@@ -614,7 +915,10 @@ export default function Home() {
           </div>
           {selectedTopCatId !== 'all' && (
             <button
-              onClick={() => setSelectedTopCatId('all')}
+              onClick={() => {
+                setSelectedTopCatId('all');
+                setSelectedCategory('All');
+              }}
               className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
             >
               Xem tất cả
@@ -629,10 +933,7 @@ export default function Home() {
             return (
               <button
                 key={cat.id}
-                onClick={() => {
-                  setSelectedTopCatId(isSelected ? 'all' : cat.id);
-                  if (activeTab === 'favorites') setActiveTab('near');
-                }}
+                onClick={() => handleSelectShopeeCategory(cat.id)}
                 className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
                   isSelected
                     ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
@@ -793,6 +1094,91 @@ export default function Home() {
         </div>
       </div>
     </div>
+
+      {/* 3.1. THANH TRẠNG THÁI BỘ LỌC ĐANG HOẠT ĐỘNG (Hiển thị tức thì khi chọn danh mục) */}
+      {(selectedCategory !== 'All' || selectedTopCatId !== 'all' || selectedDistrict !== 'ALL' || searchKeyword.trim()) && (
+        <div className="flex items-center justify-between gap-3 p-3 bg-orange-50/90 border border-orange-200 rounded-2xl text-xs shadow-xs animate-fadeIn mb-4">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="font-bold text-gray-700 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-orange-600 fill-orange-600" />
+              Đang lọc:
+            </span>
+
+            {selectedCategory !== 'All' && (
+              <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
+                <span>{selectedCategory}</span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectFoodfastCategory('All')}
+                  className="hover:bg-orange-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
+                  title="Bỏ lọc danh mục này"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            {selectedTopCatId !== 'all' && selectedCategory === 'All' && (
+              <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
+                <span>{SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId)?.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectShopeeCategory('all')}
+                  className="hover:bg-orange-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
+                  title="Bỏ lọc ShopeeFood"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            {selectedDistrict !== 'ALL' && (
+              <span className="px-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold flex items-center gap-1 shadow-xs">
+                <span>{selectedDistrict}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDistrict('ALL')}
+                  className="hover:bg-blue-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
+                  title="Bỏ lọc quận này"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            {searchKeyword.trim() && (
+              <span className="px-2.5 py-1 rounded-xl bg-gray-800 text-white font-bold flex items-center gap-1 shadow-xs">
+                <span>"{searchKeyword.trim()}"</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchKeyword('')}
+                  className="hover:bg-gray-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
+                  title="Xóa từ khóa tìm kiếm"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            <span className="text-gray-500 font-semibold ml-1">
+              ({displayedRestaurants.length} quán ăn phù hợp)
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('All');
+              setSelectedTopCatId('all');
+              setSelectedDistrict('ALL');
+              setSearchKeyword('');
+            }}
+            className="text-orange-600 hover:text-orange-700 font-bold underline shrink-0 cursor-pointer ml-auto text-xs"
+          >
+            Xóa tất cả lọc
+          </button>
+        </div>
+      )}
 
       {/* Error state */}
       {error && (

@@ -20,7 +20,11 @@ export const getDishCustomizationConfig = (dish) => {
   if (!dish) return null;
 
   const cust = dish.customization;
-  const rawOptionGroups = Array.isArray(cust?.optionGroups) ? cust.optionGroups : [];
+  const rawOptionGroups = Array.isArray(cust?.optionGroups)
+    ? cust.optionGroups
+    : Array.isArray(dish.optionGroups)
+    ? dish.optionGroups
+    : [];
   const rawSizes = Array.isArray(cust?.sizes) ? cust.sizes : [];
   const rawToppings = Array.isArray(cust?.toppings) ? cust.toppings : [];
 
@@ -72,6 +76,37 @@ export const getDishCustomizationConfig = (dish) => {
     }
   });
 
+  // 1.5. Chuyển đổi từ toppingGroups đính kèm trên món (nếu có)
+  const linkedGroups = Array.isArray(dish.toppingGroups) ? dish.toppingGroups : [];
+  linkedGroups.forEach((tg, idx) => {
+    if (!tg || !tg.name?.trim()) return;
+    const groupId = tg.id || `tg_${idx}`;
+    if (normalizedGroups.some((g) => g.name.toLowerCase() === tg.name.trim().toLowerCase())) return;
+
+    const layout = tg.layout === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL';
+    const required = Boolean(tg.isRequired);
+    const multiple = tg.maxChoices > 1 || !tg.isRequired;
+    const choices = (tg.toppings || [])
+      .filter((t) => t && t.name?.trim())
+      .map((t, cIdx) => ({
+        id: t.id || `${groupId}_${cIdx}`,
+        name: t.name.trim(),
+        price: Math.max(0, Number(t.extraPrice || t.price || 0)),
+        isDefault: Boolean(t.isDefault || (!multiple && cIdx === 0))
+      }));
+
+    if (choices.length > 0) {
+      normalizedGroups.push({
+        id: groupId,
+        name: tg.name.trim(),
+        layout,
+        required,
+        multiple,
+        choices
+      });
+    }
+  });
+
   // 2. Tương thích ngược: Nếu có rawSizes > 1 mà chưa có nhóm size trong optionGroups
   const hasSizeGroup = normalizedGroups.some((g) =>
     g.name.toLowerCase().includes('size') || g.name.toLowerCase().includes('kích cỡ')
@@ -110,6 +145,74 @@ export const getDishCustomizationConfig = (dish) => {
         isDefault: false
       }))
     });
+  }
+
+  // 4. Mẫu tùy biến chuẩn phong cách ShopeeFood cho các món đồ uống / nước giải khát (Image 1)
+  const nameLower = (dish.name || '').toLowerCase();
+  const isBeverage =
+    nameLower.includes('coca') ||
+    nameLower.includes('trà sữa') ||
+    nameLower.includes('pepsi') ||
+    nameLower.includes('cà phê') ||
+    nameLower.includes('matcha') ||
+    nameLower.includes('sinh tố') ||
+    nameLower.includes('trà đào') ||
+    nameLower.includes('nước ngọt');
+
+  if (normalizedGroups.length === 0 && (isBeverage || dish.isCustomizable)) {
+    normalizedGroups.push(
+      {
+        id: 'group_coca_size',
+        name: 'Kích cỡ (Size)',
+        layout: 'VERTICAL',
+        required: true,
+        multiple: false,
+        choices: [
+          { id: 'size_m', name: 'Size Vừa (M)', price: 0, isDefault: true },
+          { id: 'size_l', name: 'Size Lớn (L)', price: 10000, isDefault: false }
+        ]
+      },
+      {
+        id: 'group_coca_sugar',
+        name: 'Mức ngọt (Đường)',
+        layout: 'HORIZONTAL',
+        required: true,
+        multiple: false,
+        choices: [
+          { id: 'sugar_100', name: '100% Đường', price: 0, isDefault: false },
+          { id: 'sugar_70', name: '70% Đường (Chuẩn)', price: 0, isDefault: true },
+          { id: 'sugar_50', name: '50% Đường', price: 0, isDefault: false },
+          { id: 'sugar_30', name: '30% Đường', price: 0, isDefault: false },
+          { id: 'sugar_0', name: 'Không đường', price: 0, isDefault: false }
+        ]
+      },
+      {
+        id: 'group_coca_ice',
+        name: 'Mức lạnh (Đá)',
+        layout: 'HORIZONTAL',
+        required: true,
+        multiple: false,
+        choices: [
+          { id: 'ice_100', name: '100% Đá', price: 0, isDefault: false },
+          { id: 'ice_70', name: '70% Đá (Chuẩn)', price: 0, isDefault: true },
+          { id: 'ice_50', name: '50% Đá', price: 0, isDefault: false },
+          { id: 'ice_low', name: 'Ít đá', price: 0, isDefault: false },
+          { id: 'ice_0', name: 'Không đá', price: 0, isDefault: false }
+        ]
+      },
+      {
+        id: 'group_coca_topping',
+        name: 'Topping gọi thêm',
+        layout: 'VERTICAL',
+        required: false,
+        multiple: true,
+        choices: [
+          { id: 'top_tranchau', name: 'Trân châu đường đen dẻo', price: 8000, isDefault: false },
+          { id: 'top_suongchao', name: 'Thạch củ năng giòn', price: 7000, isDefault: false },
+          { id: 'top_pudding', name: 'Pudding trứng béo ngậy', price: 9000, isDefault: false }
+        ]
+      }
+    );
   }
 
   return {

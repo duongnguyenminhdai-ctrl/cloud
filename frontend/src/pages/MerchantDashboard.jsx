@@ -2090,41 +2090,183 @@ export default function MerchantDashboard() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300">Tên Nhóm Topping (*):</label>
+                <label className="text-xs font-bold text-slate-300">Tên Nhóm / Trường chính (*):</label>
                 <input
                   type="text"
                   value={toppingGroupForm.name}
                   onChange={(e) => setToppingGroupForm({ ...toppingGroupForm, name: e.target.value })}
-                  placeholder="VD: Kích cỡ (Size), Độ ngọt (Đường), Topping thêm..."
+                  placeholder="VD: Kích cỡ (Size), Mức ngọt (Đường), Mức lạnh (Đá), Topping..."
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1"
                 />
+              </div>
+
+              {/* Mẫu gợi ý nhanh chuẩn ShopeeFood */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-semibold text-slate-400">Gợi ý tạo nhanh:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setToppingGroupForm({
+                        name: 'Kích cỡ (Size)',
+                        layout: 'VERTICAL',
+                        isRequired: true,
+                        minChoices: 1,
+                        maxChoices: 1,
+                        toppings: [
+                          { id: `top_${Date.now()}_1`, name: 'Size Vừa (M)', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_2`, name: 'Size Lớn (L)', extraPrice: 10000, isAvailable: true }
+                        ]
+                      })
+                    }
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-orange-600/30 text-[11px] text-orange-400 border border-slate-700"
+                  >
+                    + Size (M, L - Dọc lớn)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setToppingGroupForm({
+                        name: 'Mức ngọt (Đường)',
+                        layout: 'HORIZONTAL',
+                        isRequired: true,
+                        minChoices: 1,
+                        maxChoices: 1,
+                        toppings: [
+                          { id: `top_${Date.now()}_1`, name: '100% Đường', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_2`, name: '70% Đường (Chuẩn)', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_3`, name: '50% Đường', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_4`, name: '30% Đường', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_5`, name: 'Không đường', extraPrice: 0, isAvailable: true }
+                        ]
+                      })
+                    }
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-orange-600/30 text-[11px] text-orange-400 border border-slate-700"
+                  >
+                    + Đường (Ngang nhỏ)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setToppingGroupForm({
+                        name: 'Mức lạnh (Đá)',
+                        layout: 'HORIZONTAL',
+                        isRequired: true,
+                        minChoices: 1,
+                        maxChoices: 1,
+                        toppings: [
+                          { id: `top_${Date.now()}_1`, name: '100% Đá', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_2`, name: '70% Đá (Chuẩn)', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_3`, name: '50% Đá', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_4`, name: 'Ít đá', extraPrice: 0, isAvailable: true },
+                          { id: `top_${Date.now()}_5`, name: 'Không đá', extraPrice: 0, isAvailable: true }
+                        ]
+                      })
+                    }
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-orange-600/30 text-[11px] text-orange-400 border border-slate-700"
+                  >
+                    + Đá (Ngang nhỏ)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setToppingGroupForm({
+                        name: 'Topping gọi thêm',
+                        layout: 'VERTICAL',
+                        isRequired: false,
+                        minChoices: 0,
+                        maxChoices: 99,
+                        toppings: [
+                          { id: `top_${Date.now()}_1`, name: 'Trân châu đường đen dẻo', extraPrice: 8000, isAvailable: true },
+                          { id: `top_${Date.now()}_2`, name: 'Thạch sương sáo thanh mát', extraPrice: 6000, isAvailable: true },
+                          { id: `top_${Date.now()}_3`, name: 'Trân châu hoàng kim', extraPrice: 10000, isAvailable: true }
+                        ]
+                      })
+                    }
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-orange-600/30 text-[11px] text-orange-400 border border-slate-700"
+                  >
+                    + Topping thêm (Dọc lớn)
+                  </button>
+                </div>
+              </div>
+
+              {/* Kiểu hiển thị (Định dạng Layout: Dạng dọc lớn vs Dạng ngang nhỏ) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">Định dạng hiển thị (*):</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setToppingGroupForm({ ...toppingGroupForm, layout: 'VERTICAL' })}
+                    className={`p-2.5 rounded-xl text-xs font-bold border text-left transition-all ${
+                      toppingGroupForm.layout !== 'HORIZONTAL'
+                        ? 'bg-orange-600/20 text-orange-400 border-orange-500 shadow-sm'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>🔘</span>
+                      <span className="font-extrabold">Dạng dọc lớn</span>
+                    </div>
+                    <p className="text-[10px] font-normal text-slate-400 mt-0.5">
+                      Thẻ danh sách dọc kèm giá (Size, Topping, Nước sốt)
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setToppingGroupForm({ ...toppingGroupForm, layout: 'HORIZONTAL' })}
+                    className={`p-2.5 rounded-xl text-xs font-bold border text-left transition-all ${
+                      toppingGroupForm.layout === 'HORIZONTAL'
+                        ? 'bg-orange-600/20 text-orange-400 border-orange-500 shadow-sm'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>🔲</span>
+                      <span className="font-extrabold">Dạng ngang nhỏ</span>
+                    </div>
+                    <p className="text-[10px] font-normal text-slate-400 mt-0.5">
+                      Các nút bấm bo tròn nằm ngang (Đường, Đá, Độ cay)
+                    </p>
+                  </button>
+                </div>
               </div>
 
               {/* Quyền tùy chọn (Image 8) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300">Quyền tùy chọn của khách (*):</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setToppingGroupForm({ ...toppingGroupForm, isRequired: false, minChoices: 0 })}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      !toppingGroupForm.isRequired
-                        ? 'bg-orange-600/20 text-orange-400 border-orange-500'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    Không bắt buộc
-                  </button>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setToppingGroupForm({ ...toppingGroupForm, isRequired: true, minChoices: 1, maxChoices: 1 })}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      toppingGroupForm.isRequired
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
+                      toppingGroupForm.isRequired && toppingGroupForm.maxChoices === 1
                         ? 'bg-orange-600/20 text-orange-400 border-orange-500'
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
                     Bắt buộc chọn 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setToppingGroupForm({ ...toppingGroupForm, isRequired: false, minChoices: 0, maxChoices: 1 })}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
+                      !toppingGroupForm.isRequired && toppingGroupForm.maxChoices === 1
+                        ? 'bg-orange-600/20 text-orange-400 border-orange-500'
+                        : 'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}
+                  >
+                    Tùy chọn (Chọn 1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setToppingGroupForm({ ...toppingGroupForm, isRequired: false, minChoices: 0, maxChoices: 99 })}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
+                      toppingGroupForm.maxChoices > 1
+                        ? 'bg-orange-600/20 text-orange-400 border-orange-500'
+                        : 'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}
+                  >
+                    Chọn nhiều (Topping)
                   </button>
                 </div>
               </div>
