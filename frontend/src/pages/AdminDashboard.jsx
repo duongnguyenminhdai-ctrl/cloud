@@ -3,10 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck, Users, Store, Key, LogOut, Search, Filter,
   Trash2, Edit, CheckCircle2, XCircle, Clock, Plus, ChevronLeft,
-  ChevronRight, RefreshCw, AlertCircle, Save, X, Eye, EyeOff, Lock
+  ChevronRight, RefreshCw, AlertCircle, Save, X, Eye, EyeOff, Lock,
+  Building, User, CreditCard, Sparkles, FileText, Check, ExternalLink,
+  ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
+
+const DAY_LABELS = {
+  mon: 'Thứ 2',
+  tue: 'Thứ 3',
+  wed: 'Thứ 4',
+  thu: 'Thứ 5',
+  fri: 'Thứ 6',
+  sat: 'Thứ 7',
+  sun: 'Chủ nhật',
+};
+
+const REVIEW_STEPS = [
+  { id: 1, title: 'Thông tin cơ bản', shortTitle: '1. Cơ bản', desc: 'Tên & Địa chỉ quán' },
+  { id: 2, title: 'Người đại diện & Pháp lý', shortTitle: '2. Đại diện & Pháp lý', desc: 'CCCD & Giấy phép KD' },
+  { id: 3, title: 'Thông tin ngân hàng', shortTitle: '3. Ngân hàng', desc: 'Tài khoản nhận tiền' },
+  { id: 4, title: 'Chi tiết quán & Giờ mở', shortTitle: '4. Chi tiết quán', desc: 'Lịch 7 ngày & Ảnh quán' },
+  { id: 5, title: 'Gói tăng trưởng', shortTitle: '5. Gói tăng trưởng', desc: 'Ưu đãi & Tiếp thị' },
+  { id: 6, title: 'Tổng quan & Xét duyệt', shortTitle: '6. Tổng quan & Duyệt', desc: 'Kiểm tra & Quyết định' },
+];
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -47,8 +68,10 @@ export default function AdminDashboard() {
   const [storeSortOrder, setStoreSortOrder] = useState('desc');
   const [storesLoading, setStoresLoading] = useState(false);
 
-  // Modal Chi Tiết / Duyệt Quán
+  // Modal Chi Tiết / Duyệt Quán (Xem toàn bộ 6 mục như lúc đăng ký)
   const [selectedStore, setSelectedStore] = useState(null);
+  const [adminReviewStep, setAdminReviewStep] = useState(1);
+  const [previewImage, setPreviewImage] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
 
@@ -535,10 +558,13 @@ export default function AdminDashboard() {
 
                       <div className="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setSelectedStore(st)}
-                          className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200 transition-colors"
+                          onClick={() => {
+                            setSelectedStore(st);
+                            setAdminReviewStep(1);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200 transition-colors flex items-center gap-1.5"
                         >
-                          Xem hồ sơ
+                          <FileText className="w-3.5 h-3.5 text-orange-400" /> Xem hồ sơ 6 mục
                         </button>
                         <button
                           onClick={() => {
@@ -694,6 +720,16 @@ export default function AdminDashboard() {
                         <td className="py-3 px-4 text-amber-400 font-bold">★ {st.rating || 5.0}</td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setSelectedStore(st);
+                                setAdminReviewStep(1);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-700 transition-colors"
+                              title="Xem chi tiết hồ sơ 6 mục"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => handleOpenEditStore(st)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-orange-400 hover:bg-slate-700"
@@ -975,122 +1011,805 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modal Chi Tiết Đơn Đăng Ký Quán */}
+      {/* Modal Chi Tiết Đơn Đăng Ký Quán (Đầy đủ 6 mục theo quy trình đăng ký) */}
       {selectedStore && !showRejectModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-slate-700 text-slate-200 shadow-2xl relative">
-            <button
-              onClick={() => setSelectedStore(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-lg font-bold text-white mb-4">Chi tiết hồ sơ đăng ký quán</h3>
-
-            <div className="space-y-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60">
-                <h4 className="font-bold text-orange-400 mb-2">1. Thông tin quán</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>Tên quán: <strong className="text-white">{selectedStore.name}</strong></div>
-                  <div>Số điện thoại: <strong className="text-white">{selectedStore.phone}</strong></div>
-                  <div className="col-span-2">Địa chỉ: <strong className="text-white">{selectedStore.address}</strong></div>
-                  <div>Tọa độ GPS: <strong className="text-amber-300">{selectedStore.latitude || 10.7769}, {selectedStore.longitude || 106.7009}</strong></div>
-                  <div>Chuẩn bị món: <strong className="text-amber-300">{selectedStore.prep_time || 15} phút</strong></div>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-slate-700 text-slate-200 shadow-2xl overflow-hidden relative">
+            
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-700/80 bg-slate-900/40 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                  <Store className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white">Hồ sơ đăng ký: {selectedStore.name}</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      selectedStore.status === 'ACTIVE'
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : selectedStore.status === 'REJECTED'
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                    }`}>
+                      {selectedStore.status || 'PENDING'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Xem xét và đối soát từng mục theo quy trình đăng ký ShopeeFood</p>
                 </div>
               </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60">
-                <h4 className="font-bold text-orange-400 mb-2">2. Người đại diện & Pháp lý</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>Họ tên: <strong className="text-white">{selectedStore.representativeName}</strong></div>
-                  <div>Email: <strong className="text-white">{selectedStore.repEmail}</strong></div>
-                  <div>CCCD: <strong className="text-white">{selectedStore.citizenId}</strong></div>
-                  <div>Nơi cấp: <strong className="text-white">{selectedStore.citizenIdPlace || 'Chưa điền'}</strong></div>
-                  <div>Danh nghĩa: <strong className="text-orange-300">
-                    {selectedStore.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : selectedStore.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}
-                  </strong></div>
-                  {selectedStore.merchantType === 'HOUSEHOLD' && (
-                    <div className="col-span-2 text-amber-300">Tên Hộ KD: <strong>{selectedStore.householdName || 'Chưa cập nhật'}</strong></div>
-                  )}
-                  {selectedStore.merchantType === 'ENTERPRISE' && (
-                    <div className="col-span-2 text-blue-300">Công ty: <strong>{selectedStore.companyName || 'Chưa cập nhật'}</strong></div>
-                  )}
-                </div>
-
-                {/* CCCD Mặt trước & Mặt sau */}
-                {selectedStore.citizenIdFront && (
-                  <div className="grid grid-cols-2 gap-3 mt-3 pt-2 border-t border-slate-800">
-                    <div>
-                      <p className="text-[10px] text-slate-400 mb-1">Mặt trước CCCD</p>
-                      <img src={selectedStore.citizenIdFront} alt="CCCD trước" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
-                    </div>
-                    {selectedStore.citizenIdBack && (
-                      <div>
-                        <p className="text-[10px] text-slate-400 mb-1">Mặt sau CCCD</p>
-                        <img src={selectedStore.citizenIdBack} alt="CCCD sau" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Giấy đăng ký Hộ kinh doanh cá thể (bản gốc) */}
-                {selectedStore.merchantType === 'HOUSEHOLD' && selectedStore.householdBusinessLicense && (
-                  <div className="mt-3 pt-2 border-t border-slate-800">
-                    <p className="text-[10px] text-amber-400 font-bold mb-1">• Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)</p>
-                    <img src={selectedStore.householdBusinessLicense} alt="ĐKKD Hộ kinh doanh" className="w-full h-32 object-cover rounded-lg border border-slate-700" />
-                  </div>
-                )}
-
-                {/* Giấy tờ Doanh nghiệp */}
-                {selectedStore.merchantType === 'ENTERPRISE' && (
-                  <div className="grid grid-cols-2 gap-3 mt-3 pt-2 border-t border-slate-800">
-                    {selectedStore.companyBusinessLicense && (
-                      <div>
-                        <p className="text-[10px] text-blue-400 font-bold mb-1">• Giấy phép ĐKKD công ty</p>
-                        <img src={selectedStore.companyBusinessLicense} alt="ĐKKD Công ty" className="w-full h-28 object-cover rounded-lg border border-slate-700" />
-                      </div>
-                    )}
-                    {selectedStore.powerOfAttorney && (
-                      <div>
-                        <p className="text-[10px] text-purple-400 font-bold mb-1">• Giấy ủy quyền</p>
-                        <img src={selectedStore.powerOfAttorney} alt="Giấy ủy quyền" className="w-full h-28 object-cover rounded-lg border border-slate-700" />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60">
-                <h4 className="font-bold text-orange-400 mb-2">3. Ngân hàng & Gói dịch vụ</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>Ngân hàng: <strong className="text-white">{selectedStore.bankName}</strong></div>
-                  <div>Số tài khoản: <strong className="text-white">{selectedStore.bankAccountNumber}</strong></div>
-                  <div>Chủ tài khoản: <strong className="text-white">{selectedStore.bankAccountHolder}</strong></div>
-                  <div>Gói: <strong className="text-emerald-400">{selectedStore.growthPackage}</strong></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-700 flex items-center justify-end gap-2">
               <button
                 onClick={() => setSelectedStore(null)}
-                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold"
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition"
               >
-                Đóng
+                <X className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30"
-              >
-                Từ chối hồ sơ
-              </button>
-              <button
-                onClick={() => handleApproveStore(selectedStore._id)}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
-              >
-                Duyệt mở quán ngay
-              </button>
+            </div>
+
+            {/* Stepper Tabs Navigation (6 Mục) */}
+            <div className="border-b border-slate-700/80 bg-slate-900/60 px-3 py-2 overflow-x-auto scrollbar-none flex items-center gap-1.5">
+              {REVIEW_STEPS.map((step) => {
+                const isActive = adminReviewStep === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => setAdminReviewStep(step.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                      isActive
+                        ? 'bg-orange-500/20 text-orange-400 border-orange-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border-transparent'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                      isActive ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {step.id}
+                    </span>
+                    <span>{step.shortTitle}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab Body (Cuộn độc lập) */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
+              
+              {/* ========================================================= */}
+              {/* MỤC 1: THÔNG TIN CƠ BẢN & VỊ TRÍ OSRM */}
+              {/* ========================================================= */}
+              {adminReviewStep === 1 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Building className="w-4 h-4 text-orange-400" /> 1. Thông tin quán cơ bản & Vị trí OSRM
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Xác minh định danh quán ăn và địa chỉ giao nhận</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 1 / 6
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                      <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Định danh quán</h5>
+                      <div className="space-y-1.5">
+                        <div><span className="text-slate-400">Tên quán hiển thị:</span> <strong className="text-white text-sm">{selectedStore.name}</strong></div>
+                        <div><span className="text-slate-400">Tên thương hiệu:</span> <strong className="text-slate-200">{selectedStore.brandName || selectedStore.name}</strong></div>
+                        <div><span className="text-slate-400">Món đặc trưng:</span> <strong className="text-slate-200">{selectedStore.specialtyDish || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Khu vực / Tuyến đường:</span> <strong className="text-slate-200">{selectedStore.areaStreet || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Số điện thoại quán:</span> <strong className="text-amber-300 font-mono">{selectedStore.phone || 'Chưa cập nhật'}</strong></div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                      <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Địa chỉ & Tọa độ OSRM</h5>
+                      <div className="space-y-1.5">
+                        <div><span className="text-slate-400">Địa chỉ đầy đủ:</span> <strong className="text-white">{selectedStore.address}</strong></div>
+                        <div><span className="text-slate-400">Tỉnh / Thành phố:</span> <strong className="text-slate-200">{selectedStore.city_name || selectedStore.city || 'TP. Hồ Chí Minh'}</strong></div>
+                        <div><span className="text-slate-400">Quận / Huyện:</span> <strong className="text-slate-200">{selectedStore.district || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Phường / Xã:</span> <strong className="text-slate-200">{selectedStore.ward || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Số nhà / Đường chi tiết:</span> <strong className="text-slate-200">{selectedStore.streetAddress || selectedStore.address_detail || 'Chưa cập nhật'}</strong></div>
+                        <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between">
+                          <div>
+                            <span className="text-slate-400">Tọa độ GPS: </span>
+                            <strong className="text-cyan-400 font-mono">{selectedStore.latitude || 10.7769}, {selectedStore.longitude || 106.7009}</strong>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps?q=${selectedStore.latitude || 10.7769},${selectedStore.longitude || 106.7009}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 text-[10px] font-bold flex items-center gap-1 transition"
+                          >
+                            <MapPin className="w-3 h-3" /> Xem bản đồ
+                          </a>
+                        </div>
+                        <div><span className="text-slate-400">Thời gian chuẩn bị món:</span> <strong className="text-amber-400">{selectedStore.prep_time || 15} phút</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* MỤC 2: NGƯỜI ĐẠI DIỆN & PHÁP LÝ (CCCD, HỘ KD, DOANH NGHIỆP) */}
+              {/* ========================================================= */}
+              {adminReviewStep === 2 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-orange-400" /> 2. Người đại diện & Hồ sơ Pháp lý
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Xác thực CCCD và giấy tờ kinh doanh cá nhân / hộ kinh doanh / doanh nghiệp</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 2 / 6
+                    </span>
+                  </div>
+
+                  {/* Thông tin người đại diện */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <h5 className="font-bold text-orange-400">Thông tin người đại diện</h5>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        selectedStore.merchantType === 'ENTERPRISE'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                          : selectedStore.merchantType === 'HOUSEHOLD'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      }`}>
+                        Danh nghĩa: {selectedStore.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : selectedStore.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <div><span className="text-slate-400">Họ và tên:</span> <strong className="text-white block mt-0.5">{selectedStore.representativeName || 'Chưa cập nhật'}</strong></div>
+                      <div><span className="text-slate-400">Email:</span> <strong className="text-white block mt-0.5">{selectedStore.repEmail || 'Chưa cập nhật'}</strong></div>
+                      <div><span className="text-slate-400">Số điện thoại:</span> <strong className="text-white block mt-0.5 font-mono">{selectedStore.repPhone || selectedStore.phone || 'Chưa cập nhật'}</strong></div>
+                      <div><span className="text-slate-400">Số điện thoại phụ:</span> <strong className="text-slate-300 block mt-0.5">{selectedStore.repAltPhone || 'Không có'}</strong></div>
+                      <div><span className="text-slate-400">Số CCCD/Hộ chiếu:</span> <strong className="text-amber-300 block mt-0.5 font-mono">{selectedStore.citizenId || 'Chưa cập nhật'}</strong></div>
+                      <div><span className="text-slate-400">Ngày cấp:</span> <strong className="text-slate-300 block mt-0.5">{selectedStore.citizenIdDate || 'Chưa điền'}</strong></div>
+                      <div className="sm:col-span-2 md:col-span-3"><span className="text-slate-400">Nơi cấp:</span> <strong className="text-slate-300">{selectedStore.citizenIdPlace || 'Chưa điền'}</strong></div>
+                    </div>
+                  </div>
+
+                  {/* Ảnh CCCD Mặt trước & Mặt sau */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                    <h5 className="font-bold text-slate-200">Ảnh chụp CMND / Căn cước công dân (Bấm để phóng to kiểm tra)</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] text-slate-400 font-medium">Mặt trước CCCD</span>
+                          {selectedStore.citizenIdFront && <span className="text-[10px] text-emerald-400 font-bold">✓ Đã tải lên</span>}
+                        </div>
+                        {selectedStore.citizenIdFront ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: selectedStore.citizenIdFront, title: 'CCCD Mặt trước - ' + selectedStore.representativeName })}
+                            className="relative aspect-[16/10] rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer shadow-md"
+                          >
+                            <img src={selectedStore.citizenIdFront} alt="CCCD trước" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                              <ZoomIn className="w-4 h-4" /> Bấm xem ảnh gốc
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-[16/10] rounded-xl border border-dashed border-slate-700 bg-slate-950/40 flex items-center justify-center text-slate-500 text-xs">
+                            Chưa tải lên mặt trước
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] text-slate-400 font-medium">Mặt sau CCCD</span>
+                          {selectedStore.citizenIdBack && <span className="text-[10px] text-emerald-400 font-bold">✓ Đã tải lên</span>}
+                        </div>
+                        {selectedStore.citizenIdBack ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: selectedStore.citizenIdBack, title: 'CCCD Mặt sau - ' + selectedStore.representativeName })}
+                            className="relative aspect-[16/10] rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer shadow-md"
+                          >
+                            <img src={selectedStore.citizenIdBack} alt="CCCD sau" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                              <ZoomIn className="w-4 h-4" /> Bấm xem ảnh gốc
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-[16/10] rounded-xl border border-dashed border-slate-700 bg-slate-950/40 flex items-center justify-center text-slate-500 text-xs">
+                            Chưa tải lên mặt sau
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Giấy tờ Hộ kinh doanh cá thể */}
+                  {selectedStore.merchantType === 'HOUSEHOLD' && (
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                      <div className="flex items-center justify-between border-b border-amber-500/20 pb-1.5">
+                        <h5 className="font-bold text-amber-300">• Hồ sơ Hộ kinh doanh cá thể</h5>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">HOUSEHOLD</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-slate-400">Tên Hộ kinh doanh:</span> <strong className="text-amber-200">{selectedStore.householdName || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Mã số thuế / Mã ĐKKD:</span> <strong className="text-amber-200 font-mono">{selectedStore.householdTaxCode || 'Chưa cập nhật'}</strong></div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-amber-300 font-bold mb-1.5">• Giấy đăng ký Hộ kinh doanh cá thể (bản gốc):</p>
+                        {selectedStore.householdBusinessLicense ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: selectedStore.householdBusinessLicense, title: 'Giấy ĐKKD Hộ kinh doanh: ' + (selectedStore.householdName || selectedStore.name) })}
+                            className="relative max-w-sm aspect-[16/10] rounded-xl overflow-hidden border border-amber-500/40 bg-slate-950 group cursor-pointer shadow-md"
+                          >
+                            <img src={selectedStore.householdBusinessLicense} alt="Giấy phép HKD" className="w-full h-full object-cover group-hover:scale-105 transition" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                              <ZoomIn className="w-4 h-4" /> Bấm phóng to xem bản gốc
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-lg border border-dashed border-amber-500/40 text-amber-400/80 text-center">
+                            Chưa tải lên Giấy đăng ký Hộ kinh doanh cá thể
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Giấy tờ Doanh nghiệp / Công ty */}
+                  {selectedStore.merchantType === 'ENTERPRISE' && (
+                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-3">
+                      <div className="flex items-center justify-between border-b border-blue-500/20 pb-1.5">
+                        <h5 className="font-bold text-blue-300">• Hồ sơ Doanh nghiệp / Công ty</h5>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold">ENTERPRISE</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-slate-400">Tên Doanh nghiệp:</span> <strong className="text-blue-200">{selectedStore.companyName || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Mã số thuế DN:</span> <strong className="text-blue-200 font-mono">{selectedStore.companyTaxCode || 'Chưa cập nhật'}</strong></div>
+                        <div className="sm:col-span-2">
+                          <span className="text-slate-400">Vai trò người ký:</span>{' '}
+                          <strong className="text-blue-300">
+                            {selectedStore.isLegalRepresentative ? 'Người đại diện theo pháp luật' : 'Người được ủy quyền theo văn bản'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                        <div>
+                          <p className="text-[11px] text-blue-300 font-bold mb-1.5">• Giấy phép ĐKKD công ty (hoặc chi nhánh):</p>
+                          {selectedStore.companyBusinessLicense ? (
+                            <div
+                              onClick={() => setPreviewImage({ url: selectedStore.companyBusinessLicense, title: 'Giấy phép ĐKKD Công ty: ' + (selectedStore.companyName || selectedStore.name) })}
+                              className="relative aspect-[16/10] rounded-xl overflow-hidden border border-blue-500/40 bg-slate-950 group cursor-pointer shadow-md"
+                            >
+                              <img src={selectedStore.companyBusinessLicense} alt="ĐKKD Công ty" className="w-full h-full object-cover group-hover:scale-105 transition" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                                <ZoomIn className="w-4 h-4" /> Bấm phóng to
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-lg border border-dashed border-blue-500/40 text-blue-400/80 text-center">
+                              Chưa tải lên Giấy phép ĐKKD công ty
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] text-purple-300 font-bold mb-1.5">• Giấy ủy quyền (nếu người ký không phải ĐDPL):</p>
+                          {selectedStore.powerOfAttorney ? (
+                            <div
+                              onClick={() => setPreviewImage({ url: selectedStore.powerOfAttorney, title: 'Giấy ủy quyền: ' + (selectedStore.companyName || selectedStore.name) })}
+                              className="relative aspect-[16/10] rounded-xl overflow-hidden border border-purple-500/40 bg-slate-950 group cursor-pointer shadow-md"
+                            >
+                              <img src={selectedStore.powerOfAttorney} alt="Giấy ủy quyền" className="w-full h-full object-cover group-hover:scale-105 transition" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                                <ZoomIn className="w-4 h-4" /> Bấm phóng to
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-lg border border-dashed border-slate-700 text-slate-500 text-center">
+                              {selectedStore.isLegalRepresentative ? 'Không áp dụng (Là đại diện theo pháp luật)' : 'Chưa tải lên Giấy ủy quyền'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* MỤC 3: THÔNG TIN NGÂN HÀNG & ĐỐI SOÁT */}
+              {/* ========================================================= */}
+              {adminReviewStep === 3 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <CreditCard className="w-4 h-4 text-orange-400" /> 3. Thông tin ngân hàng nhận doanh thu
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Đối soát tài khoản thụ hưởng và đối chiếu tên người đại diện</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 3 / 6
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                      <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Tài khoản thụ hưởng</h5>
+                      <div className="space-y-2">
+                        <div><span className="text-slate-400">Ngân hàng:</span> <strong className="text-white text-sm block">{selectedStore.bankName || 'Vietcombank'}</strong></div>
+                        <div><span className="text-slate-400">Số tài khoản:</span> <strong className="text-amber-300 font-mono text-base block">{selectedStore.bankAccountNumber || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Chủ tài khoản:</span> <strong className="text-white block uppercase tracking-wider">{selectedStore.bankAccountHolder || 'Chưa cập nhật'}</strong></div>
+                        <div><span className="text-slate-400">Chi nhánh:</span> <strong className="text-slate-300 block">{selectedStore.bankBranch || 'Mặc định / Hội sở'}</strong></div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                      <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Đối chiếu thông tin thụ hưởng</h5>
+                      {(() => {
+                        const rep = (selectedStore.representativeName || '').trim().toLowerCase();
+                        const holder = (selectedStore.bankAccountHolder || '').trim().toLowerCase();
+                        const isMatch = rep && holder && (rep === holder || holder.includes(rep) || rep.includes(holder));
+                        return (
+                          <div className="space-y-3">
+                            <div className={`p-3 rounded-xl border ${
+                              isMatch
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                                : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                            }`}>
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                {isMatch ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-amber-400" />}
+                                <span>{isMatch ? 'Tên chủ tài khoản TRÙNG KHỚP' : 'Tên chủ tài khoản CÓ KHÁC BIỆT'}</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed">
+                                {isMatch
+                                  ? 'Tên chủ tài khoản khớp với tên người đại diện pháp lý đã khai báo. Thích hợp duyệt tự động chi trả.'
+                                  : 'Tên người đại diện (' + (selectedStore.representativeName || 'N/A') + ') khác với tên chủ tài khoản (' + (selectedStore.bankAccountHolder || 'N/A') + '). Quản trị viên cần kiểm tra xem có giấy ủy quyền tài khoản ngân hàng hay không.'}
+                              </p>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                              <div>• Đại diện: <strong className="text-slate-200">{selectedStore.representativeName}</strong></div>
+                              <div>• Chủ TK: <strong className="text-slate-200">{selectedStore.bankAccountHolder}</strong></div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* MỤC 4: CHI TIẾT QUÁN & GIỜ MỞ (7 NGÀY, AVATAR, COVER, MENU) */}
+              {/* ========================================================= */}
+              {adminReviewStep === 4 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-orange-400" /> 4. Chi tiết quán, Hình ảnh & Lịch hoạt động 7 ngày
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Kiểm tra khung giờ mở cửa, ảnh nhận diện quán và hình ảnh thực đơn</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 4 / 6
+                    </span>
+                  </div>
+
+                  {/* Lịch hoạt động 7 ngày */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                    <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4" /> Lịch mở cửa trong tuần (Thứ 2 đến Chủ nhật)
+                    </h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                      {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => {
+                        const dayInfo = selectedStore.operatingHours?.[d] || { isOpen: true, openTime: '08:00', closeTime: '22:00' };
+                        return (
+                          <div key={d} className={`p-2.5 rounded-xl border text-center ${
+                            dayInfo.isOpen
+                              ? 'bg-slate-800/80 border-slate-700 text-slate-200'
+                              : 'bg-slate-950/40 border-slate-800 text-slate-500'
+                          }`}>
+                            <div className="font-bold text-xs text-white mb-1">{DAY_LABELS[d]}</div>
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mb-1 ${
+                              dayInfo.isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {dayInfo.isOpen ? 'Mở cửa' : 'Đóng cửa'}
+                            </span>
+                            <div className="text-[10px] font-mono text-slate-300">
+                              {dayInfo.isOpen ? `${dayInfo.openTime || '08:00'} - ${dayInfo.closeTime || '22:00'}` : '--:--'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Hình ảnh nhận diện quán */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                    <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Hình ảnh nhận diện quán</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] text-slate-400 font-medium">Ảnh đại diện quán (Avatar / Logo - 550x550px)</span>
+                          {selectedStore.image && <span className="text-[10px] text-emerald-400 font-bold">✓ Đã tải lên</span>}
+                        </div>
+                        {selectedStore.image ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: selectedStore.image, title: 'Ảnh đại diện quán: ' + selectedStore.name })}
+                            className="relative aspect-square max-w-[200px] mx-auto rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer shadow-md"
+                          >
+                            <img src={selectedStore.image} alt="Avatar" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                              <ZoomIn className="w-4 h-4" /> Phóng to
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-square max-w-[200px] mx-auto rounded-xl border border-dashed border-slate-700 flex items-center justify-center text-slate-500">
+                            Chưa tải lên Avatar
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] text-slate-400 font-medium">Ảnh bìa quán (Cover photo - 960x550px)</span>
+                          {selectedStore.coverImage && <span className="text-[10px] text-emerald-400 font-bold">✓ Đã tải lên</span>}
+                        </div>
+                        {selectedStore.coverImage ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: selectedStore.coverImage, title: 'Ảnh bìa quán: ' + selectedStore.name })}
+                            className="relative aspect-[16/9] rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer shadow-md"
+                          >
+                            <img src={selectedStore.coverImage} alt="Cover" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5 text-white font-bold text-xs">
+                              <ZoomIn className="w-4 h-4" /> Phóng to
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-[16/9] rounded-xl border border-dashed border-slate-700 flex items-center justify-center text-slate-500">
+                            Chưa tải lên Ảnh bìa
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thông tin dịch vụ & Thực đơn */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                    <h5 className="font-bold text-orange-400 border-b border-slate-800 pb-1.5">Vận hành & Dịch vụ</h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div><span className="text-slate-400">Phí gửi xe:</span> <strong className="text-white block mt-0.5">{selectedStore.parkingFee || 'Miễn phí'}</strong></div>
+                      <div><span className="text-slate-400">Chuẩn bị món:</span> <strong className="text-white block mt-0.5">{selectedStore.prep_time || 15} phút</strong></div>
+                      <div><span className="text-slate-400">Loại hình dịch vụ:</span> <strong className="text-slate-300 block mt-0.5">{selectedStore.serviceTypes?.join(', ') || 'Quán ăn'}</strong></div>
+                      <div><span className="text-slate-400">Ẩm thực:</span> <strong className="text-slate-300 block mt-0.5">{selectedStore.cuisineTypes?.join(', ') || 'Món Việt'}</strong></div>
+                      <div className="col-span-2 sm:col-span-4"><span className="text-slate-400">Món đặc trưng:</span> <strong className="text-slate-200">{selectedStore.featuredDishes?.join(', ') || 'Chưa cập nhật'}</strong></div>
+                    </div>
+
+                    {selectedStore.menuImages?.length > 0 && (
+                      <div className="pt-2 border-t border-slate-800">
+                        <p className="text-[11px] text-slate-400 font-bold mb-2">Ảnh thực đơn đính kèm ({selectedStore.menuImages.length} ảnh):</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {selectedStore.menuImages.map((mImg, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => setPreviewImage({ url: mImg, title: `Thực đơn ${idx + 1} - ${selectedStore.name}` })}
+                              className="relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer"
+                            >
+                              <img src={mImg} alt={`Menu ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <ZoomIn className="w-3.5 h-3.5 text-white" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* MỤC 5: GÓI TĂNG TRƯỞNG DOANH THU */}
+              {/* ========================================================= */}
+              {adminReviewStep === 5 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-orange-400" /> 5. Gói tăng trưởng doanh thu đã chọn
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Quyền lợi khuyến mãi tiếp thị và trạng thái thanh toán gói</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 5 / 6
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    {/* Gói FREE */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      (selectedStore.growthPackage || 'FREE') === 'FREE'
+                        ? 'bg-orange-500/10 border-orange-500/50 shadow-md shadow-orange-500/10'
+                        : 'bg-slate-900/60 border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-200">Gói Khởi Đầu</span>
+                        {(selectedStore.growthPackage || 'FREE') === 'FREE' && (
+                          <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">Đã chọn</span>
+                        )}
+                      </div>
+                      <div className="text-xl font-black text-white mb-1">0 VND</div>
+                      <p className="text-[11px] text-slate-400 mb-3">Miễn phí kích hoạt tài khoản mở quán</p>
+                      <ul className="space-y-1.5 text-[11px] text-slate-300">
+                        <li className="flex items-center gap-1.5">✓ Đăng menu không giới hạn</li>
+                        <li className="flex items-center gap-1.5">✓ Phí dịch vụ chiết khấu tiêu chuẩn</li>
+                        <li className="flex items-center gap-1.5">✓ Quản lý đơn hàng tự động</li>
+                      </ul>
+                    </div>
+
+                    {/* Gói GROWTH_1 */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      selectedStore.growthPackage === 'GROWTH_1'
+                        ? 'bg-orange-500/10 border-orange-500/50 shadow-md shadow-orange-500/10'
+                        : 'bg-slate-900/60 border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-orange-400">Gói Tăng Trưởng</span>
+                        {selectedStore.growthPackage === 'GROWTH_1' && (
+                          <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">Đã chọn</span>
+                        )}
+                      </div>
+                      <div className="text-xl font-black text-orange-400 mb-1">1.000.000 VND</div>
+                      <p className="text-[11px] text-slate-400 mb-3">50 mã khuyến mãi trị giá đến 1.800.000đ</p>
+                      <ul className="space-y-1.5 text-[11px] text-slate-300">
+                        <li className="flex items-center gap-1.5">✓ Top đề xuất 7 ngày liên tục</li>
+                        <li className="flex items-center gap-1.5">✓ 50 mã giảm giá cho khách mới</li>
+                        <li className="flex items-center gap-1.5">✓ Tối ưu thực đơn chuẩn SEO</li>
+                      </ul>
+                    </div>
+
+                    {/* Gói GROWTH_3 */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      selectedStore.growthPackage === 'GROWTH_3'
+                        ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-500/10'
+                        : 'bg-slate-900/60 border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-amber-400">Gói Siêu Tăng Trưởng</span>
+                        {selectedStore.growthPackage === 'GROWTH_3' && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">Đã chọn</span>
+                        )}
+                      </div>
+                      <div className="text-xl font-black text-amber-400 mb-1">2.000.000 VND</div>
+                      <p className="text-[11px] text-slate-400 mb-3">120 mã khuyến mãi trị giá đến 4.100.000đ</p>
+                      <ul className="space-y-1.5 text-[11px] text-slate-300">
+                        <li className="flex items-center gap-1.5">✓ Top đề xuất 14 ngày nổi bật</li>
+                        <li className="flex items-center gap-1.5">✓ Chụp ảnh món ăn chuyên nghiệp</li>
+                        <li className="flex items-center gap-1.5">✓ Hỗ trợ Marketing riêng biệt</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400">Trạng thái thanh toán phí dịch vụ gói:</span>
+                      <div className="font-bold text-white text-sm mt-0.5">
+                        {selectedStore.growthPackage === 'FREE'
+                          ? 'Miễn phí kích hoạt ban đầu (FREE)'
+                          : selectedStore.paymentStatus === 'PAID'
+                          ? 'Đã hoàn tất thanh toán'
+                          : 'Chưa thanh toán (Thu phí sau kích hoạt)'}
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                      selectedStore.growthPackage === 'FREE'
+                        ? 'bg-slate-800 text-slate-300 border-slate-700'
+                        : selectedStore.paymentStatus === 'PAID'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {selectedStore.paymentStatus || (selectedStore.growthPackage === 'FREE' ? 'FREE' : 'UNPAID')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* MỤC 6: TỔNG QUAN & DUYỆT HỒ SƠ */}
+              {/* ========================================================= */}
+              {adminReviewStep === 6 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 6. Bảng tổng quan đối soát & Quyết định duyệt
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Kiểm tra lại toàn bộ 5 bước trước khi phê duyệt hoặc từ chối quán</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                      Mục 6 / 6
+                    </span>
+                  </div>
+
+                  {/* Bảng checklist 5 mục */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-3">
+                    <h5 className="font-bold text-white border-b border-slate-800 pb-2">Checklist hồ sơ mở quán</h5>
+                    <div className="space-y-2.5 text-xs">
+                      <div className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/40">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-200">1. Thông tin quán & Định vị: </span>
+                          <span className="text-slate-300">{selectedStore.name} — {selectedStore.address} (GPS: {selectedStore.latitude || 10.7769}, {selectedStore.longitude || 106.7009})</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/40">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-200">2. Đại diện & Pháp lý: </span>
+                          <span className="text-slate-300">
+                            {selectedStore.representativeName} (CCCD: {selectedStore.citizenId || 'N/A'}) — Danh nghĩa:{' '}
+                            <strong className="text-orange-400">{selectedStore.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : selectedStore.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/40">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-200">3. Ngân hàng thụ hưởng: </span>
+                          <span className="text-slate-300">{selectedStore.bankName} - STK: {selectedStore.bankAccountNumber} ({selectedStore.bankAccountHolder})</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/40">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-200">4. Vận hành & Giờ mở cửa: </span>
+                          <span className="text-slate-300">Đã thiết lập khung giờ 7 ngày, ảnh đại diện & ảnh bìa quán</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/40">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-200">5. Gói tăng trưởng: </span>
+                          <span className="text-slate-300">Gói {selectedStore.growthPackage || 'FREE'} ({selectedStore.growthPackage === 'GROWTH_3' ? '2.000.000đ' : selectedStore.growthPackage === 'GROWTH_1' ? '1.000.000đ' : '0đ'})</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Trạng thái hiện tại & Quyết định */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-slate-400 text-xs">Trạng thái phê duyệt quán hiện tại:</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                          selectedStore.status === 'ACTIVE'
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : selectedStore.status === 'REJECTED'
+                            ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        }`}>
+                          {selectedStore.status === 'ACTIVE' ? 'ĐÃ DUYỆT (ACTIVE)' : selectedStore.status === 'REJECTED' ? 'BỊ TỪ CHỐI (REJECTED)' : 'CHỜ DUYỆT (PENDING)'}
+                        </span>
+                        {selectedStore.rejectReason && (
+                          <span className="text-xs text-red-400">Lý do từ chối: {selectedStore.rejectReason}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={() => setShowRejectModal(true)}
+                        className="px-4 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-bold border border-red-500/30 transition shadow-sm"
+                      >
+                        Từ chối hồ sơ
+                      </button>
+                      <button
+                        onClick={() => handleApproveStore(selectedStore._id)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Duyệt mở quán ngay
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer (Điều hướng 6 bước & Quyết định) */}
+            <div className="p-4 border-t border-slate-700 bg-slate-900/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                <button
+                  type="button"
+                  disabled={adminReviewStep <= 1}
+                  onClick={() => setAdminReviewStep((p) => Math.max(1, p - 1))}
+                  className="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Mục trước
+                </button>
+                <span className="text-xs text-slate-400 font-medium px-2">
+                  Mục {adminReviewStep} / 6
+                </span>
+                <button
+                  type="button"
+                  disabled={adminReviewStep >= 6}
+                  onClick={() => setAdminReviewStep((p) => Math.min(6, p + 1))}
+                  className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-sm"
+                >
+                  Mục tiếp theo <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  onClick={() => setSelectedStore(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-300 transition"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition"
+                >
+                  Từ chối
+                </button>
+                <button
+                  onClick={() => handleApproveStore(selectedStore._id)}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" /> Duyệt quán
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Phóng to Xem Chi Tiết Ảnh Giấy Tờ */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-5"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[92vh] w-full flex flex-col bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800/90 border-b border-slate-700 text-xs">
+              <span className="font-bold text-slate-200 truncate pr-4">{previewImage.title || 'Xem ảnh hồ sơ quán'}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {previewImage.url && (
+                  <a
+                    href={previewImage.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center gap-1 transition"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Mở trong tab mới
+                  </a>
+                )}
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 flex items-center justify-center overflow-auto max-h-[82vh] bg-slate-950/70">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title || 'Chi tiết ảnh'}
+                className="max-h-[76vh] max-w-full object-contain rounded-lg border border-slate-800 shadow-xl"
+              />
             </div>
           </div>
         </div>
