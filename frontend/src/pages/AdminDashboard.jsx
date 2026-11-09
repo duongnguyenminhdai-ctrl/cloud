@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
 import UserProfileModal from '../components/UserProfileModal';
+import Pagination from '../components/Pagination';
 
 const DAY_LABELS = {
   mon: 'Thứ 2',
@@ -896,6 +897,18 @@ export default function AdminDashboard() {
                   ))}
               </div>
             )}
+
+            {/* Phân trang cho Danh sách hồ sơ chờ duyệt (Tab 1) */}
+            <Pagination
+              currentPage={storePage}
+              totalPages={Math.ceil(storeTotal / storeLimit) || 1}
+              totalItems={storeTotal}
+              pageSize={storeLimit}
+              itemLabel="hồ sơ"
+              theme="dark"
+              onPageChange={(p) => setStorePage(p)}
+              className="mt-4"
+            />
           </div>
         )}
 
@@ -1095,27 +1108,17 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* Pagination */}
-              <div className="p-4 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400">
-                <span>
-                  Trang {storePage} / {Math.ceil(storeTotal / storeLimit) || 1} (Tổng {storeTotal} quán)
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    disabled={storePage <= 1}
-                    onClick={() => setStorePage((p) => p - 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    disabled={storePage >= Math.ceil(storeTotal / storeLimit)}
-                    onClick={() => setStorePage((p) => p + 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+              {/* Pagination cho Tab 2 (Quản lý các quán) */}
+              <div className="p-4 border-t border-slate-700">
+                <Pagination
+                  currentPage={storePage}
+                  totalPages={Math.ceil(storeTotal / storeLimit) || 1}
+                  totalItems={storeTotal}
+                  pageSize={storeLimit}
+                  itemLabel="quán ăn"
+                  theme="dark"
+                  onPageChange={(p) => setStorePage(p)}
+                />
               </div>
             </div>
           </div>
@@ -1301,27 +1304,17 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* User Pagination */}
-              <div className="p-4 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400">
-                <span>
-                  Trang {userPage} / {Math.ceil(userTotal / userLimit) || 1} (Tổng {userTotal} tài khoản)
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    disabled={userPage <= 1}
-                    onClick={() => setUserPage((p) => p - 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    disabled={userPage >= Math.ceil(userTotal / userLimit)}
-                    onClick={() => setUserPage((p) => p + 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+              {/* User Pagination (Tab 3) */}
+              <div className="p-4 border-t border-slate-700">
+                <Pagination
+                  currentPage={userPage}
+                  totalPages={Math.ceil(userTotal / userLimit) || 1}
+                  totalItems={userTotal}
+                  pageSize={userLimit}
+                  itemLabel="tài khoản"
+                  theme="dark"
+                  onPageChange={(p) => setUserPage(p)}
+                />
               </div>
             </div>
           </div>
@@ -1625,27 +1618,17 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* Voucher Pagination */}
-              <div className="p-4 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400">
-                <span>
-                  Trang {voucherPage} / {Math.ceil(voucherTotal / voucherLimit) || 1} (Tổng {voucherTotal} mã giảm giá)
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    disabled={voucherPage <= 1}
-                    onClick={() => setVoucherPage((p) => p - 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    disabled={voucherPage >= Math.ceil(voucherTotal / voucherLimit)}
-                    onClick={() => setVoucherPage((p) => p + 1)}
-                    className="p-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-30"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+              {/* Voucher Pagination (Tab 4) */}
+              <div className="p-4 border-t border-slate-700">
+                <Pagination
+                  currentPage={voucherPage}
+                  totalPages={Math.ceil(voucherTotal / voucherLimit) || 1}
+                  totalItems={voucherTotal}
+                  pageSize={voucherLimit}
+                  itemLabel="mã giảm giá"
+                  theme="dark"
+                  onPageChange={(p) => setVoucherPage(p)}
+                />
               </div>
             </div>
           </div>

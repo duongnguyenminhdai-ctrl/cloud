@@ -33,6 +33,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderApi, voucherApi } from '../api/client';
 import { getOrderDishImage, enrichOrderWithDishImages } from '../utils/menuImageSync';
+import Pagination from '../components/Pagination';
 
 export default function OrdersPage({ initialTab }) {
   const navigate = useNavigate();
@@ -401,6 +402,48 @@ export default function OrdersPage({ initialTab }) {
     return combined.filter((v) => v.type === voucherCategory);
   }, [defaultVouchersList, customVouchers, voucherCategory, isAuthenticated]);
 
+  // Các trạng thái phân trang cho các Tab trong OrdersPage
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 5;
+
+  const [dealsPage, setDealsPage] = useState(1);
+  const DEALS_PAGE_SIZE = 5;
+
+  const [voucherPage, setVoucherPage] = useState(1);
+  const VOUCHER_PAGE_SIZE = 6;
+
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const REVIEWS_PAGE_SIZE = 5;
+
+  // Reset trang khi đổi bộ lọc
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [selectedService, selectedStatus, searchQuery]);
+
+  useEffect(() => {
+    setVoucherPage(1);
+  }, [voucherCategory]);
+
+  const paginatedHistoryOrders = useMemo(() => {
+    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+    return historyOrders.slice(start, start + HISTORY_PAGE_SIZE);
+  }, [historyOrders, historyPage]);
+
+  const paginatedDealsOrders = useMemo(() => {
+    const start = (dealsPage - 1) * DEALS_PAGE_SIZE;
+    return orders.slice(start, start + DEALS_PAGE_SIZE);
+  }, [orders, dealsPage]);
+
+  const paginatedVouchers = useMemo(() => {
+    const start = (voucherPage - 1) * VOUCHER_PAGE_SIZE;
+    return allVouchers.slice(start, start + VOUCHER_PAGE_SIZE);
+  }, [allVouchers, voucherPage]);
+
+  const paginatedReviews = useMemo(() => {
+    const start = (reviewsPage - 1) * REVIEWS_PAGE_SIZE;
+    return reviewableOrders.slice(start, start + REVIEWS_PAGE_SIZE);
+  }, [reviewableOrders, reviewsPage]);
+
   // Sao chép mã voucher vào clipboard
   const handleCopyCode = (code) => {
     if (navigator?.clipboard?.writeText) {
@@ -762,7 +805,9 @@ export default function OrdersPage({ initialTab }) {
                 </Link>
               </div>
             ) : (
-              orders.map((ord) => {
+              <>
+                <div className="space-y-3">
+                  {paginatedDealsOrders.map((ord) => {
                 const isDelivered = ord.status === 'DELIVERED';
                 const isDelivering = ord.status === 'DELIVERING' || ord.status === 'FINDING_DRIVER' || ord.status === 'DRIVER_ASSIGNED';
                 const isCancelled = ord.status === 'CANCELLED';
@@ -855,7 +900,20 @@ export default function OrdersPage({ initialTab }) {
                     </div>
                   </div>
                 );
-              })
+              })}
+                </div>
+
+                <Pagination
+                  currentPage={dealsPage}
+                  totalPages={Math.ceil(orders.length / DEALS_PAGE_SIZE) || 1}
+                  totalItems={orders.length}
+                  pageSize={DEALS_PAGE_SIZE}
+                  itemLabel="đơn đã mua"
+                  theme="light"
+                  onPageChange={(p) => setDealsPage(p)}
+                  className="mt-3"
+                />
+              </>
             )}
           </div>
         )}
@@ -1051,57 +1109,71 @@ export default function OrdersPage({ initialTab }) {
                 </Link>
               </div>
             ) : (
-              <div className="p-4 space-y-3 divide-y divide-gray-100">
-                {historyOrders.map((ord) => (
-                  <div key={ord._id} className="pt-3 first:pt-0 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900">
-                        <span>{ord.restaurantName || 'Quán ăn ngon'}</span>
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div className="p-4 space-y-3">
+                <div className="divide-y divide-gray-100">
+                  {paginatedHistoryOrders.map((ord) => (
+                    <div key={ord._id} className="pt-3 first:pt-0 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900">
+                          <span>{ord.restaurantName || 'Quán ăn ngon'}</span>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Đã giao thành công
+                        </span>
                       </div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Đã giao thành công
-                      </span>
-                    </div>
 
-                    <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
-                        <img
-                          src={getOrderDishImage(ord)}
-                          alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="flex items-start gap-3">
+                        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                          <img
+                            src={getOrderDishImage(ord)}
+                            alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1 text-xs">
+                          <p className="text-gray-500">
+                            {new Date(ord.createdAt || Date.now()).toLocaleString('vi-VN')}
+                          </p>
+                          <p className="text-gray-700 line-clamp-1 font-medium">
+                            {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ăn ngon'}
+                          </p>
+                          <p className="font-extrabold text-sm text-gray-900">
+                            {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1 space-y-1 text-xs">
-                        <p className="text-gray-500">
-                          {new Date(ord.createdAt || Date.now()).toLocaleString('vi-VN')}
-                        </p>
-                        <p className="text-gray-700 line-clamp-1 font-medium">
-                          {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ăn ngon'}
-                        </p>
-                        <p className="font-extrabold text-sm text-gray-900">
-                          {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* Nút Đặt lại & Đánh giá */}
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                      <button
-                        onClick={() => setReviewOrderModal(ord)}
-                        className="px-3.5 py-1.5 rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-50 text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Đánh giá
-                      </button>
-                      <button
-                        onClick={() => handleReorder(ord)}
-                        className="px-4 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
-                      >
-                        Đặt lại
-                      </button>
+                      {/* Nút Đặt lại & Đánh giá */}
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          onClick={() => setReviewOrderModal(ord)}
+                          className="px-3.5 py-1.5 rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-50 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          Đánh giá
+                        </button>
+                        <button
+                          onClick={() => handleReorder(ord)}
+                          className="px-4 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                        >
+                          Đặt lại
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Phân trang tab Lịch sử */}
+                <Pagination
+                  currentPage={historyPage}
+                  totalPages={Math.ceil(historyOrders.length / HISTORY_PAGE_SIZE) || 1}
+                  totalItems={historyOrders.length}
+                  pageSize={HISTORY_PAGE_SIZE}
+                  itemLabel="đơn lịch sử"
+                  theme="light"
+                  onPageChange={(p) => setHistoryPage(p)}
+                  className="mt-3"
+                />
               </div>
             )}
           </div>
@@ -1125,37 +1197,52 @@ export default function OrdersPage({ initialTab }) {
                 <p>Bạn chưa có đơn hàng nào cần đánh giá.</p>
               </div>
             ) : (
-              reviewableOrders.map((ord) => (
-                <div key={ord._id} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-2.5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
-                      <img
-                        src={getOrderDishImage(ord)}
-                        alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-gray-900">{ord.restaurantName || 'Quán ăn'}</p>
-                        <span className="text-[10px] text-gray-400">
-                          {new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}
-                        </span>
+              <>
+                <div className="space-y-3">
+                  {paginatedReviews.map((ord) => (
+                    <div key={ord._id} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-2.5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                          <img
+                            src={getOrderDishImage(ord)}
+                            alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-gray-900">{ord.restaurantName || 'Quán ăn'}</p>
+                            <span className="text-[10px] text-gray-400">
+                              {new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-600 line-clamp-1 font-medium">
+                            {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-gray-600 line-clamp-1 font-medium">
-                        {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
-                      </p>
+                      <button
+                        onClick={() => setReviewOrderModal(ord)}
+                        className="w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
+                        <span>Viết đánh giá nhận 500 Xu</span>
+                      </button>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => setReviewOrderModal(ord)}
-                    className="w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
-                    <span>Viết đánh giá nhận 500 Xu</span>
-                  </button>
+                  ))}
                 </div>
-              ))
+
+                <Pagination
+                  currentPage={reviewsPage}
+                  totalPages={Math.ceil(reviewableOrders.length / REVIEWS_PAGE_SIZE) || 1}
+                  totalItems={reviewableOrders.length}
+                  pageSize={REVIEWS_PAGE_SIZE}
+                  itemLabel="đơn chờ đánh giá"
+                  theme="light"
+                  onPageChange={(p) => setReviewsPage(p)}
+                  className="mt-3"
+                />
+              </>
             )}
           </div>
         )}
@@ -1243,7 +1330,7 @@ export default function OrdersPage({ initialTab }) {
 
             {/* Danh sách thẻ Voucher (Chuẩn Style Coupon FoodFast) */}
             <div className="space-y-3">
-              {allVouchers.map((voucher) => {
+              {paginatedVouchers.map((voucher) => {
                 const isFreeship = voucher.type === 'FREESHIP';
                 const isStore = voucher.type === 'STORE';
                 const isCopied = copiedCode === voucher.code;
@@ -1348,6 +1435,18 @@ export default function OrdersPage({ initialTab }) {
                 );
               })}
             </div>
+
+            {/* Phân trang tab Voucher */}
+            <Pagination
+              currentPage={voucherPage}
+              totalPages={Math.ceil(allVouchers.length / VOUCHER_PAGE_SIZE) || 1}
+              totalItems={allVouchers.length}
+              pageSize={VOUCHER_PAGE_SIZE}
+              itemLabel="mã voucher"
+              theme="light"
+              onPageChange={(p) => setVoucherPage(p)}
+              className="mt-3"
+            />
 
             {/* Mẹo sử dụng voucher */}
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 space-y-1">

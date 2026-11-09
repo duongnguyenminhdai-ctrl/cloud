@@ -28,6 +28,7 @@ import AddressPickerModal from '../components/AddressPickerModal';
 import DishCustomizationModal from '../components/DishCustomizationModal';
 import UpdateVariantModal from '../components/UpdateVariantModal';
 import { hasDishCustomization } from '../utils/dishCustomization';
+import Pagination from '../components/Pagination';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -174,6 +175,27 @@ export default function RestaurantDetail() {
       );
     });
   }, [restaurant, activeCategoryTab]);
+
+  // Phân trang danh sách món ăn và đánh giá của quán
+  const [menuPage, setMenuPage] = useState(1);
+  const MENU_PAGE_SIZE = 8;
+
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const REVIEWS_PAGE_SIZE = 5;
+
+  useEffect(() => {
+    setMenuPage(1);
+  }, [activeCategoryTab]);
+
+  const paginatedMenuItems = useMemo(() => {
+    const start = (menuPage - 1) * MENU_PAGE_SIZE;
+    return filteredMenuItems.slice(start, start + MENU_PAGE_SIZE);
+  }, [filteredMenuItems, menuPage]);
+
+  const paginatedReviews = useMemo(() => {
+    const start = (reviewsPage - 1) * REVIEWS_PAGE_SIZE;
+    return reviews.slice(start, start + REVIEWS_PAGE_SIZE);
+  }, [reviews, reviewsPage]);
 
   const handleOpenReviewModal = () => {
     if (!isAuthenticated) {
@@ -471,8 +493,9 @@ export default function RestaurantDetail() {
             Không có món ăn nào trong danh mục này.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredMenuItems.map((item, idx) => {
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {paginatedMenuItems.map((item, idx) => {
               const itemId = item._id || item.menuItemId || `${item.name}-${idx}`;
               const isAdded = addedItemIds.includes(itemId);
               const dishQty = getDishTotalQuantity(itemId, item.name);
@@ -558,6 +581,19 @@ export default function RestaurantDetail() {
                 </div>
               );
             })}
+            </div>
+
+            {/* Phân trang danh sách món ăn */}
+            <Pagination
+              currentPage={menuPage}
+              totalPages={Math.ceil(filteredMenuItems.length / MENU_PAGE_SIZE) || 1}
+              totalItems={filteredMenuItems.length}
+              pageSize={MENU_PAGE_SIZE}
+              itemLabel="món ăn"
+              theme="light"
+              onPageChange={(p) => setMenuPage(p)}
+              className="mt-4"
+            />
           </div>
         )}
       </div>
@@ -603,40 +639,54 @@ export default function RestaurantDetail() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {reviews.map((rev) => (
-              <div key={rev._id} className="py-4 space-y-2 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-xs">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">
-                        {rev.user_id ? `Khách hàng #${String(rev.user_id).slice(-4)}` : 'Khách hàng FoodFast'}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`w-3 h-3 ${
-                              star <= rev.rating
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'text-gray-200 fill-gray-200'
-                            }`}
-                          />
-                        ))}
+          <div>
+            <div className="divide-y divide-gray-100">
+              {paginatedReviews.map((rev) => (
+                <div key={rev._id} className="py-4 space-y-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-xs">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">
+                          {rev.user_id ? `Khách hàng #${String(rev.user_id).slice(-4)}` : 'Khách hàng FoodFast'}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= rev.rating
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-200 fill-gray-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(rev.created_at || Date.now()).toLocaleDateString('vi-VN')}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {new Date(rev.created_at || Date.now()).toLocaleDateString('vi-VN')}
-                  </span>
+                  <p className="text-xs sm:text-sm text-gray-700 pl-10 leading-relaxed">{rev.comment}</p>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 pl-10 leading-relaxed">{rev.comment}</p>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Phân trang danh sách đánh giá */}
+            <Pagination
+              currentPage={reviewsPage}
+              totalPages={Math.ceil(reviews.length / REVIEWS_PAGE_SIZE) || 1}
+              totalItems={reviews.length}
+              pageSize={REVIEWS_PAGE_SIZE}
+              itemLabel="đánh giá"
+              theme="light"
+              onPageChange={(p) => setReviewsPage(p)}
+              className="mt-4"
+            />
           </div>
         )}
       </div>

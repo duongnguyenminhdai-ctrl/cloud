@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { storeApi, orderApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import Pagination from '../components/Pagination';
 
 // Định dạng tiền tệ VNĐ
 const formatVND = (amount) => {
@@ -263,6 +264,38 @@ export default function MerchantDashboard() {
     if (orderSubTab === 'history') return orders.filter((o) => ['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(o.status));
     return orders;
   }, [orders, orderSubTab]);
+
+  // Phân trang đơn hàng quán (Live Orders)
+  const [orderPage, setOrderPage] = useState(1);
+  const ORDER_PAGE_SIZE = 6;
+
+  useEffect(() => {
+    setOrderPage(1);
+  }, [orderSubTab]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (orderPage - 1) * ORDER_PAGE_SIZE;
+    return filteredOrders.slice(start, start + ORDER_PAGE_SIZE);
+  }, [filteredOrders, orderPage]);
+
+  // Phân trang thực đơn món ăn (Menu Items)
+  const [menuPage, setMenuPage] = useState(1);
+  const MENU_PAGE_SIZE = 9;
+
+  useEffect(() => {
+    setMenuPage(1);
+  }, [selectedCategory]);
+
+  const filteredMenuItems = useMemo(() => {
+    return (store?.menuItems || []).filter((m) =>
+      selectedCategory === 'ALL' ? true : m.categoryId === selectedCategory
+    );
+  }, [store?.menuItems, selectedCategory]);
+
+  const paginatedMenuItems = useMemo(() => {
+    const start = (menuPage - 1) * MENU_PAGE_SIZE;
+    return filteredMenuItems.slice(start, start + MENU_PAGE_SIZE);
+  }, [filteredMenuItems, menuPage]);
 
   // Xác nhận đơn hàng mới -> chuyển sang PREPARING
   const handleConfirmOrder = async (orderId) => {
@@ -1060,8 +1093,9 @@ export default function MerchantDashboard() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredOrders.map((ord) => {
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginatedOrders.map((ord) => {
                   const isNew = ['PENDING', 'NEW'].includes(ord.status);
                   const isPreparing = ['CONFIRMED', 'PREPARING'].includes(ord.status);
                   const isDelivering = ['FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(ord.status);
@@ -1226,6 +1260,19 @@ export default function MerchantDashboard() {
                     </div>
                   );
                 })}
+                </div>
+
+                {/* Phân trang danh sách đơn hàng của quán */}
+                <Pagination
+                  currentPage={orderPage}
+                  totalPages={Math.ceil(filteredOrders.length / ORDER_PAGE_SIZE) || 1}
+                  totalItems={filteredOrders.length}
+                  pageSize={ORDER_PAGE_SIZE}
+                  itemLabel="đơn hàng"
+                  theme="dark"
+                  onPageChange={(p) => setOrderPage(p)}
+                  className="mt-4"
+                />
               </div>
             )}
           </div>
@@ -1323,9 +1370,7 @@ export default function MerchantDashboard() {
 
                 {/* Danh sách món ăn có công tắc Còn món / Hết món (Image 3, 4) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {(store.menuItems || [])
-                    .filter((m) => (selectedCategory === 'ALL' ? true : m.categoryId === selectedCategory))
-                    .map((item) => {
+                  {paginatedMenuItems.map((item) => {
                       const isAvailable = item.isAvailable !== false;
                       return (
                         <div
@@ -1403,6 +1448,18 @@ export default function MerchantDashboard() {
                       );
                     })}
                 </div>
+
+                {/* Phân trang danh sách món ăn của quán */}
+                <Pagination
+                  currentPage={menuPage}
+                  totalPages={Math.ceil(filteredMenuItems.length / MENU_PAGE_SIZE) || 1}
+                  totalItems={filteredMenuItems.length}
+                  pageSize={MENU_PAGE_SIZE}
+                  itemLabel="món ăn"
+                  theme="dark"
+                  onPageChange={(p) => setMenuPage(p)}
+                  className="mt-4"
+                />
               </div>
             )}
 

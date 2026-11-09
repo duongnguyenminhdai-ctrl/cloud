@@ -28,6 +28,7 @@ import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 import PromotionPopupModal from '../components/PromotionPopupModal';
+import Pagination from '../components/Pagination';
 
 // Danh sách quán ăn mẫu chuẩn FoodFast (Bao phủ đầy đủ 100% các danh mục món ăn)
 const DEFAULT_FOODFAST_STORES = [
@@ -480,6 +481,10 @@ export default function Home() {
   // Lọc theo Quận/Huyện
   const [selectedDistrict, setSelectedDistrict] = useState('ALL');
 
+  // Phân trang danh sách quán ăn trên trang chủ
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 9; // 9 quán mỗi trang (3 hàng x 3 cột trên desktop)
+
   const [copiedVoucher, setCopiedVoucher] = useState(null);
   const [likedStoreIds, setLikedStoreIds] = useState([]);
 
@@ -740,6 +745,19 @@ export default function Home() {
 
     return list;
   }, [storeList, searchKeyword, selectedCategory, selectedTopCatId, selectedDistrict, activeTab, likedStoreIds, userCoord, selectedCity]);
+
+  // Tự động chuyển về trang 1 khi thay đổi từ khóa, danh mục, quận huyện hoặc tab
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword, selectedCategory, selectedTopCatId, selectedDistrict, activeTab]);
+
+  // Phân trang danh sách quán ăn hiển thị
+  const paginatedRestaurants = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return displayedRestaurants.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [displayedRestaurants, currentPage]);
+
+  const totalPages = Math.ceil(displayedRestaurants.length / PAGE_SIZE) || 1;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
@@ -1016,7 +1034,7 @@ export default function Home() {
       {/* ===================================================================== */}
       {/* 3. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
       {/* ===================================================================== */}
-      <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-4">
+      <div id="foodfast-restaurants-section" className="flex items-center justify-between border-b border-gray-100 pb-2 mb-4 scroll-mt-24">
         {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá) - Đã bỏ Giao nhanh theo yêu cầu */}
         <div className="flex items-center gap-6 sm:gap-8">
           <button
@@ -1241,86 +1259,104 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-            {displayedRestaurants.map((res) => (
-              <Link
-                key={res._id}
-                to={`/restaurants/${res._id}`}
-                className="bg-white rounded-2xl p-3 border border-gray-100 hover:border-sky-300 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative"
-              >
-                {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 và Nút Thả tim ❤️ */}
-                <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={res.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80'}
-                    alt={res.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                  {/* Chấm xanh trạng thái trực tuyến chuẩn FoodFast */}
-                  <span
-                    className="absolute top-1.5 left-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
-                    title="Đang mở cửa / phục vụ"
-                  />
-                  {/* Nút Thả tim lưu quán yêu thích (Wishlist) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleToggleFavorite(res._id);
-                    }}
-                    className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xs cursor-pointer ${
-                      likedStoreIds.includes(res._id)
-                        ? 'bg-red-500 text-white scale-110 shadow-sm'
-                        : 'bg-black/35 text-white/90 hover:bg-black/60 hover:text-red-400'
-                    }`}
-                    title={likedStoreIds.includes(res._id) ? 'Bỏ yêu thích' : 'Lưu quán yêu thích'}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${likedStoreIds.includes(res._id) ? 'fill-white text-white' : ''}`} />
-                  </button>
-                </div>
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+              {paginatedRestaurants.map((res) => (
+                <Link
+                  key={res._id}
+                  to={`/restaurants/${res._id}`}
+                  className="bg-white rounded-2xl p-3 border border-gray-100 hover:border-sky-300 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative"
+                >
+                  {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 và Nút Thả tim ❤️ */}
+                  <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <img
+                      src={res.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80'}
+                      alt={res.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    {/* Chấm xanh trạng thái trực tuyến chuẩn FoodFast */}
+                    <span
+                      className="absolute top-1.5 left-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
+                      title="Đang mở cửa / phục vụ"
+                    />
+                    {/* Nút Thả tim lưu quán yêu thích (Wishlist) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleToggleFavorite(res._id);
+                      }}
+                      className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xs cursor-pointer ${
+                        likedStoreIds.includes(res._id)
+                          ? 'bg-red-500 text-white scale-110 shadow-sm'
+                          : 'bg-black/35 text-white/90 hover:bg-black/60 hover:text-red-400'
+                      }`}
+                      title={likedStoreIds.includes(res._id) ? 'Bỏ yêu thích' : 'Lưu quán yêu thích'}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${likedStoreIds.includes(res._id) ? 'fill-white text-white' : ''}`} />
+                    </button>
+                  </div>
 
-                {/* Right: Thông tin quán chuẩn FoodFast */}
-                <div className="min-w-0 flex-1 flex flex-col justify-between h-full py-0.5 space-y-1">
-                  {/* Hàng 1: Icon cam xác thực + Tên Quán */}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {res.isVerified !== false && (
-                      <div className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  {/* Right: Thông tin quán chuẩn FoodFast */}
+                  <div className="min-w-0 flex-1 flex flex-col justify-between h-full py-0.5 space-y-1">
+                    {/* Hàng 1: Icon cam xác thực + Tên Quán */}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {res.isVerified !== false && (
+                        <div className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-[#0084ff] transition-colors truncate">
+                        {res.name}
+                      </h3>
+                    </div>
+
+                    {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương FoodFast */}
+                    <p className="text-xs font-semibold text-[#0084ff] truncate">
+                      {getLocationCountText(res)}
+                    </p>
+
+                    {/* Hàng 3: Tối thiểu 20k / Giá 0 */}
+                    <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-gray-400 rotate-90" />
+                        <span>{getMinOrderText(res)}</span>
                       </div>
-                    )}
-                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-[#0084ff] transition-colors truncate">
-                      {res.name}
-                    </h3>
-                  </div>
-
-                  {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương FoodFast */}
-                  <p className="text-xs font-semibold text-[#0084ff] truncate">
-                    {getLocationCountText(res)}
-                  </p>
-
-                  {/* Hàng 3: Tối thiểu 20k / Giá 0 */}
-                  <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-gray-500 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <Tag className="w-3 h-3 text-gray-400 rotate-90" />
-                      <span>{getMinOrderText(res)}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[10px] flex items-center justify-center font-bold text-gray-500 leading-none">
+                          $
+                        </span>
+                        <span>{getPriceRangeText(res)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[10px] flex items-center justify-center font-bold text-gray-500 leading-none">
-                        $
-                      </span>
-                      <span>{getPriceRangeText(res)}</span>
+
+                    {/* Hàng 4: Tag khuyến mãi màu đỏ Giảm món */}
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-red-500">
+                      <Tag className="w-3 h-3 text-red-500 fill-red-500" />
+                      <span>{getPromoTag(res)}</span>
                     </div>
                   </div>
+                </Link>
+              ))}
+            </div>
 
-                  {/* Hàng 4: Tag khuyến mãi màu đỏ Giảm món */}
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-red-500">
-                    <Tag className="w-3 h-3 text-red-500 fill-red-500" />
-                    <span>{getPromoTag(res)}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+            {/* Thanh phân trang danh sách quán ăn */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={displayedRestaurants.length}
+              pageSize={PAGE_SIZE}
+              itemLabel="quán ăn"
+              theme="light"
+              className="mt-6"
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                const elem = document.getElementById('foodfast-restaurants-section');
+                if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            />
           </div>
         )
       )}
