@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Star,
@@ -6,6 +6,7 @@ import {
   Phone,
   ArrowLeft,
   Plus,
+  Minus,
   Check,
   ShoppingBag,
   Zap,
@@ -15,7 +16,8 @@ import {
   Gift,
   X,
   User,
-  Clock
+  Clock,
+  Heart
 } from 'lucide-react';
 import { restaurantApi, reviewApi } from '../api/client';
 import { useCart } from '../context/CartContext';
@@ -24,6 +26,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 import DishCustomizationModal from '../components/DishCustomizationModal';
+import UpdateVariantModal from '../components/UpdateVariantModal';
 import { hasDishCustomization } from '../utils/dishCustomization';
 
 export default function RestaurantDetail() {
@@ -45,9 +48,26 @@ export default function RestaurantDetail() {
   const [reviewReward, setReviewReward] = useState(null);
   const [reviewError, setReviewError] = useState(null);
 
-  const { addToCart, totalItems, totalPrice } = useCart();
+  const {
+    addToCart,
+    totalItems,
+    totalPrice,
+    getDishVariants,
+    getDishTotalQuantity,
+    updateVariantQuantity
+  } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { location: userCoord, setManualLocation } = useUserLocation();
+
+  // Trạng thái Quán yêu thích (Like / Wishlist)
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  // Trạng thái modal cập nhật biến thể (ShopeeFood UpdateModal)
+  const [updatingDishVariants, setUpdatingDishVariants] = useState(null);
+
+  // Tab danh mục món ăn đang chọn
+  const [activeCategoryTab, setActiveCategoryTab] = useState('ALL');
 
   const fetchReviews = async () => {
     setReviewsLoading(true);
@@ -70,8 +90,15 @@ export default function RestaurantDetail() {
       try {
         const res = await restaurantApi.getById(id);
         if (res.data?.success) {
-          setRestaurant(res.data.data);
+          const storeData = res.data.data;
+          setRestaurant(storeData);
           setDataSource(res.data.source || 'database');
+
+          const uid = user?.id || user?.userId || user?._id || user?.email;
+          if (uid && storeData.likes) {
+            setIsLiked(storeData.likes.includes(String(uid)));
+          }
+          setLikeCount(storeData.likeCount || storeData.likes?.length || 0);
         } else {
           setError('Không tìm thấy nhà hàng');
         }
@@ -85,7 +112,68 @@ export default function RestaurantDetail() {
 
     fetchDetail();
     fetchReviews();
-  }, [id]);
+  }, [id, user]);
+
+  const handleToggleFavorite = async () => {
+    const uid = user?.id || user?.userId || user?._id || user?.email || 'guest';
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setLikeCount((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+
+    if (isAuthenticated) {
+      try {
+        await restaurantApi.toggleLike(id, uid);
+      } catch (err) {
+        console.error('Lỗi lưu yêu thích:', err);
+      }
+    }
+  };
+
+  const handleDecrement = (item) => {
+    const itemId = item._id || item.menuItemId || item.name;
+    const variants = getDishVariants(itemId, item.name);
+    if (!variants || variants.length === 0) return;
+
+    if (variants.length === 1) {
+      // Chỉ có 1 biến thể duy nhất -> trừ trực tiếp
+      updateVariantQuantity(variants[0].cartItemId, -1);
+    } else {
+      // Có nhiều biến thể khác nhau (ví dụ 1 Size M, 2 Size L) -> mở UpdateVariantModal chuẩn ShopeeFood
+      setUpdatingDishVariants({
+        dish: item,
+        variants
+      });
+    }
+  };
+
+  // Trích xuất danh sách danh mục thực đơn của quán (ShopeeFood Menu Categories)
+  const categoriesList = useMemo(() => {
+    if (!restaurant) return [];
+    if (restaurant.categories && restaurant.categories.length > 0) {
+      return restaurant.categories;
+    }
+    const catsMap = new Map();
+    (restaurant.menuItems || []).forEach((item) => {
+      const catKey = item.categoryId || item.category || 'Món chính';
+      if (!catsMap.has(catKey)) {
+        catsMap.set(catKey, { id: catKey, name: catKey });
+      }
+    });
+    return Array.from(catsMap.values());
+  }, [restaurant]);
+
+  // Lọc món theo category đang chọn
+  const filteredMenuItems = useMemo(() => {
+    if (!restaurant?.menuItems) return [];
+    if (activeCategoryTab === 'ALL') return restaurant.menuItems;
+    return restaurant.menuItems.filter((item) => {
+      return (
+        item.categoryId === activeCategoryTab ||
+        item.category === activeCategoryTab ||
+        (activeCategoryTab === 'Món chính' && !item.categoryId)
+      );
+    });
+  }, [restaurant, activeCategoryTab]);
 
   const handleOpenReviewModal = () => {
     if (!isAuthenticated) {
@@ -252,6 +340,19 @@ export default function RestaurantDetail() {
                 {restaurant.address}
               </p>
             </div>
+            {/* Nút Thả tim lưu quán yêu thích (ShopeeFood Wishlist) */}
+            <button
+              onClick={handleToggleFavorite}
+              className={`absolute top-4 right-4 px-3 py-2 rounded-2xl backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
+                isLiked
+                  ? 'bg-red-500 text-white scale-105 shadow-red-500/30'
+                  : 'bg-black/40 text-white hover:bg-black/60 hover:text-red-400'
+              }`}
+              title={isLiked ? 'Bỏ lưu yêu thích' : 'Lưu quán yêu thích'}
+            >
+              <Heart className={`w-4 h-4 ${isLiked ? 'fill-white text-white' : ''}`} />
+              <span className="text-xs font-bold">{likeCount}</span>
+            </button>
           </div>
         )}
 
@@ -259,7 +360,20 @@ export default function RestaurantDetail() {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="space-y-2">
               {!restaurant.image && (
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{restaurant.name}</h1>
+                <div className="flex items-center justify-between gap-4">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{restaurant.name}</h1>
+                  <button
+                    onClick={handleToggleFavorite}
+                    className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      isLiked
+                        ? 'bg-red-50 border-red-300 text-red-600'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-red-500'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    <span>{likeCount}</span>
+                  </button>
+                </div>
               )}
               <div className="flex items-center gap-2 flex-wrap">
                 {dataSource && (
@@ -301,7 +415,7 @@ export default function RestaurantDetail() {
             <button
               type="button"
               onClick={() => setIsAddressModalOpen(true)}
-              className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline px-2.5 py-1 bg-orange-50 rounded-lg transition-colors"
+              className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline px-2.5 py-1 bg-orange-50 rounded-lg transition-colors cursor-pointer"
             >
               Đổi vị trí ({userCoord?.shortAddress || 'TP.HCM'})
             </button>
@@ -318,15 +432,50 @@ export default function RestaurantDetail() {
           <span className="text-xs font-medium text-gray-400">Chọn món yêu thích vào giỏ</span>
         </div>
 
-        {(!restaurant.menuItems || restaurant.menuItems.length === 0) ? (
+        {/* Thanh danh mục Sticky phong cách ShopeeFood */}
+        {categoriesList.length > 0 && (
+          <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md py-2 px-1 border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveCategoryTab('ALL')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                activeCategoryTab === 'ALL'
+                  ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả ({restaurant.menuItems?.length || 0})
+            </button>
+            {categoriesList.map((cat) => {
+              const catId = cat.id || cat._id || cat.name;
+              return (
+                <button
+                  key={catId}
+                  type="button"
+                  onClick={() => setActiveCategoryTab(catId)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    activeCategoryTab === catId
+                      ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {filteredMenuItems.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-2xl border border-gray-100 text-gray-400">
-            Quán chưa cập nhật món ăn trong thực đơn.
+            Không có món ăn nào trong danh mục này.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {restaurant.menuItems.map((item, idx) => {
+            {filteredMenuItems.map((item, idx) => {
               const itemId = item._id || item.menuItemId || `${item.name}-${idx}`;
               const isAdded = addedItemIds.includes(itemId);
+              const dishQty = getDishTotalQuantity(itemId, item.name);
 
               return (
                 <div
@@ -340,6 +489,9 @@ export default function RestaurantDetail() {
                         alt={item.name}
                         className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shrink-0"
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = '/dishes/res3-1725269549453.jpg';
+                        }}
                       />
                     )}
                     <div className="space-y-1 flex-1">
@@ -357,28 +509,51 @@ export default function RestaurantDetail() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                     <span className="text-xs text-emerald-600 font-medium">Sẵn sàng phục vụ</span>
-                    <button
-                      onClick={() => handleAdd(item)}
-                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        isAdded
-                          ? 'bg-emerald-600 text-white scale-105'
-                          : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'
-                      }`}
-                    >
-                      {isAdded ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" /> Đã thêm
-                        </>
-                      ) : hasDishCustomization(item) ? (
-                        <>
-                          <Plus className="w-3.5 h-3.5" /> Tùy chọn & Thêm
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-3.5 h-3.5" /> Thêm vào giỏ
-                        </>
-                      )}
-                    </button>
+
+                    {dishQty > 0 ? (
+                      <div className="flex items-center gap-2 bg-orange-50 px-2 py-1 rounded-xl border border-orange-200">
+                        <button
+                          type="button"
+                          onClick={() => handleDecrement(item)}
+                          className="w-7 h-7 rounded-lg bg-white text-orange-600 shadow-xs hover:bg-orange-100 flex items-center justify-center transition-colors font-bold cursor-pointer"
+                          title="Giảm món / Chọn biến thể để giảm"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-5 text-center font-black text-xs text-orange-600">{dishQty}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleAdd(item)}
+                          className="w-7 h-7 rounded-lg bg-orange-600 text-white shadow-xs hover:bg-orange-700 flex items-center justify-center transition-colors font-bold cursor-pointer"
+                          title="Thêm món"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleAdd(item)}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          isAdded
+                            ? 'bg-emerald-600 text-white scale-105'
+                            : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'
+                        }`}
+                      >
+                        {isAdded ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" /> Đã thêm
+                          </>
+                        ) : hasDishCustomization(item) ? (
+                          <>
+                            <Plus className="w-3.5 h-3.5" /> Tùy chọn & Thêm
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5" /> Thêm vào giỏ
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -607,6 +782,33 @@ export default function RestaurantDetail() {
         isOpen={!!customizingDish}
         onClose={() => setCustomizingDish(null)}
         onConfirm={handleConfirmCustomization}
+      />
+
+      {/* Modal chỉnh sửa / giảm biến thể giỏ hàng phong cách ShopeeFood (UpdateModal) */}
+      <UpdateVariantModal
+        isOpen={Boolean(updatingDishVariants)}
+        dish={updatingDishVariants?.dish}
+        variants={
+          updatingDishVariants
+            ? getDishVariants(
+                updatingDishVariants.dish._id || updatingDishVariants.dish.menuItemId || updatingDishVariants.dish.name,
+                updatingDishVariants.dish.name
+              )
+            : []
+        }
+        onClose={() => setUpdatingDishVariants(null)}
+        onUpdateQuantity={(cartItemId, delta) => {
+          updateVariantQuantity(cartItemId, delta);
+          setTimeout(() => {
+            if (updatingDishVariants) {
+              const remaining = getDishVariants(
+                updatingDishVariants.dish._id || updatingDishVariants.dish.menuItemId || updatingDishVariants.dish.name,
+                updatingDishVariants.dish.name
+              );
+              if (remaining.length === 0) setUpdatingDishVariants(null);
+            }
+          }, 50);
+        }}
       />
     </div>
   );

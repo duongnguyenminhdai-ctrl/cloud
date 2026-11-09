@@ -17,14 +17,17 @@ import {
   SlidersHorizontal,
   Flame,
   Award,
-  Check
+  Check,
+  Heart
 } from 'lucide-react';
 import { restaurantApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useLocationCity } from '../context/LocationContext';
+import { useAuth } from '../context/AuthContext';
 import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
+import PromotionPopupModal from '../components/PromotionPopupModal';
 
 // Danh sách quán ăn mẫu chuẩn FoodFast (Hiển thị ngay khi database chưa có dữ liệu)
 const DEFAULT_FOODFAST_STORES = [
@@ -171,6 +174,30 @@ const FOODFAST_CATEGORIES = [
   { id: 'Cơm hộp', label: 'Cơm hộp' }
 ];
 
+// 20 Danh mục đặc trưng chuẩn ShopeeFood (Kèm Icon 3D chính hãng từ shopeefood-app-main)
+const SHOPEEFOOD_TOP_CATEGORIES = [
+  { id: 'all', name: 'Tất cả', icon: '/icons/nice-shop.png', keyword: '' },
+  { id: 'deal', name: 'Hot Deal', icon: '/icons/flash-deals.png', keyword: 'giảm|deal|khuyến mãi' },
+  { id: 'rice', name: 'Cơm Trưa', icon: '/icons/rice.png', keyword: 'cơm' },
+  { id: 'bun_pho', name: 'Bún Mì Phở', icon: '/icons/bun-pho.png', keyword: 'bún|phở|mì|hủ tiếu' },
+  { id: 'milk_tea', name: 'Trà Sữa', icon: '/icons/sweet-food.png', keyword: 'trà sữa|chè|nước ngọt|trà' },
+  { id: 'fastfood', name: 'Fast Food', icon: '/icons/fastfood.png', keyword: 'burger|gà rán|fast food|khoai tây' },
+  { id: 'bbq', name: 'BBQ Nướng', icon: '/icons/bbq.png', keyword: 'nướng|bbq|lẩu' },
+  { id: 'pizza', name: 'Pizza', icon: '/icons/Pizza.png', keyword: 'pizza' },
+  { id: 'burger', name: 'Burger', icon: '/icons/burger.png', keyword: 'burger' },
+  { id: 'fried_chicken', name: 'Gà Rán', icon: '/icons/fried-chicken.png', keyword: 'gà rán|gà' },
+  { id: 'korean', name: 'Món Hàn', icon: '/icons/korean-food.png', keyword: 'hàn|kimchi|tokbokki' },
+  { id: 'steak', name: 'Bít Tết', icon: '/icons/Steak.png', keyword: 'bò|bít tết|steak' },
+  { id: 'healthy', name: 'Sống Khỏe', icon: '/icons/salad.png', keyword: 'salad|chay|healthy' },
+  { id: 'points', name: 'Tích Điểm', icon: '/icons/points.png', keyword: '' },
+  { id: 'freeship', name: 'Freeship 0Đ', icon: '/icons/moi-moi.png', keyword: '' },
+  { id: 'deal_0d', name: 'Deal 0Đ', icon: '/icons/tomato.png', keyword: '' },
+  { id: 'afternoon', name: 'Ăn Chiều', icon: '/icons/chowmein.png', keyword: 'ăn vặt|bánh tráng|xiên que' },
+  { id: 'sandwich', name: 'Bánh Mì', icon: '/icons/Sub-sandiwch.png', keyword: 'bánh mì|sandwich' },
+  { id: 'veg', name: 'Món Chay', icon: '/icons/vegetable.png', keyword: 'chay' },
+  { id: 'combos', name: 'Combo Hot', icon: '/icons/elipse.png', keyword: 'combo' }
+];
+
 // Chuẩn hóa tên Quận/Huyện để so sánh chính xác ("TP. Thủ Đức" và "Thành phố Thủ Đức" đều thành "thủ đức")
 function normalizeDistrictName(str) {
   if (!str) return '';
@@ -197,6 +224,7 @@ function matchDistrict(res, targetDistrict) {
 
 export default function Home() {
   const { selectedCity } = useLocationCity();
+  const { user, isAuthenticated } = useAuth();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -205,13 +233,52 @@ export default function Home() {
   // Bộ lọc tìm kiếm và danh mục
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedTopCatId, setSelectedTopCatId] = useState('all');
 
-  // Tabs FoodFast: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá)
+  // Tabs FoodFast: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá) | 'favorites' (Yêu thích)
   const [activeTab, setActiveTab] = useState('near');
   // Lọc theo Quận/Huyện
   const [selectedDistrict, setSelectedDistrict] = useState('ALL');
 
   const [copiedVoucher, setCopiedVoucher] = useState(null);
+  const [likedStoreIds, setLikedStoreIds] = useState([]);
+
+  // Khởi tạo danh sách quán yêu thích từ API hoặc localStorage
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const uid = user?.id || user?.userId || user?._id || user?.email;
+      if (uid) {
+        try {
+          const res = await restaurantApi.getFavorites(uid);
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            setLikedStoreIds(res.data.data.map((s) => s._id));
+          }
+        } catch {}
+      } else {
+        try {
+          const saved = localStorage.getItem('foodfast_guest_likes');
+          if (saved) setLikedStoreIds(JSON.parse(saved));
+        } catch {}
+      }
+    };
+    loadFavorites();
+  }, [user]);
+
+  const handleToggleFavorite = async (storeId) => {
+    const uid = user?.id || user?.userId || user?._id || user?.email || 'guest';
+    const isLiked = likedStoreIds.includes(storeId);
+    const updated = isLiked ? likedStoreIds.filter((id) => id !== storeId) : [...likedStoreIds, storeId];
+    setLikedStoreIds(updated);
+    localStorage.setItem('foodfast_guest_likes', JSON.stringify(updated));
+
+    if (isAuthenticated) {
+      try {
+        await restaurantApi.toggleLike(storeId, uid);
+      } catch (e) {
+        console.error('Lỗi lưu yêu thích:', e);
+      }
+    }
+  };
 
   // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM - Đồng bộ 100% với Tỉnh/Thành phố)
   const {
@@ -314,7 +381,22 @@ export default function Home() {
         }
       }
 
-      // 2. Lọc theo danh mục FoodFast
+      // 2. Lọc theo danh mục ShopeeFood (Top 20 Categories Grid)
+      if (selectedTopCatId !== 'all') {
+        const topCat = SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId);
+        if (topCat && topCat.keyword) {
+          const regex = new RegExp(topCat.keyword, 'i');
+          const matchName = regex.test(res.name || '');
+          const matchDish = regex.test(res.specialtyDish || '');
+          const matchCuisine = (res.cuisineTypes || []).some((c) => regex.test(c));
+          const matchItems = (res.menuItems || []).some((item) => regex.test(item.name || ''));
+          if (!matchName && !matchDish && !matchCuisine && !matchItems) {
+            return false;
+          }
+        }
+      }
+
+      // 2.1 Lọc theo danh mục FoodFast
       if (selectedCategory !== 'All') {
         const cat = selectedCategory.toLowerCase();
         const matchName = res.name?.toLowerCase().includes(cat);
@@ -341,7 +423,9 @@ export default function Home() {
     const uLat = userCoord?.lat || selectedCity?.lat || 10.7769;
     const uLng = userCoord?.lng || selectedCity?.lng || 106.7009;
 
-    if (activeTab === 'near') {
+    if (activeTab === 'favorites') {
+      list = list.filter((r) => likedStoreIds.includes(r._id));
+    } else if (activeTab === 'near') {
       list.sort((a, b) => {
         const distA = calculateHaversineDistance(uLat, uLng, a.latitude || uLat, a.longitude || uLng);
         const distB = calculateHaversineDistance(uLat, uLng, b.latitude || uLat, b.longitude || uLng);
@@ -354,7 +438,7 @@ export default function Home() {
     }
 
     return list;
-  }, [storeList, searchKeyword, selectedCategory, selectedDistrict, activeTab, userCoord, selectedCity]);
+  }, [storeList, searchKeyword, selectedCategory, selectedTopCatId, selectedDistrict, activeTab, likedStoreIds, userCoord, selectedCity]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
@@ -518,6 +602,67 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
+      {/* 1.5. DANH MỤC ĐẶC TRƯNG SHOPEEFOOD (20 Icon Grid từ shopeefood-app-main) */}
+      {/* ===================================================================== */}
+      <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-600 animate-ping" />
+            <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+              Khám Phá Món Ngon ShopeeFood
+            </h2>
+          </div>
+          {selectedTopCatId !== 'all' && (
+            <button
+              onClick={() => setSelectedTopCatId('all')}
+              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
+            >
+              Xem tất cả
+            </button>
+          )}
+        </div>
+
+        {/* 20 Icon danh mục ShopeeFood dạng grid 2 hàng lướt ngang mượt mà */}
+        <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
+          {SHOPEEFOOD_TOP_CATEGORIES.map((cat) => {
+            const isSelected = selectedTopCatId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedTopCatId(isSelected ? 'all' : cat.id);
+                  if (activeTab === 'favorites') setActiveTab('near');
+                }}
+                className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
+                  isSelected
+                    ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
+                    : 'bg-gray-50/70 hover:bg-orange-50/60 border border-gray-100 hover:border-orange-200'
+                }`}
+              >
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center overflow-hidden mb-1 group-hover:scale-110 transition-transform">
+                  <img
+                    src={cat.icon}
+                    alt={cat.name}
+                    className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.src = '/icons/nice-shop.png';
+                    }}
+                  />
+                </div>
+                <span
+                  className={`text-[11px] sm:text-xs text-center font-bold leading-tight line-clamp-1 ${
+                    isSelected ? 'text-orange-600' : 'text-gray-700 group-hover:text-orange-600'
+                  }`}
+                >
+                  {cat.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
       {/* 2. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Chuẩn Tên Đường - Không hiện IP) */}
       {/* ===================================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 bg-orange-50/70 border border-orange-200/70 rounded-2xl shadow-sm">
@@ -604,6 +749,18 @@ export default function Home() {
             }`}
           >
             Đánh giá
+          </button>
+
+          <button
+            onClick={() => setActiveTab('favorites')}
+            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'favorites'
+                ? 'text-red-500 font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-500'
+                : 'text-gray-700 hover:text-red-500 font-medium'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${activeTab === 'favorites' || likedStoreIds.length > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+            <span>Yêu thích ({likedStoreIds.length})</span>
           </button>
         </div>
 
@@ -705,7 +862,7 @@ export default function Home() {
                 to={`/restaurants/${res._id}`}
                 className="bg-white rounded-2xl p-3 border border-gray-100 hover:border-sky-300 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative"
               >
-                {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 */}
+                {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 và Nút Thả tim ❤️ */}
                 <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                   <img
                     src={res.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80'}
@@ -718,6 +875,23 @@ export default function Home() {
                     className="absolute top-1.5 left-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
                     title="Đang mở cửa / phục vụ"
                   />
+                  {/* Nút Thả tim lưu quán yêu thích (Wishlist) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleToggleFavorite(res._id);
+                    }}
+                    className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xs cursor-pointer ${
+                      likedStoreIds.includes(res._id)
+                        ? 'bg-red-500 text-white scale-110 shadow-sm'
+                        : 'bg-black/35 text-white/90 hover:bg-black/60 hover:text-red-400'
+                    }`}
+                    title={likedStoreIds.includes(res._id) ? 'Bỏ yêu thích' : 'Lưu quán yêu thích'}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${likedStoreIds.includes(res._id) ? 'fill-white text-white' : ''}`} />
+                  </button>
                 </div>
 
                 {/* Right: Thông tin quán chuẩn FoodFast */}
@@ -778,6 +952,8 @@ export default function Home() {
         }
         onSelectLocation={setManualLocation}
       />
+      {/* Modal Popup Khuyến mãi Deal sốc đầu ứng dụng (ShopeeFood Flash Sale Popup) */}
+      <PromotionPopupModal />
     </div>
   );
 }

@@ -924,3 +924,78 @@ exports.manageWallet = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// =============================================================================
+// QUÁN YÊU THÍCH (SHOPEEFOOD WISHLIST / LIKE SYSTEM)
+// =============================================================================
+
+// 20. Like / Dislike (Thả tim / Bỏ tim) quán ăn
+exports.toggleRestaurantLike = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id || req.user?.userId || req.body?.userId || req.query?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Vui lòng đăng nhập để lưu quán vào danh sách yêu thích!'
+      });
+    }
+
+    const restaurant = await Restaurant.findById(id);
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy quán ăn!' });
+    }
+
+    if (!restaurant.likes) restaurant.likes = [];
+    const index = restaurant.likes.indexOf(String(userId));
+    let isLiked = false;
+
+    if (index > -1) {
+      restaurant.likes.splice(index, 1);
+      isLiked = false;
+    } else {
+      restaurant.likes.push(String(userId));
+      isLiked = true;
+    }
+
+    restaurant.likeCount = restaurant.likes.length;
+    await restaurant.save();
+
+    // Làm mới cache quán
+    invalidateRestaurantCache(restaurant._id, restaurant.city_code);
+
+    return res.status(200).json({
+      success: true,
+      isLiked,
+      likeCount: restaurant.likeCount,
+      message: isLiked ? `Đã thêm "${restaurant.name}" vào danh sách yêu thích!` : `Đã bỏ lưu quán "${restaurant.name}".`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 21. Lấy danh sách các quán đã thả tim của khách hàng
+exports.getFavoriteRestaurants = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId || req.query?.userId;
+
+    if (!userId) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+
+    const favorites = await Restaurant.find({
+      likes: String(userId),
+      $or: [{ status: 'ACTIVE' }, { status: { $exists: false } }]
+    }).sort({ updatedAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: favorites.length,
+      data: favorites
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -230,6 +230,30 @@ export const restaurantApi = {
       throw err;
     }
   },
+  toggleLike: async (id, userId) => {
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/${id}/like`), { userId });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.post(`http://localhost:3001/api/v1/restaurants/${id}/like`, { userId });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getFavorites: async (userId) => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/favorites'), { params: { userId } });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3001/api/v1/restaurants/favorites', { params: { userId } });
+        } catch {}
+      }
+      throw err;
+    }
+  },
 };
 
 // -----------------------------------------------------------------------------

@@ -170,6 +170,9 @@ router.get(
 // -----------------------------------------------------------------------------
 // 6. Khách hàng xem danh sách và chi tiết quán ăn (Public Endpoints)
 // -----------------------------------------------------------------------------
+router.get(['/favorites', '/restaurants/favorites', '/api/v1/restaurants/favorites'], restaurantController.getFavoriteRestaurants);
+router.post(['/:id/like', '/restaurants/:id/like', '/api/v1/restaurants/:id/like'], restaurantController.toggleRestaurantLike);
+
 router.get(['/', '/restaurants', '/api/restaurants', '/api/v1/restaurants'], restaurantController.getAllRestaurants);
 router.get(['/:id', '/restaurants/:id', '/api/restaurants/:id', '/api/v1/restaurants/:id'], restaurantController.getRestaurantById);
 router.post(['/', '/restaurants', '/api/restaurants', '/api/v1/restaurants'], restaurantController.createRestaurant);

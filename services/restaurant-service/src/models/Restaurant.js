@@ -372,7 +372,17 @@ const restaurantSchema = new mongoose.Schema(
         requestedAt: { type: Date, default: Date.now },
         completedAt: { type: Date, default: null }
       }
-    ]
+    ],
+
+    // 15. Quán yêu thích (ShopeeFood Wishlist / Like system)
+    likes: {
+      type: [String],
+      default: []
+    },
+    likeCount: {
+      type: Number,
+      default: 0
+    }
   },
   {
     timestamps: true

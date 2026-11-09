@@ -126,6 +126,46 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  // Lấy tất cả biến thể của một món ăn cụ thể đang có trong giỏ hàng (Chuẩn ShopeeFood UpdateModal)
+  const getDishVariants = (menuItemId, dishName) => {
+    return cartItems.filter((i) => {
+      const matchId = menuItemId && (i.menuItemId === menuItemId || i._id === menuItemId);
+      const matchName = dishName && i.name === dishName;
+      return matchId || matchName;
+    });
+  };
+
+  // Tính tổng số lượng của tất cả các biến thể của món ăn trong giỏ
+  const getDishTotalQuantity = (menuItemId, dishName) => {
+    const variants = getDishVariants(menuItemId, dishName);
+    return variants.reduce((sum, i) => sum + (Number(i.quantity) || 1), 0);
+  };
+
+  // Tăng/giảm số lượng của một biến thể cụ thể
+  const updateVariantQuantity = (cartItemId, delta) => {
+    setCartItems((prevItems) => {
+      const index = prevItems.findIndex(
+        (i) => (i.cartItemId || i._id) === cartItemId
+      );
+      if (index === -1) return prevItems;
+
+      const currentItem = prevItems[index];
+      const newQty = (currentItem.quantity || 1) + delta;
+
+      if (newQty <= 0) {
+        const remaining = prevItems.filter((_, idx) => idx !== index);
+        if (remaining.length === 0) {
+          setCurrentRestaurant(null);
+        }
+        return remaining;
+      } else {
+        const next = [...prevItems];
+        next[index] = { ...currentItem, quantity: newQty };
+        return next;
+      }
+    });
+  };
+
   // Cập nhật trực tiếp số lượng
   const updateQuantity = (itemId, quantity) => {
     if (quantity <= 0) {
@@ -177,6 +217,9 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        getDishVariants,
+        getDishTotalQuantity,
+        updateVariantQuantity,
         clearCart,
       }}
     >
