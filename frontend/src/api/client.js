@@ -268,6 +268,12 @@ export const orderApi = {
   },
   getAll: (params = {}) =>
     apiClient.get(buildUrl(ORDER_SERVICE_URL, '/orders'), { params }),
+  updateStatus: async (orderId, statusData) => {
+    return await apiClient.put(buildUrl(ORDER_SERVICE_URL, `/orders/${orderId}/status`), statusData);
+  },
+  modifyItems: async (orderId, modifyData) => {
+    return await apiClient.put(buildUrl(ORDER_SERVICE_URL, `/orders/${orderId}/modify`), modifyData);
+  },
   cleanupStale: async () => {
     return await apiClient.post(buildUrl(ORDER_SERVICE_URL, '/orders/cleanup-stale'));
   },
@@ -439,6 +445,27 @@ export const storeApi = {
   },
   deleteMenuItem: async (itemId) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/menu/${itemId}`));
+  },
+  toggleItemAvailability: async (itemId) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/menu/${itemId}/toggle-availability`));
+  },
+  updateOperations: async (opData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/operations'), opData);
+  },
+  updateCategories: async (catData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/categories'), catData);
+  },
+  updateToppingGroups: async (tgData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/toppings'), tgData);
+  },
+  updateStaff: async (staffData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/staff'), staffData);
+  },
+  manageWallet: async (walletData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/wallet'), walletData);
+  },
+  getWallet: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/wallet'));
   }
 };
 

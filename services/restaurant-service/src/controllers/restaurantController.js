@@ -445,7 +445,7 @@ exports.addMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
     }
 
-    const { name, price, description, image, customization } = req.body;
+    const { name, price, description, image, customization, categoryId, sellingHours, linkedToppingGroupIds } = req.body;
     if (!name || price === undefined) {
       return res.status(400).json({ success: false, message: 'Tên món và giá món không được để trống.' });
     }
@@ -465,6 +465,9 @@ exports.addMenuItem = async (req, res) => {
       description: description || '',
       image: image || '',
       isAvailable: true,
+      categoryId: categoryId || '',
+      sellingHours: sellingHours || { isAllDay: true, customDays: [], shifts: [] },
+      linkedToppingGroupIds: linkedToppingGroupIds || [],
       customization: formattedCustomization
     });
 
@@ -496,13 +499,16 @@ exports.updateMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn.' });
     }
 
-    const { name, price, description, image, isAvailable, customization } = req.body;
+    const { name, price, description, image, isAvailable, customization, categoryId, sellingHours, linkedToppingGroupIds } = req.body;
     if (name) item.name = name;
     if (price !== undefined) item.price = Number(price);
     if (description !== undefined) item.description = description;
     if (image !== undefined) item.image = image;
     if (isAvailable !== undefined) item.isAvailable = isAvailable;
     if (customization !== undefined) item.customization = customization;
+    if (categoryId !== undefined) item.categoryId = categoryId;
+    if (sellingHours !== undefined) item.sellingHours = sellingHours;
+    if (linkedToppingGroupIds !== undefined) item.linkedToppingGroupIds = linkedToppingGroupIds;
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
@@ -663,5 +669,258 @@ exports.adminDeleteRestaurant = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi xóa quán: ' + error.message });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// CÁC HÀM PHỤC VỤ VẬN HÀNH ĐỐI TÁC CHỦ QUÁN (SHOPEE PARTNER SPEC)
+// -----------------------------------------------------------------------------
+
+// 16. Bật/Tắt nhanh trạng thái Còn món / Hết món (1-Touch Availability Toggle)
+exports.toggleMenuItemAvailability = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { itemId } = req.params;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+    const item = store.menuItems.id(itemId);
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn.' });
+    }
+    item.isAvailable = !item.isAvailable;
+    await store.save();
+    await invalidateRestaurantCache(store._id.toString());
+    return res.status(200).json({
+      success: true,
+      message: `Món [${item.name}] đã chuyển sang: ${item.isAvailable ? 'Còn món' : 'Hết món'}`,
+      isAvailable: item.isAvailable,
+      data: item
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 17. Cập nhật Trạng thái hoạt động, Chế độ Quán Bận & Lịch hoạt động (Module 3)
+exports.updateStoreOperations = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+    const { operatingStatus, weeklySchedule, specialSchedules } = req.body;
+    if (operatingStatus) {
+      store.operatingStatus = {
+        ...(store.operatingStatus || {}),
+        ...operatingStatus
+      };
+    }
+    if (weeklySchedule) {
+      store.weeklySchedule = weeklySchedule;
+    }
+    if (specialSchedules) {
+      store.specialSchedules = specialSchedules;
+    }
+    await store.save();
+    await invalidateRestaurantCache(store._id.toString());
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật trạng thái và lịch hoạt động quán thành công!',
+      data: {
+        operatingStatus: store.operatingStatus,
+        weeklySchedule: store.weeklySchedule,
+        specialSchedules: store.specialSchedules
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 18. Quản lý Danh mục món & Thứ tự danh mục (Module 2)
+exports.manageCategories = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+    const { categories } = req.body;
+    if (categories && Array.isArray(categories)) {
+      store.categories = categories;
+      await store.save();
+      await invalidateRestaurantCache(store._id.toString());
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật danh mục thực đơn thành công!',
+      data: store.categories
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 19. Quản lý Nhóm Topping & Tùy chọn độc lập của Quán (Module 2)
+exports.manageToppingGroups = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+    const { toppingGroups } = req.body;
+    if (toppingGroups && Array.isArray(toppingGroups)) {
+      store.toppingGroups = toppingGroups;
+      await store.save();
+      await invalidateRestaurantCache(store._id.toString());
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật nhóm topping thành công!',
+      data: store.toppingGroups
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 20. Quản lý Nhân viên của Quán (Module 4)
+exports.manageStaff = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+    const { staff } = req.body;
+    if (staff && Array.isArray(staff)) {
+      store.staff = staff;
+      await store.save();
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật danh sách nhân viên thành công!',
+      data: store.staff
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 21. Quản lý Ví đối tác, Rút tiền thủ công & PIN bảo mật (Module 5)
+exports.manageWallet = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    if (!store.wallet) {
+      store.wallet = {
+        availableBalance: 1368922,
+        pendingBalance: 327850,
+        walletPinHash: '123456',
+        failedPinAttempts: 0,
+        pinLockedUntil: null,
+        bankAccount: {
+          bankName: store.bankName || 'Vietcombank',
+          accountNumber: store.bankAccountNumber || '1033618225',
+          accountHolder: store.bankAccountHolder || store.representativeName || 'Dương Nguyễn',
+          branch: store.bankBranch || 'TP. Thủ Đức'
+        }
+      };
+    }
+
+    const { action, amount, pin, newPin, bankAccount } = req.body;
+
+    if (action === 'set_pin') {
+      if (!newPin || newPin.length !== 6) {
+        return res.status(400).json({ success: false, message: 'Mã PIN bảo mật phải gồm đúng 6 chữ số.' });
+      }
+      store.wallet.walletPinHash = newPin;
+      store.wallet.failedPinAttempts = 0;
+      await store.save();
+      return res.status(200).json({ success: true, message: 'Thiết lập mã PIN rút tiền 6 số thành công!' });
+    }
+
+    if (action === 'update_bank') {
+      if (bankAccount) {
+        store.wallet.bankAccount = { ...store.wallet.bankAccount, ...bankAccount };
+        await store.save();
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Cập nhật thông tin tài khoản ngân hàng thành công!',
+        data: store.wallet.bankAccount
+      });
+    }
+
+    if (action === 'withdraw') {
+      const withdrawAmount = Number(amount);
+      if (!withdrawAmount || withdrawAmount < 100000) {
+        return res.status(400).json({ success: false, message: 'Số tiền rút tối thiểu là 100.000đ.' });
+      }
+
+      if (withdrawAmount > (store.wallet.availableBalance || 0)) {
+        return res.status(400).json({ success: false, message: 'Số dư khả dụng không đủ để thực hiện yêu cầu rút tiền.' });
+      }
+
+      // Xác thực mã PIN (Mặc định mã PIN 123456 nếu chưa tạo)
+      const correctPin = store.wallet.walletPinHash || '123456';
+      if (pin !== correctPin) {
+        store.wallet.failedPinAttempts = (store.wallet.failedPinAttempts || 0) + 1;
+        await store.save();
+        return res.status(400).json({
+          success: false,
+          message: `Mã PIN bảo mật không chính xác (Đã thử sai ${store.wallet.failedPinAttempts}/5 lần).`
+        });
+      }
+
+      // Trừ tiền khỏi Số dư khả dụng
+      store.wallet.availableBalance -= withdrawAmount;
+      store.wallet.failedPinAttempts = 0;
+
+      const payoutRecord = {
+        id: 'WD_' + Date.now(),
+        code: 'WD-' + Math.floor(100000 + Math.random() * 900000),
+        amount: withdrawAmount,
+        status: 'PENDING',
+        bankInfo: store.wallet.bankAccount || {
+          bankName: store.bankName,
+          accountNumber: store.bankAccountNumber,
+          accountHolder: store.bankAccountHolder
+        },
+        requestedAt: new Date()
+      };
+
+      if (!store.payouts) store.payouts = [];
+      store.payouts.unshift(payoutRecord);
+
+      await store.save();
+      return res.status(200).json({
+        success: true,
+        message: 'Tạo yêu cầu rút tiền thành công! Tiền sẽ được chuyển về tài khoản ngân hàng từ 2 - 4 ngày làm việc.',
+        data: {
+          wallet: store.wallet,
+          payout: payoutRecord
+        }
+      });
+    }
+
+    // Default: Trả về thông tin ví
+    return res.status(200).json({
+      success: true,
+      data: {
+        wallet: store.wallet,
+        payouts: store.payouts || []
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

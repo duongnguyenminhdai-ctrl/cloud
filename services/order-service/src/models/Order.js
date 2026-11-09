@@ -58,6 +58,14 @@ const orderSchema = new mongoose.Schema(
     shippingFee: {
       type: Number,
       default: 16000
+    },
+    isModifiedByMerchant: {
+      type: Boolean,
+      default: false
+    },
+    modifyReason: {
+      type: String,
+      default: ''
     }
   },
   {

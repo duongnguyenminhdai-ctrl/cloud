@@ -155,6 +155,12 @@ exports.getAllOrders = async (req, res) => {
     if (req.query.customerId) {
       filter.customerId = req.query.customerId;
     }
+    if (req.query.restaurantId) {
+      filter.restaurantId = req.query.restaurantId;
+    }
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
 
     const orders = await Order.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({
@@ -204,5 +210,68 @@ exports.cleanupStaleOrders = async (req, res) => {
       success: false,
       message: 'Lỗi khi dọn dẹp đơn hàng cũ: ' + error.message
     });
+  }
+};
+
+// 5. Cập nhật trạng thái đơn hàng (CONFIRMED, PREPARING, READY, CANCELLED)
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body;
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+    if (status) order.status = status;
+    if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã cập nhật trạng thái đơn hàng sang ${order.status}`,
+      data: order
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 6. Chỉnh sửa đơn hàng khi hết món hoặc sai giá (theo quy trình Shopee Partner Image 2)
+exports.modifyOrderItems = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, reason, note } = req.body;
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (order.isModifiedByMerchant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn hàng này đã được chỉnh sửa 1 lần trước đó. Quy định chỉ cho phép chỉnh sửa tối đa 1 lần!'
+      });
+    }
+
+    if (items && Array.isArray(items)) {
+      order.items = items;
+      const newItemsTotal = items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+      const discount = (order.coinDiscount || 0) + (order.voucherDiscount || 0);
+      const shipping = order.shippingFee || 16000;
+      order.totalPrice = Math.max(0, newItemsTotal - discount + shipping);
+    }
+
+    order.isModifiedByMerchant = true;
+    order.modifyReason = reason || 'Món đã hết';
+    if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
+
+    await order.save();
+    return res.status(200).json({
+      success: true,
+      message: 'Chỉnh sửa đơn hàng thành công!',
+      data: order
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

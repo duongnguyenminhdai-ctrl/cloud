@@ -26,6 +26,22 @@ const menuItemSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    categoryId: {
+      type: String,
+      default: ''
+    },
+    sellingHours: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({
+        isAllDay: true,
+        customDays: [],
+        shifts: []
+      })
+    },
+    linkedToppingGroupIds: {
+      type: [String],
+      default: []
+    },
     // Cấu hình Kích cỡ, Tùy chọn đi kèm & Topping do chính người bán (Merchant/Shop) thiết lập
     customization: {
       hasCustomization: {
@@ -250,7 +266,113 @@ const restaurantSchema = new mongoose.Schema(
     // 6. Quản trị viên xét duyệt
     rejectedReason: { type: String, default: '' },
     reviewedAt: { type: Date, default: null },
-    reviewedBy: { type: String, default: '' }
+    reviewedBy: { type: String, default: '' },
+
+    // -------------------------------------------------------------------------
+    // CÁC TRƯỜNG PHỤC VỤ VẬN HÀNH CHUẨN ĐỐI TÁC CHỦ QUÁN (SHOPEE PARTNER SPEC)
+    // -------------------------------------------------------------------------
+    // 7. Trạng thái hoạt động thời gian thực (Module 3)
+    operatingStatus: {
+      isOpen: { type: Boolean, default: true },
+      isBusy: { type: Boolean, default: false },
+      busyReason: { type: String, default: '' },
+      busyUntil: { type: Date, default: null }
+    },
+
+    // 8. Lịch đóng/mở cửa thường ngày chi tiết (Module 3)
+    weeklySchedule: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({
+        mon: { isOpen: true, is24h: false, shifts: [{ open: '08:00', close: '22:00' }] },
+        tue: { isOpen: true, is24h: false, shifts: [{ open: '08:00', close: '22:00' }] },
+        wed: { isOpen: true, is24h: false, shifts: [{ open: '08:00', close: '22:00' }] },
+        thu: { isOpen: true, is24h: false, shifts: [{ open: '08:00', close: '22:00' }] },
+        fri: { isOpen: true, is24h: false, shifts: [{ open: '08:00', close: '22:00' }] },
+        sat: { isOpen: true, is24h: true, shifts: [] },
+        sun: { isOpen: true, is24h: true, shifts: [] }
+      })
+    },
+
+    // 9. Lịch đóng/mở dịp đặc biệt (Ngày lễ, Tết, sự kiện)
+    specialSchedules: [
+      {
+        date: { type: String, default: '' },
+        status: { type: String, enum: ['OPEN', 'CLOSED'], default: 'CLOSED' },
+        is24h: { type: Boolean, default: false },
+        shifts: [{ open: { type: String }, close: { type: String } }]
+      }
+    ],
+
+    // 10. Danh mục món ăn & Thứ tự hiển thị (Module 2)
+    categories: [
+      {
+        id: { type: String, default: '' },
+        name: { type: String, required: true },
+        order: { type: Number, default: 0 }
+      }
+    ],
+
+    // 11. Thư viện Nhóm Topping & Tùy chọn độc lập của Quán (Module 2)
+    toppingGroups: [
+      {
+        id: { type: String, default: '' },
+        name: { type: String, required: true },
+        isRequired: { type: Boolean, default: false },
+        minChoices: { type: Number, default: 0 },
+        maxChoices: { type: Number, default: 1 },
+        layout: { type: String, enum: ['VERTICAL', 'HORIZONTAL'], default: 'VERTICAL' },
+        toppings: [
+          {
+            id: { type: String, default: '' },
+            name: { type: String, required: true },
+            extraPrice: { type: Number, default: 0 },
+            isAvailable: { type: Boolean, default: true }
+          }
+        ]
+      }
+    ],
+
+    // 12. Quản lý Nhân viên của Quán (Module 4)
+    staff: [
+      {
+        id: { type: String, default: '' },
+        name: { type: String, required: true },
+        phone: { type: String, required: true },
+        email: { type: String, default: '' },
+        role: { type: String, enum: ['MANAGER', 'STAFF'], default: 'STAFF' },
+        scope: { type: String, enum: ['ALL', 'SPECIFIC'], default: 'SPECIFIC' },
+        status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
+
+    // 13. Ví đối tác & Quản lý Tài chính (Module 5)
+    wallet: {
+      availableBalance: { type: Number, default: 1368922 },
+      pendingBalance: { type: Number, default: 327850 },
+      walletPinHash: { type: String, default: '' },
+      failedPinAttempts: { type: Number, default: 0 },
+      pinLockedUntil: { type: Date, default: null },
+      bankAccount: {
+        bankName: { type: String, default: '' },
+        accountNumber: { type: String, default: '' },
+        accountHolder: { type: String, default: '' },
+        branch: { type: String, default: '' }
+      }
+    },
+
+    // 14. Lịch sử Rút tiền thủ công (Module 5)
+    payouts: [
+      {
+        id: { type: String, default: '' },
+        code: { type: String, default: '' },
+        amount: { type: Number, required: true },
+        status: { type: String, enum: ['PENDING', 'SUCCESS', 'REJECTED'], default: 'PENDING' },
+        bankInfo: { type: mongoose.Schema.Types.Mixed },
+        requestedAt: { type: Date, default: Date.now },
+        completedAt: { type: Date, default: null }
+      }
+    ]
   },
   {
     timestamps: true

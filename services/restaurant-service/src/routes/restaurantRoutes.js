@@ -52,6 +52,53 @@ router.delete(
   restaurantController.deleteMenuItem
 );
 
+// 1.1 Toggle nhanh Còn món / Hết món (Module 2)
+router.put(
+  ['/my-store/menu/:itemId/toggle-availability', '/stores/my-store/menu/:itemId/toggle-availability'],
+  verifyToken,
+  restaurantController.toggleMenuItemAvailability
+);
+
+// 1.2 Quản lý Trạng thái hoạt động, Chế độ Quán Bận & Lịch mở cửa (Module 3)
+router.put(
+  ['/my-store/operations', '/stores/my-store/operations'],
+  verifyToken,
+  restaurantController.updateStoreOperations
+);
+
+// 1.3 Quản lý Danh mục món & Thứ tự danh mục (Module 2)
+router.put(
+  ['/my-store/categories', '/stores/my-store/categories'],
+  verifyToken,
+  restaurantController.manageCategories
+);
+
+// 1.4 Quản lý Nhóm Topping & Tùy chọn độc lập của Quán (Module 2)
+router.put(
+  ['/my-store/toppings', '/stores/my-store/toppings'],
+  verifyToken,
+  restaurantController.manageToppingGroups
+);
+
+// 1.5 Quản lý Nhân viên của Quán (Module 4)
+router.put(
+  ['/my-store/staff', '/stores/my-store/staff'],
+  verifyToken,
+  restaurantController.manageStaff
+);
+
+// 1.6 Quản lý Ví đối tác, Rút tiền thủ công & PIN bảo mật (Module 5)
+router.post(
+  ['/my-store/wallet', '/stores/my-store/wallet'],
+  verifyToken,
+  restaurantController.manageWallet
+);
+router.get(
+  ['/my-store/wallet', '/stores/my-store/wallet'],
+  verifyToken,
+  restaurantController.manageWallet
+);
+
 // -----------------------------------------------------------------------------
 // 2. Quản trị viên (Admin Store Management & Approval)
 // -----------------------------------------------------------------------------
