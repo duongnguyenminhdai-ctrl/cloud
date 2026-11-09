@@ -109,12 +109,41 @@ async function deleteCache(...keys) {
  * Invalidate Cache: Tự động xóa cache danh sách & cache chi tiết quán ăn
  */
 async function invalidateRestaurantCache(restaurantId = null) {
-  const keysToDelete = ['restaurants:all'];
+  const baseKeys = [
+    'restaurants:all',
+    'restaurants:city:all',
+    'restaurants:city:hcm',
+    'restaurants:city:hn',
+    'restaurants:city:dn',
+    'restaurants:city:ct',
+    'restaurants:city:hp',
+    'restaurants:city:bd',
+    'restaurants:city:binhduong'
+  ];
+  const keysToDelete = [...baseKeys];
   if (restaurantId) {
     keysToDelete.push(`menu:${restaurantId}`);
   }
-  const count = await deleteCache(...keysToDelete);
-  console.log(`[Redis Cache] 🧹 Invalidate Cache: Đã xóa ${count} keys [${keysToDelete.join(', ')}]`);
+
+  // Quét tìm tất cả các key restaurants:* và recommended_stores:* trong Redis
+  if (client.isOpen) {
+    try {
+      const cityKeys = await client.keys('restaurants:*');
+      if (cityKeys && cityKeys.length > 0) {
+        keysToDelete.push(...cityKeys);
+      }
+      const recKeys = await client.keys('recommended_stores:*');
+      if (recKeys && recKeys.length > 0) {
+        keysToDelete.push(...recKeys);
+      }
+    } catch (e) {
+      console.warn('[Redis Cache] ⚠️ Lỗi quét keys pattern:', e.message);
+    }
+  }
+
+  const uniqueKeys = Array.from(new Set(keysToDelete));
+  const count = await deleteCache(...uniqueKeys);
+  console.log(`[Redis Cache] 🧹 Invalidate Cache: Đã xóa ${count} keys [${uniqueKeys.join(', ')}]`);
 }
 
 /**

@@ -171,6 +171,30 @@ const FOODFAST_CATEGORIES = [
   { id: 'Cơm hộp', label: 'Cơm hộp' }
 ];
 
+// Chuẩn hóa tên Quận/Huyện để so sánh chính xác ("TP. Thủ Đức" và "Thành phố Thủ Đức" đều thành "thủ đức")
+function normalizeDistrictName(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/^(thành phố|tp\.|tp|quận|huyện|thị xã)\s+/i, '')
+    .trim();
+}
+
+function matchDistrict(res, targetDistrict) {
+  if (!targetDistrict || targetDistrict === 'ALL') return true;
+  const selNorm = normalizeDistrictName(targetDistrict);
+  const resDistNorm = normalizeDistrictName(res.district);
+  const resAddrNorm = (res.address || '').toLowerCase();
+
+  if (resDistNorm && (resDistNorm === selNorm || resDistNorm.includes(selNorm) || selNorm.includes(resDistNorm))) {
+    return true;
+  }
+  if (resAddrNorm && (resAddrNorm.includes(selNorm) || resAddrNorm.includes(targetDistrict.toLowerCase()))) {
+    return true;
+  }
+  return false;
+}
+
 export default function Home() {
   const { selectedCity } = useLocationCity();
   const [restaurants, setRestaurants] = useState([]);
@@ -189,7 +213,7 @@ export default function Home() {
 
   const [copiedVoucher, setCopiedVoucher] = useState(null);
 
-  // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM)
+  // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM - Đồng bộ 100% với Tỉnh/Thành phố)
   const {
     location: userCoord,
     refreshLocation,
@@ -200,11 +224,16 @@ export default function Home() {
   // Trạng thái mở modal "Bạn muốn giao đến đâu?"
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
-  const fetchRestaurants = async () => {
+  const fetchRestaurants = async (bypassCache = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await restaurantApi.getAll({ city: selectedCity?.code || 'hcm' });
+      const params = { city: selectedCity?.code || 'hcm' };
+      if (bypassCache) {
+        params.refresh = 'true';
+        params._t = Date.now();
+      }
+      const res = await restaurantApi.getAll(params);
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setRestaurants(res.data.data);
         setDataSource(res.data.source || 'database');
@@ -221,7 +250,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchRestaurants();
+    fetchRestaurants(true);
     setSelectedDistrict('ALL');
   }, [selectedCity?.code]);
 
@@ -238,22 +267,36 @@ export default function Home() {
     return [];
   }, [restaurants, selectedCity?.code]);
 
-  // Trích xuất danh sách quận/huyện có sẵn theo tỉnh thành
+  // Trích xuất danh sách quận/huyện có sẵn theo tỉnh thành (loại bỏ trùng lặp chuẩn hóa)
   const availableDistricts = useMemo(() => {
-    const set = new Set();
+    const list = [];
+    const seen = new Set();
+
+    const addDistrict = (d) => {
+      if (!d || !d.trim()) return;
+      const clean = d.trim();
+      const norm = normalizeDistrictName(clean);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        list.push(clean);
+      }
+    };
+
     if (selectedCity?.code === 'hcm' || !selectedCity?.code) {
-      ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 7', 'Quận 10', 'TP. Thủ Đức', 'Bình Thạnh', 'Tân Bình', 'Phú Nhuận', 'Gò Vấp'].forEach((d) =>
-        set.add(d)
-      );
+      ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 7', 'Quận 10', 'TP. Thủ Đức', 'Bình Thạnh', 'Tân Bình', 'Phú Nhuận', 'Gò Vấp'].forEach(addDistrict);
     } else if (selectedCity?.code === 'hn') {
-      ['Hoàn Kiếm', 'Ba Đình', 'Cầu Giấy', 'Đống Đa', 'Hai Bà Trưng', 'Tây Hồ', 'Thanh Xuân', 'Nam Từ Liêm'].forEach((d) => set.add(d));
+      ['Hoàn Kiếm', 'Ba Đình', 'Cầu Giấy', 'Đống Đa', 'Hai Bà Trưng', 'Tây Hồ', 'Thanh Xuân', 'Nam Từ Liêm'].forEach(addDistrict);
     } else if (selectedCity?.code === 'dn') {
-      ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ'].forEach((d) => set.add(d));
+      ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ'].forEach(addDistrict);
     }
+
     storeList.forEach((r) => {
-      if (r.district && r.district.trim()) set.add(r.district.trim());
+      if (r.district && r.district.trim()) {
+        addDistrict(r.district.trim());
+      }
     });
-    return Array.from(set);
+
+    return list;
   }, [selectedCity?.code, storeList]);
 
   // Lọc và sắp xếp quán ăn theo Tab (Gần tôi / Bán chạy / Đánh giá) và Quận/Huyện
@@ -284,12 +327,9 @@ export default function Home() {
         }
       }
 
-      // 3. Lọc theo Quận/Huyện
+      // 3. Lọc theo Quận/Huyện (chuẩn hóa tên quận, không phân biệt hoa thường và tiền tố TP/Quận)
       if (selectedDistrict !== 'ALL') {
-        const dist = selectedDistrict.toLowerCase();
-        const matchDist = (res.district || '').toLowerCase().includes(dist);
-        const matchAddr = (res.address || '').toLowerCase().includes(dist);
-        if (!matchDist && !matchAddr) {
+        if (!matchDistrict(res, selectedDistrict)) {
           return false;
         }
       }
@@ -490,11 +530,9 @@ export default function Home() {
               <span className="text-xs font-bold text-orange-900 uppercase tracking-wider">
                 Giao hàng đến:
               </span>
-              {userCoord?.isDefault && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
-                  Mặc định TP.HCM
-                </span>
-              )}
+              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
+                {selectedCity?.shortName || 'TP. HCM'}
+              </span>
             </div>
             {/* Hiển thị địa chỉ có nghĩa của con người (Không phải dãy số GPS/IP) */}
             <p
@@ -569,15 +607,26 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Right: Dropdown "Chọn quận/ huyện ▾" */}
-        <div className="relative">
-          <select
-            value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="appearance-none bg-white border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0084ff]/20 focus:border-[#0084ff] cursor-pointer shadow-xs transition-all"
+        {/* Right: Nút làm mới + Dropdown "Chọn quận/ huyện ▾" */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchRestaurants(true)}
+            disabled={loading}
+            className="p-1.5 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition-all shadow-xs cursor-pointer"
+            title="Đồng bộ / Làm mới danh sách quán ngay lập tức"
           >
-            <option value="ALL">Chọn quận/ huyện</option>
-            {availableDistricts.map((d) => (
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-500' : ''}`} />
+          </button>
+
+          <div className="relative">
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="appearance-none bg-white border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0084ff]/20 focus:border-[#0084ff] cursor-pointer shadow-xs transition-all"
+            >
+              <option value="ALL">Chọn quận/ huyện</option>
+              {availableDistricts.map((d) => (
               <option key={d} value={d}>
                 {d}
               </option>
@@ -586,6 +635,7 @@ export default function Home() {
           <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
+    </div>
 
       {/* Error state */}
       {error && (

@@ -87,3 +87,133 @@ export function getCityByCode(code) {
 export const TOP_CITIES = VIETNAM_CITIES.slice(0, 5);
 export const OTHER_CITIES = VIETNAM_CITIES.slice(5);
 
+/**
+ * Địa chỉ trung tâm mặc định cho từng Tỉnh/Thành phố
+ */
+export function getDefaultCityAddress(cityObj) {
+  const code = (cityObj?.code || '').toLowerCase();
+  switch (code) {
+    case 'hcm':
+      return {
+        lat: 10.7769,
+        lng: 106.7009,
+        address: 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+        shortAddress: 'Nguyễn Huệ, Quận 1',
+        isDefault: true
+      };
+    case 'hn':
+      return {
+        lat: 21.0285,
+        lng: 105.8542,
+        address: 'Tràng Tiền, Phường Tràng Tiền, Quận Hoàn Kiếm, Hà Nội',
+        shortAddress: 'Tràng Tiền, Hoàn Kiếm',
+        isDefault: true
+      };
+    case 'dn':
+      return {
+        lat: 16.0544,
+        lng: 108.2022,
+        address: 'Bạch Đằng, Phường Hải Châu 1, Quận Hải Châu, Đà Nẵng',
+        shortAddress: 'Bạch Đằng, Hải Châu',
+        isDefault: true
+      };
+    case 'ct':
+      return {
+        lat: 10.0452,
+        lng: 105.7469,
+        address: 'Đại lộ Hòa Bình, Phường Tân An, Quận Ninh Kiều, TP. Cần Thơ',
+        shortAddress: 'Ninh Kiều, Cần Thơ',
+        isDefault: true
+      };
+    case 'hp':
+      return {
+        lat: 20.8449,
+        lng: 106.6881,
+        address: 'Trần Phú, Phường Lương Khánh Thiện, Quận Ngô Quyền, Hải Phòng',
+        shortAddress: 'Trần Phú, Ngô Quyền',
+        isDefault: true
+      };
+    default:
+      return {
+        lat: cityObj?.lat || 10.7769,
+        lng: cityObj?.lng || 106.7009,
+        address: `${cityObj?.name || 'TP. Hồ Chí Minh'}, Việt Nam`,
+        shortAddress: cityObj?.shortName || 'Trung tâm',
+        isDefault: true
+      };
+  }
+}
+
+/**
+ * Tự động nhận diện Tỉnh/Thành phố dựa trên chuỗi địa chỉ hoặc tọa độ GPS
+ */
+export function detectCityFromAddress(address, lat, lng) {
+  if (!address && typeof lat !== 'number') return DEFAULT_CITY;
+
+  if (address) {
+    const lower = address.toLowerCase();
+    // 1. Kiểm tra TP. Hồ Chí Minh / Sài Gòn / Thủ Đức
+    if (
+      lower.includes('hồ chí minh') ||
+      lower.includes('ho chi minh') ||
+      lower.includes('tp.hcm') ||
+      lower.includes('tphcm') ||
+      lower.includes('sài gòn') ||
+      lower.includes('sai gon') ||
+      lower.includes('thủ đức') ||
+      lower.includes('thu duc')
+    ) {
+      return getCityByCode('hcm');
+    }
+    // 2. Hà Nội
+    if (lower.includes('hà nội') || lower.includes('ha noi') || lower.includes('hanoi')) {
+      return getCityByCode('hn');
+    }
+    // 3. Đà Nẵng
+    if (lower.includes('đà nẵng') || lower.includes('da nang')) {
+      return getCityByCode('dn');
+    }
+    // 4. Cần Thơ
+    if (lower.includes('cần thơ') || lower.includes('can tho')) {
+      return getCityByCode('ct');
+    }
+    // 5. Hải Phòng
+    if (lower.includes('hải phòng') || lower.includes('hai phong')) {
+      return getCityByCode('hp');
+    }
+    // 6. Các tỉnh thành khác trong danh mục 63 tỉnh thành
+    for (const city of VIETNAM_CITIES) {
+      if (lower.includes(city.name.toLowerCase()) || lower.includes(city.shortName.toLowerCase())) {
+        return city;
+      }
+    }
+  }
+
+  // 7. Nếu không nhận diện được bằng chữ, tính khoảng cách GPS đến các tỉnh thành
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    let closestCity = DEFAULT_CITY;
+    let minDistance = Infinity;
+    for (const city of VIETNAM_CITIES) {
+      const dLat = ((lat - city.lat) * Math.PI) / 180;
+      const dLng = ((lng - city.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((city.lat * Math.PI) / 180) *
+          Math.cos((lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const dist = 6371 * c; // bán kính km
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestCity = city;
+      }
+    }
+    if (minDistance < 60) {
+      return closestCity;
+    }
+  }
+
+  return DEFAULT_CITY;
+}
+

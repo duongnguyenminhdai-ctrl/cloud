@@ -474,3 +474,4 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
     </div>
   );
 }
+

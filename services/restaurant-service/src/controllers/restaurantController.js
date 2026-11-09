@@ -5,23 +5,26 @@ const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../re
 exports.getAllRestaurants = async (req, res) => {
   try {
     const city = (req.query.city || req.query.city_code || '').toLowerCase().trim();
+    const isForceRefresh = req.query.refresh === 'true' || req.query.nocache === 'true';
     const CACHE_KEY = city ? `restaurants:city:${city}` : 'restaurants:all';
 
-    // 1.1 Kiểm tra dữ liệu trong Redis Cache trước
-    const cachedData = await getCache(CACHE_KEY);
-    if (cachedData) {
-      console.log(`[restaurantController] ⚡ [Cache Hit] Lấy danh sách ${cachedData.length} quán ăn từ Redis [${CACHE_KEY}]`);
-      return res.status(200).json({
-        success: true,
-        source: 'cache',
-        count: cachedData.length,
-        city: city || 'all',
-        data: cachedData
-      });
+    // 1.1 Kiểm tra dữ liệu trong Redis Cache trước (Bỏ qua nếu force refresh)
+    if (!isForceRefresh) {
+      const cachedData = await getCache(CACHE_KEY);
+      if (cachedData) {
+        console.log(`[restaurantController] ⚡ [Cache Hit] Lấy danh sách ${cachedData.length} quán ăn từ Redis [${CACHE_KEY}]`);
+        return res.status(200).json({
+          success: true,
+          source: 'cache',
+          count: cachedData.length,
+          city: city || 'all',
+          data: cachedData
+        });
+      }
     }
 
-    // 1.2 Cache Miss: Truy vấn từ MongoDB Atlas
-    console.log(`[restaurantController] 🔍 [Cache Miss] Truy vấn danh sách quán từ MongoDB Atlas (City: ${city || 'all'})...`);
+    // 1.2 Cache Miss / Force Refresh: Truy vấn từ MongoDB Atlas
+    console.log(`[restaurantController] 🔍 [${isForceRefresh ? 'Force Refresh' : 'Cache Miss'}] Truy vấn danh sách quán từ MongoDB Atlas (City: ${city || 'all'})...`);
     
     const query = {
       $and: [
@@ -33,8 +36,10 @@ exports.getAllRestaurants = async (req, res) => {
       query.$and.push({
         $or: [
           { city_code: city },
-          // Cho các store cũ tạo trước khi có city_code, nếu chọn 'hcm' thì khớp cả các store mặc định
-          ...(city === 'hcm' ? [{ city_code: { $exists: false } }, { city: /Hồ Chí Minh|HCM/i }] : [])
+          // Cho các store cũ tạo trước khi có city_code hoặc đăng ký bằng tên thành phố
+          ...(city === 'hcm' ? [{ city_code: { $exists: false } }, { city: /Hồ Chí Minh|HCM|Thủ Đức/i }] : []),
+          ...(city === 'hn' ? [{ city: /Hà Nội|Ha Noi/i }] : []),
+          ...(city === 'dn' ? [{ city: /Đà Nẵng|Da Nang/i }] : [])
         ]
       });
     }
@@ -362,6 +367,7 @@ exports.registerStore = async (req, res) => {
     });
 
     const savedStore = await newStore.save();
+    await invalidateRestaurantCache(savedStore._id.toString());
 
     return res.status(201).json({
       success: true,

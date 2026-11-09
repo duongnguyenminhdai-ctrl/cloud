@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { reverseGeocode } from '../utils/geocoding';
+import { useLocationCity } from '../context/LocationContext';
 
 // Tọa độ mặc định: Trung tâm Quận 1, TP. Hồ Chí Minh
 export const DEFAULT_HCMC_COORDS = {
@@ -9,60 +10,22 @@ export const DEFAULT_HCMC_COORDS = {
   shortAddress: 'Nguyễn Huệ, Quận 1'
 };
 
-const STORAGE_KEY = 'foodfast_user_location';
-
 /**
  * Custom Hook quản lý vị trí giao hàng của người dùng
- * - Lưu trữ địa chỉ thực tế (tên đường, phường, quận, thành phố)
+ * - Đồng bộ chặt chẽ hai chiều với Tỉnh/Thành phố (LocationContext)
  * - Tự động Reverse Geocoding khi người dùng bật GPS
- * - Cho phép chọn vị trí thủ công từ Bản đồ & Thanh tìm kiếm FoodFast
+ * - Đồng bộ với thanh hiển thị địa chỉ trên Header và Hero Banner
  */
 export function useUserLocation() {
-  const [location, setLocation] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
-          return {
-            lat: parsed.lat,
-            lng: parsed.lng,
-            address: parsed.address || DEFAULT_HCMC_COORDS.address,
-            shortAddress: parsed.shortAddress || DEFAULT_HCMC_COORDS.shortAddress,
-            isDefault: !!parsed.isDefault
-          };
-        }
-      }
-    } catch {
-      // Bỏ qua lỗi parse storage
-    }
-    return { ...DEFAULT_HCMC_COORDS, isDefault: true };
-  });
+  const {
+    deliveryLocation: location,
+    setDeliveryLocation: setManualLocation,
+    selectedCity,
+    changeCity
+  } = useLocationCity();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  /**
-   * Cập nhật vị trí thủ công do người dùng chọn từ bản đồ hoặc tìm kiếm
-   */
-  const setManualLocation = useCallback((newLoc) => {
-    if (!newLoc || typeof newLoc.lat !== 'number' || typeof newLoc.lng !== 'number') return;
-
-    const locData = {
-      lat: newLoc.lat,
-      lng: newLoc.lng,
-      address: newLoc.address || newLoc.name || 'TP. Hồ Chí Minh',
-      shortAddress: newLoc.shortAddress || newLoc.name || 'TP.HCM',
-      isDefault: false
-    };
-
-    setLocation(locData);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(locData));
-    } catch {
-      // Bỏ qua lỗi storage
-    }
-  }, []);
 
   /**
    * Lấy vị trí GPS hiện tại từ trình duyệt và Reverse-geocode sang địa chỉ thực tế
@@ -90,12 +53,7 @@ export function useUserLocation() {
             shortAddress: geoRes.shortAddress,
             isDefault: false
           };
-          setLocation(locData);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(locData));
-          } catch {
-            // Bỏ qua lỗi storage
-          }
+          setManualLocation(locData);
         } catch {
           const locData = {
             lat,
@@ -104,7 +62,7 @@ export function useUserLocation() {
             shortAddress: 'Vị trí hiện tại',
             isDefault: false
           };
-          setLocation(locData);
+          setManualLocation(locData);
         } finally {
           setLoading(false);
         }
@@ -133,24 +91,16 @@ export function useUserLocation() {
         maximumAge: 300000
       }
     );
-  }, []);
-
-  useEffect(() => {
-    // Nếu chưa từng lưu vị trí hoặc đang dùng default, thử lấy địa chỉ chuẩn từ GPS
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      // Có thể chạy reverse geocode cho vị trí mặc định để có tên đẹp
-      reverseGeocode(DEFAULT_HCMC_COORDS.lat, DEFAULT_HCMC_COORDS.lng).then((res) => {
-        setLocation((prev) => (prev.isDefault ? { ...prev, address: res.address, shortAddress: res.shortAddress } : prev));
-      });
-    }
-  }, []);
+  }, [setManualLocation]);
 
   return {
     location,
+    setManualLocation,
+    requestLocation,
+    refreshLocation: requestLocation,
     loading,
     error,
-    refreshLocation: requestLocation,
-    setManualLocation
+    selectedCity,
+    changeCity
   };
 }
