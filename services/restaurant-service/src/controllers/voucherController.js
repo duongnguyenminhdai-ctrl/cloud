@@ -268,14 +268,16 @@ exports.createVoucher = async (req, res) => {
       title: title || `Giảm ${discount_value}${discount_type === 'PERCENTAGE' ? '%' : 'đ'}`,
       issuer_type: issuer_type || 'PLATFORM',
       store_id: store_id || null,
+      city_code: (req.body.city_code || 'ALL').toLowerCase().trim(),
       discount_type,
       discount_value: Number(discount_value),
       max_discount_amount: max_discount_amount ? Number(max_discount_amount) : null,
       min_order_value: min_order_value ? Number(min_order_value) : 0,
       usage_limit: usage_limit ? Number(usage_limit) : 100,
       used_count: 0,
+      start_date: req.body.start_date ? new Date(req.body.start_date) : Date.now(),
       end_date: end_date ? new Date(end_date) : null,
-      is_active: true
+      is_active: req.body.is_active !== false
     });
 
     const saved = await newVoucher.save();
@@ -291,6 +293,297 @@ exports.createVoucher = async (req, res) => {
       success: false,
       message: 'Lỗi tạo voucher: ' + error.message
     });
+  }
+};
+
+/**
+ * =============================================================================
+ * ADMIN VOUCHER MANAGEMENT CONTROLLERS
+ * =============================================================================
+ */
+
+// 5. GET /api/v1/admin/vouchers - Lấy danh sách Voucher toàn hệ thống
+exports.adminGetVouchers = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const {
+      search,
+      issuer_type,
+      is_active,
+      city_code,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    const query = {};
+
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      query.$or = [
+        { code: { $regex: cleanSearch, $options: 'i' } },
+        { title: { $regex: cleanSearch, $options: 'i' } }
+      ];
+    }
+
+    if (issuer_type && issuer_type !== 'ALL') {
+      query.issuer_type = issuer_type;
+    }
+
+    if (is_active !== undefined && is_active !== 'ALL') {
+      query.is_active = is_active === 'true' || is_active === true;
+    }
+
+    if (city_code && city_code !== 'ALL') {
+      query.$or = [{ city_code: city_code.toLowerCase().trim() }, { city_code: 'ALL' }];
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const [vouchers, total] = await Promise.all([
+      Voucher.find(query)
+        .populate('store_id', 'name address phone city city_code image')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Voucher.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      count: vouchers.length,
+      data: vouchers,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1
+      }
+    });
+  } catch (error) {
+    console.error('[voucherController] ❌ Lỗi lấy danh sách voucher admin:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy danh sách voucher: ' + error.message
+    });
+  }
+};
+
+// 6. POST /api/v1/admin/vouchers - Admin tạo Voucher mới & Đồng bộ Redis
+exports.adminCreateVoucher = async (req, res) => {
+  try {
+    const {
+      code,
+      title,
+      issuer_type = 'PLATFORM',
+      store_id,
+      discount_type,
+      discount_value,
+      max_discount_amount,
+      min_order_value = 0,
+      usage_limit = 500,
+      city_code = 'ALL',
+      start_date,
+      end_date,
+      is_active = true
+    } = req.body;
+
+    if (!code || !code.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp mã voucher (code)'
+      });
+    }
+
+    if (!discount_type || !['PERCENTAGE', 'FIXED_AMOUNT'].includes(discount_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Loại giảm giá không hợp lệ (PERCENTAGE hoặc FIXED_AMOUNT)'
+      });
+    }
+
+    const numValue = Number(discount_value);
+    if (isNaN(numValue) || numValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá trị giảm giá phải lớn hơn 0'
+      });
+    }
+
+    if (discount_type === 'PERCENTAGE' && numValue > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giảm giá phần trăm không được vượt quá 100%'
+      });
+    }
+
+    const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const existing = await Voucher.findOne({ code: cleanCode });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Mã voucher [${cleanCode}] đã tồn tại trong hệ thống. Vui lòng chọn mã khác.`
+      });
+    }
+
+    const numLimit = Math.max(1, parseInt(usage_limit) || 100);
+
+    const newVoucher = new Voucher({
+      code: cleanCode,
+      title: title && title.trim() ? title.trim() : `Mã giảm ${numValue}${discount_type === 'PERCENTAGE' ? '%' : 'đ'}`,
+      issuer_type: issuer_type === 'STORE' ? 'STORE' : 'PLATFORM',
+      store_id: issuer_type === 'STORE' ? (store_id || null) : null,
+      discount_type,
+      discount_value: numValue,
+      max_discount_amount: (discount_type === 'PERCENTAGE' && max_discount_amount) ? Number(max_discount_amount) : null,
+      min_order_value: min_order_value ? Math.max(0, Number(min_order_value)) : 0,
+      usage_limit: numLimit,
+      used_count: 0,
+      city_code: (city_code || 'ALL').toLowerCase().trim(),
+      start_date: start_date ? new Date(start_date) : new Date(),
+      end_date: end_date ? new Date(end_date) : null,
+      is_active: is_active !== false
+    });
+
+    const saved = await newVoucher.save();
+
+    // Đồng bộ ngay lập tức với Redis để chống Race Condition
+    await setQuota(`voucher:quota:${cleanCode}`, numLimit);
+    console.log(`[voucherController] ⚡ Đã tạo voucher [${cleanCode}] và đồng bộ quota Redis [voucher:quota:${cleanCode} = ${numLimit}]`);
+
+    return res.status(201).json({
+      success: true,
+      message: `Tạo voucher [${cleanCode}] thành công và đã đồng bộ với Redis!`,
+      data: saved
+    });
+  } catch (error) {
+    console.error('[voucherController] ❌ Lỗi tạo voucher admin:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi tạo voucher: ' + error.message
+    });
+  }
+};
+
+// 7. PUT /api/v1/admin/vouchers/:id - Cập nhật thông tin Voucher
+exports.adminUpdateVoucher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      discount_type,
+      discount_value,
+      max_discount_amount,
+      min_order_value,
+      usage_limit,
+      city_code,
+      start_date,
+      end_date,
+      is_active
+    } = req.body;
+
+    const voucher = await Voucher.findById(id);
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher' });
+    }
+
+    if (title !== undefined) voucher.title = title.trim();
+    if (discount_type && ['PERCENTAGE', 'FIXED_AMOUNT'].includes(discount_type)) {
+      voucher.discount_type = discount_type;
+    }
+    if (discount_value !== undefined && Number(discount_value) > 0) {
+      voucher.discount_value = Number(discount_value);
+    }
+    if (max_discount_amount !== undefined) {
+      voucher.max_discount_amount = max_discount_amount ? Number(max_discount_amount) : null;
+    }
+    if (min_order_value !== undefined) {
+      voucher.min_order_value = Math.max(0, Number(min_order_value));
+    }
+    if (usage_limit !== undefined) {
+      const newLimit = Math.max(1, parseInt(usage_limit) || 100);
+      voucher.usage_limit = newLimit;
+      const remaining = Math.max(0, newLimit - voucher.used_count);
+      await setQuota(`voucher:quota:${voucher.code}`, remaining);
+    }
+    if (city_code !== undefined) {
+      voucher.city_code = (city_code || 'ALL').toLowerCase().trim();
+    }
+    if (start_date !== undefined) {
+      voucher.start_date = start_date ? new Date(start_date) : new Date();
+    }
+    if (end_date !== undefined) {
+      voucher.end_date = end_date ? new Date(end_date) : null;
+    }
+    if (is_active !== undefined) {
+      voucher.is_active = Boolean(is_active);
+    }
+
+    await voucher.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã cập nhật mã voucher [${voucher.code}] thành công!`,
+      data: voucher
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật voucher: ' + error.message });
+  }
+};
+
+// 8. PATCH/PUT /api/v1/admin/vouchers/:id/toggle - Bật/Tắt kích hoạt Voucher
+exports.adminToggleVoucher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const voucher = await Voucher.findById(id);
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher' });
+    }
+
+    voucher.is_active = !voucher.is_active;
+    await voucher.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã ${voucher.is_active ? 'kích hoạt' : 'tạm ngưng'} mã voucher [${voucher.code}] thành công!`,
+      data: voucher
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi chuyển trạng thái voucher: ' + error.message });
+  }
+};
+
+// 9. DELETE /api/v1/admin/vouchers/:id - Xóa Voucher & Dọn sạch Redis Cache
+exports.adminDeleteVoucher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const voucher = await Voucher.findById(id);
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher để xóa' });
+    }
+
+    const code = voucher.code;
+    await Voucher.findByIdAndDelete(id);
+
+    // Dọn sạch key trong Redis Cache
+    if (client && client.isOpen) {
+      try {
+        await client.del(`voucher:quota:${code}`);
+        console.log(`[voucherController] 🧹 Đã dọn dẹp Redis key [voucher:quota:${code}]`);
+      } catch (redisErr) {
+        console.warn(`[voucherController] Lỗi xóa key Redis [voucher:quota:${code}]:`, redisErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa mã voucher [${code}] và dọn sạch Redis Cache thành công!`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa voucher: ' + error.message });
   }
 };
 

@@ -32,7 +32,10 @@ app.get('/health', (req, res) => {
 });
 
 // 3. Mount các router chuyên biệt
-// 3.1 Voucher Service Endpoints (/api/v1/vouchers/apply, /api/v1/vouchers)
+// 3.1 Voucher Service Endpoints (/api/v1/vouchers/apply, /api/v1/vouchers, /api/v1/admin/vouchers)
+app.use('/api/v1/admin/vouchers', voucherRoutes);
+app.use('/api/admin/vouchers', voucherRoutes);
+app.use('/admin/vouchers', voucherRoutes);
 app.use('/api/v1/vouchers', voucherRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/vouchers', voucherRoutes);

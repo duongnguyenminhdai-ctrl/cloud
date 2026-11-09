@@ -588,6 +588,22 @@ export const adminApi = {
   },
   deleteRestaurant: async (id) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}`));
+  },
+  // Quản trị mã giảm giá (Admin Voucher Management)
+  getVouchers: async (params = {}) => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), { params });
+  },
+  createVoucher: async (voucherData) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), voucherData);
+  },
+  updateVoucher: async (id, voucherData) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`), voucherData);
+  },
+  toggleVoucher: async (id) => {
+    return await apiClient.patch(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}/toggle`));
+  },
+  deleteVoucher: async (id) => {
+    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`));
   }
 };
 

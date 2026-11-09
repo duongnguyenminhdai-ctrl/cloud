@@ -58,6 +58,13 @@ const voucherSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    city_code: {
+      type: String,
+      default: 'ALL',
+      trim: true,
+      lowercase: true,
+      index: true
+    },
     start_date: {
       type: Date,
       default: Date.now
