@@ -1,13 +1,215 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   UtensilsCrossed, CheckCircle2, ChevronRight, ChevronLeft,
   Building, User, CreditCard, Clock, Sparkles, ArrowRight,
-  Upload, AlertCircle, FileText, Check, ShieldCheck
+  Upload, AlertCircle, FileText, Check, ShieldCheck, Trash2,
+  Image as ImageIcon, Briefcase, FileCheck, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../api/client';
 import { VIETNAM_CITIES, TOP_CITIES, OTHER_CITIES } from '../constants/vietnamLocations';
+
+/**
+ * Nén ảnh tự động trên Canvas phía trình duyệt:
+ * Giúp giảm kích thước ảnh (tối đa 1200px, chất lượng 85%),
+ * đảm bảo dung lượng nhẹ (~150-300KB), tải lên nhanh và không bị lỗi PayloadTooLargeError.
+ */
+const compressImageFile = (file, maxWidth = 1200, quality = 0.85) => {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lỗi đọc file ảnh'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Định dạng ảnh không hợp lệ'));
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Component Tải lên ảnh / file chuyên biệt cho Hồ sơ Người bán FoodFast:
+ * Cho phép người dùng tự tải ảnh từ máy tính (hoặc dán link),
+ * xem trước hình ảnh, đổi ảnh hoặc xóa ảnh linh hoạt.
+ */
+function FileUploadBox({
+  label,
+  sublabel,
+  required = false,
+  value,
+  onChange,
+  aspectRatio = 'aspect-[16/10]',
+  hint = 'Định dạng JPG, PNG (tối đa 5MB)',
+  icon: IconComponent = Upload
+}) {
+  const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlVal, setUrlVal] = useState('');
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Dung lượng ảnh gốc vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const dataUrl = await compressImageFile(file);
+      onChange(dataUrl);
+    } catch (err) {
+      alert('Không thể xử lý file ảnh: ' + err.message);
+    } finally {
+      setLoading(false);
+      // Reset input để có thể chọn lại cùng một file nếu muốn
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleApplyUrl = () => {
+    if (urlVal.trim()) {
+      onChange(urlVal.trim());
+      setShowUrlInput(false);
+      setUrlVal('');
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {required && <span className="text-red-500">*</span>}
+          <span>{label}</span>
+        </label>
+        {sublabel && <span className="text-[11px] text-gray-400">{sublabel}</span>}
+      </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {value ? (
+        <div className={`relative ${aspectRatio} w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 group shadow-xs`}>
+          <img
+            src={value}
+            alt={label}
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay thao tác */}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3 py-1.5 rounded-xl bg-white text-gray-800 text-xs font-bold hover:bg-orange-50 hover:text-orange-600 transition shadow-sm flex items-center gap-1 cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" /> Đổi ảnh
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition shadow-sm flex items-center gap-1 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Xóa ảnh
+            </button>
+          </div>
+          <div className="absolute bottom-2 left-2 bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+            <Check className="w-3 h-3 stroke-[3]" /> Đã tải ảnh lên
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50/20 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center ${aspectRatio} min-h-[140px] bg-gray-50/50 group`}
+        >
+          {loading ? (
+            <div className="flex flex-col items-center gap-2 text-orange-600">
+              <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-bold">Đang tải và nén ảnh...</span>
+            </div>
+          ) : (
+            <>
+              <div className="w-10 h-10 rounded-full bg-white text-gray-400 group-hover:text-orange-600 group-hover:scale-110 shadow-xs flex items-center justify-center mb-2 transition-all border border-gray-200">
+                <IconComponent className="w-5 h-5 stroke-[2]" />
+              </div>
+              <p className="text-xs font-bold text-gray-700 group-hover:text-orange-600">
+                Bấm để tải ảnh từ máy tính
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Tùy chọn dán link ảnh trực tiếp để test linh hoạt */}
+      <div className="flex justify-end pt-0.5">
+        {!showUrlInput ? (
+          <button
+            type="button"
+            onClick={() => setShowUrlInput(true)}
+            className="text-[11px] text-gray-400 hover:text-orange-600 transition cursor-pointer"
+          >
+            Hoặc dán URL ảnh trực tiếp
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 w-full mt-1">
+            <input
+              type="text"
+              value={urlVal}
+              onChange={(e) => setUrlVal(e.target.value)}
+              placeholder="Dán đường dẫn ảnh (https://...)"
+              className="flex-1 px-3 py-1.5 text-xs border rounded-xl focus:outline-none focus:border-orange-500 bg-white"
+            />
+            <button
+              type="button"
+              onClick={handleApplyUrl}
+              className="px-3 py-1.5 text-xs bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 cursor-pointer"
+            >
+              Áp dụng
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowUrlInput(false)}
+              className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              Hủy
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function MerchantRegister() {
   const { user, isAuthenticated } = useAuth();
@@ -18,6 +220,7 @@ export default function MerchantRegister() {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Form State đầy đủ theo quy trình của FoodFast
+  // LƯU Ý: Tuyệt đối không để ảnh mặc định, tất cả các trường ảnh khởi tạo bằng chuỗi rỗng để người dùng tự tải lên
   const [formData, setFormData] = useState({
     // Bước 1: Thông tin quán cơ bản
     brandName: '',
@@ -35,26 +238,39 @@ export default function MerchantRegister() {
     longitude: 106.7009,
     prep_time: 15,
 
-    // Bước 2: Thông tin người đại diện
+    // Bước 2: Thông tin người đại diện & Pháp lý
     merchantType: 'INDIVIDUAL', // INDIVIDUAL | HOUSEHOLD | ENTERPRISE
     representativeName: user?.name || '',
     repEmail: user?.email || '',
     repPhone: '',
     repAltPhone: '',
     citizenId: '',
-    citizenIdDate: '2024-12-04',
-    citizenIdPlace: 'Cục Cảnh sát QLHC về TTXH',
-    citizenIdFront: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80',
-    citizenIdBack: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80',
-    businessLicenseImage: '',
-    taxCode: '312259544',
-    taxImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80',
+    citizenIdDate: '',
+    citizenIdPlace: '',
+    citizenIdFront: '', // Ảnh CCCD mặt trước (trống mặc định)
+    citizenIdBack: '',  // Ảnh CCCD mặt sau (trống mặc định)
+
+    // Dành cho Hộ kinh doanh (HOUSEHOLD):
+    householdName: '', // Tên hộ kinh doanh
+    householdTaxCode: '', // Mã số thuế / Mã số ĐKKD hộ kinh doanh
+    householdBusinessLicense: '', // • Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)
+
+    // Dành cho Doanh nghiệp (ENTERPRISE):
+    companyName: '', // Tên công ty / doanh nghiệp
+    companyTaxCode: '', // Mã số thuế công ty
+    companyBusinessLicense: '', // • Giấy phép đăng ký kinh doanh của công ty (hoặc chi nhánh)
+    isLegalRepresentative: true, // Checkbox: "Tôi là người đại diện theo pháp luật"
+    powerOfAttorney: '', // • Giấy ủy quyền (nếu người ký không phải đại diện pháp luật)
+
+    // Mã số thuế chung & Giấy tờ bổ sung (nếu có)
+    taxCode: '',
+    taxImage: '',
 
     // Bước 3: Thông tin ngân hàng
     bankName: 'Vietcombank',
     bankAccountNumber: '',
     bankAccountHolder: user?.name || '',
-    bankBranch: 'Hồ Chí Minh - Chi nhánh Thủ Đức',
+    bankBranch: '',
 
     // Bước 4: Chi tiết quán
     operatingHours: {
@@ -66,13 +282,13 @@ export default function MerchantRegister() {
       sat: { isOpen: true, openTime: '08:00', closeTime: '22:00' },
       sun: { isOpen: false, openTime: '08:00', closeTime: '22:00' },
     },
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80',
+    image: '', // Ảnh đại diện quán (trống mặc định)
+    coverImage: '', // Ảnh bìa quán (trống mặc định)
     serviceTypes: ['Quán ăn'],
     cuisineTypes: ['Món Việt'],
     featuredDishes: ['Cơm tấm', 'Trà sữa'],
     parkingFee: 'Miễn phí',
-    menuImages: ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'],
+    menuImages: [], // Ảnh thực đơn (trống mặc định)
 
     // Bước 5: Gói tăng trưởng
     growthPackage: 'FREE', // FREE | GROWTH_1 | GROWTH_3
@@ -146,41 +362,89 @@ export default function MerchantRegister() {
   const handleNext = () => {
     setErrorMsg('');
     if (currentStep === 1) {
-      if (!formData.brandName) {
+      if (!formData.brandName?.trim()) {
         setErrorMsg('Vui lòng nhập tên quán ăn/thương hiệu.');
         return;
       }
-      if (!formData.phone) {
+      if (!formData.phone?.trim()) {
         setErrorMsg('Vui lòng nhập số điện thoại liên hệ của quán.');
         return;
       }
-      if (!formData.streetAddress) {
+      if (!formData.streetAddress?.trim()) {
         setErrorMsg('Vui lòng nhập số nhà và tên đường.');
         return;
       }
     } else if (currentStep === 2) {
-      if (!formData.representativeName) {
+      if (!formData.representativeName?.trim()) {
         setErrorMsg('Vui lòng nhập họ và tên người đại diện.');
         return;
       }
-      if (!formData.repPhone) {
+      if (!formData.repPhone?.trim()) {
         setErrorMsg('Vui lòng nhập số điện thoại nhận thông báo & thanh toán.');
         return;
       }
-      if (!formData.citizenId) {
+      if (!formData.citizenId?.trim()) {
         setErrorMsg('Vui lòng nhập số CMND / CCCD / Hộ chiếu.');
         return;
       }
+
+      // Kiểm tra ảnh CCCD (Mặt trước & Mặt sau)
+      if (!formData.citizenIdFront) {
+        setErrorMsg('Vui lòng tải lên ảnh CMND/CCCD/Hộ chiếu mặt trước.');
+        return;
+      }
+      if (!formData.citizenIdBack) {
+        setErrorMsg('Vui lòng tải lên ảnh CMND/CCCD/Hộ chiếu mặt sau.');
+        return;
+      }
+
+      // Kiểm tra bổ sung đối với Hộ kinh doanh
+      if (formData.merchantType === 'HOUSEHOLD') {
+        if (!formData.householdName?.trim()) {
+          setErrorMsg('Vui lòng nhập Tên Hộ kinh doanh cá thể.');
+          return;
+        }
+        if (!formData.householdBusinessLicense) {
+          setErrorMsg('Vui lòng tải lên • Giấy đăng ký Hộ kinh doanh cá thể (bản gốc).');
+          return;
+        }
+      }
+
+      // Kiểm tra bổ sung đối với Doanh nghiệp
+      if (formData.merchantType === 'ENTERPRISE') {
+        if (!formData.companyName?.trim()) {
+          setErrorMsg('Vui lòng nhập Tên Doanh nghiệp / Công ty.');
+          return;
+        }
+        if (!formData.companyBusinessLicense) {
+          setErrorMsg('Vui lòng tải lên • Giấy phép đăng ký kinh doanh của công ty (hoặc chi nhánh).');
+          return;
+        }
+        if (!formData.isLegalRepresentative && !formData.powerOfAttorney) {
+          setErrorMsg('Do người ký không phải đại diện pháp luật, vui lòng tải lên • Giấy ủy quyền.');
+          return;
+        }
+      }
     } else if (currentStep === 3) {
-      if (!formData.bankAccountNumber) {
+      if (!formData.bankAccountNumber?.trim()) {
         setErrorMsg('Vui lòng nhập số tài khoản ngân hàng nhận tiền.');
         return;
       }
-      if (!formData.bankAccountHolder) {
+      if (!formData.bankAccountHolder?.trim()) {
         setErrorMsg('Vui lòng nhập tên chủ tài khoản ngân hàng.');
         return;
       }
+    } else if (currentStep === 4) {
+      if (!formData.image) {
+        setErrorMsg('Vui lòng tải lên Ảnh đại diện quán (Avatar / Logo).');
+        return;
+      }
+      if (!formData.coverImage) {
+        setErrorMsg('Vui lòng tải lên Ảnh bìa quán (Cover photo).');
+        return;
+      }
     }
+
     setCurrentStep((prev) => Math.min(prev + 1, 6));
   };
 
@@ -201,6 +465,9 @@ export default function MerchantRegister() {
         name: fullStoreName || formData.brandName,
         address: fullAddress || `${formData.streetAddress}, ${formData.city}`,
         phone: formData.phone || formData.repPhone,
+        // Đảm bảo có ảnh hợp lệ gửi lên backend
+        image: formData.image || formData.citizenIdFront || '',
+        coverImage: formData.coverImage || formData.image || ''
       };
 
       const res = await storeApi.register(payload);
@@ -219,9 +486,9 @@ export default function MerchantRegister() {
   // Danh sách các bước Stepper
   const steps = [
     { num: 1, title: 'Thông tin cơ bản', desc: 'Tên & Địa chỉ quán' },
-    { num: 2, title: 'Người đại diện', desc: 'CCCD & Thuế' },
+    { num: 2, title: 'Người đại diện', desc: 'CCCD & Pháp lý' },
     { num: 3, title: 'Ngân hàng', desc: 'Tài khoản nhận tiền' },
-    { num: 4, title: 'Chi tiết quán', desc: 'Giờ mở & Thực đơn' },
+    { num: 4, title: 'Chi tiết quán', desc: 'Ảnh & Thời gian mở' },
     { num: 5, title: 'Gói tăng trưởng', desc: 'Ưu đãi quán mới' },
     { num: 6, title: 'Xác nhận', desc: 'Kiểm tra & Gửi duyệt' },
   ];
@@ -242,7 +509,7 @@ export default function MerchantRegister() {
           </div>
           <button
             onClick={() => navigate('/')}
-            className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200"
+            className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer"
           >
             Về trang chủ
           </button>
@@ -339,7 +606,7 @@ export default function MerchantRegister() {
                 </div>
                 <div className="mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200/60 text-xs text-amber-800 flex items-start gap-2">
                   <span className="font-bold">💡 Gợi ý:</span>
-                  <span>Tên quán nên đặt theo thứ tự: Tên quán, món đặc trưng của quán và tên đường/khu vực. Tên hiển thị: <strong>{fullStoreName || '(Chưa nhập đủ)'}</strong></span>
+                  <span>Tên quán nên đặt theo thứ tự: Tên quán, món đặc trưng và tên đường/khu vực. Tên hiển thị: <strong>{fullStoreName || '(Chưa nhập đủ)'}</strong></span>
                 </div>
               </div>
 
@@ -426,175 +693,342 @@ export default function MerchantRegister() {
           )}
 
           {/* ================================================================= */}
-          {/* BƯỚC 2: THÔNG TIN NGƯỜI ĐẠI DIỆN */}
+          {/* BƯỚC 2: THÔNG TIN NGƯỜI ĐẠI DIỆN & PHÁP LÝ THEO DANH NGHĨA */}
           {/* ================================================================= */}
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="border-b border-gray-100 pb-4">
-                <h2 className="text-xl font-bold text-gray-800">Thông tin người đại diện</h2>
-                <p className="text-sm text-gray-500 mt-1">Vui lòng điền đúng thông tin theo giấy tờ pháp lý</p>
+                <h2 className="text-xl font-bold text-gray-800">Thông tin người đại diện & Pháp lý</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Đăng ký dưới danh nghĩa Cá nhân, Hộ kinh doanh hoặc Doanh nghiệp
+                </p>
               </div>
 
+              {/* Lựa chọn danh nghĩa: Cá nhân | Hộ kinh doanh | Doanh nghiệp */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   <span className="text-red-500">*</span> Đăng ký dưới danh nghĩa
                 </label>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'INDIVIDUAL', label: 'Cá nhân' },
-                    { id: 'HOUSEHOLD', label: 'Hộ kinh doanh' },
-                    { id: 'ENTERPRISE', label: 'Doanh nghiệp' },
+                    { id: 'INDIVIDUAL', label: 'Cá nhân', desc: 'Quán ăn nhỏ, vỉa hè, cá nhân tự doanh' },
+                    { id: 'HOUSEHOLD', label: 'Hộ kinh doanh', desc: 'Có Giấy chứng nhận ĐK Hộ kinh doanh cá thể' },
+                    { id: 'ENTERPRISE', label: 'Doanh nghiệp', desc: 'Công ty TNHH, CP, Chi nhánh hoặc Chuỗi' },
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
                       onClick={() => setFormData({ ...formData, merchantType: tab.id })}
-                      className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                      className={`p-3.5 rounded-2xl text-left border-2 transition-all cursor-pointer ${
                         formData.merchantType === tab.id
-                          ? 'border-orange-600 bg-orange-50 text-orange-600 shadow-sm'
-                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                          ? 'border-orange-600 bg-orange-50/60 shadow-sm ring-2 ring-orange-500/10'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
-                      {tab.label}
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-bold ${formData.merchantType === tab.id ? 'text-orange-600' : 'text-gray-900'}`}>
+                          {tab.label}
+                        </span>
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          formData.merchantType === tab.id ? 'border-orange-600 bg-orange-600' : 'border-gray-300'
+                        }`}>
+                          {formData.merchantType === tab.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-gray-500 leading-snug">{tab.desc}</p>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <span className="text-red-500">*</span> Tên đầy đủ người đại diện
-                </label>
-                <input
-                  type="text"
-                  name="representativeName"
-                  value={formData.representativeName}
-                  onChange={handleChange}
-                  placeholder="Nguyễn Ngọc Định"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                />
-                <p className="text-xs text-gray-400 mt-1">Tên của người đăng ký phải trùng với tên chủ TK ngân hàng nhận thanh toán doanh thu.</p>
-              </div>
+              {/* ========================================================================= */}
+              {/* TRƯỜNG BỔ SUNG NẾU LÀ HỘ KINH DOANH */}
+              {/* ========================================================================= */}
+              {formData.merchantType === 'HOUSEHOLD' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-4">
+                  <div className="flex items-center gap-2 border-b border-amber-200/60 pb-2.5">
+                    <Briefcase className="w-5 h-5 text-amber-700" />
+                    <div>
+                      <h3 className="text-sm font-bold text-amber-950">Thông tin Hộ kinh doanh cá thể</h3>
+                      <p className="text-xs text-amber-800">Cung cấp giấy tờ bổ sung theo quy định đăng ký Hộ kinh doanh</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Email nhận báo cáo doanh thu
-                  </label>
-                  <input
-                    type="email"
-                    name="repEmail"
-                    value={formData.repEmail}
-                    onChange={handleChange}
-                    placeholder="merchant@gmail.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                        <span className="text-red-500">*</span> Tên Hộ kinh doanh cá thể
+                      </label>
+                      <input
+                        type="text"
+                        name="householdName"
+                        value={formData.householdName}
+                        onChange={handleChange}
+                        placeholder="vd: Hộ kinh doanh Quán Ăn Ngon Sài Gòn"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                        Mã số thuế / Mã số ĐKKD Hộ kinh doanh
+                      </label>
+                      <input
+                        type="text"
+                        name="householdTaxCode"
+                        value={formData.householdTaxCode}
+                        onChange={handleChange}
+                        placeholder="vd: 0314567890-001"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Giấy đăng ký Hộ kinh doanh cá thể (bản gốc) */}
+                  <div>
+                    <FileUploadBox
+                      label="• Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)"
+                      sublabel="Bản gốc chụp rõ mộc đỏ"
+                      required={true}
+                      value={formData.householdBusinessLicense}
+                      onChange={(val) => setFormData({ ...formData, householdBusinessLicense: val })}
+                      hint="Bản chụp gốc rõ nét trang có dấu mộc đỏ và thông tin chủ hộ kinh doanh"
+                      icon={FileCheck}
+                    />
+                  </div>
                 </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* TRƯỜNG BỔ SUNG NẾU LÀ DOANH NGHIỆP */}
+              {/* ========================================================================= */}
+              {formData.merchantType === 'ENTERPRISE' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-4">
+                  <div className="flex items-center gap-2 border-b border-blue-200/60 pb-2.5">
+                    <Building className="w-5 h-5 text-blue-700" />
+                    <div>
+                      <h3 className="text-sm font-bold text-blue-950">Thông tin Doanh nghiệp & Pháp lý</h3>
+                      <p className="text-xs text-blue-800">Cung cấp giấy phép ĐKKD công ty và giấy ủy quyền (nếu có)</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                        <span className="text-red-500">*</span> Tên Doanh nghiệp / Công ty (hoặc chi nhánh)
+                      </label>
+                      <input
+                        type="text"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        placeholder="vd: CÔNG TY TNHH THỰC PHẨM & DỊCH VỤ ABC"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-sm bg-white uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                        <span className="text-red-500">*</span> Mã số thuế Doanh nghiệp
+                      </label>
+                      <input
+                        type="text"
+                        name="companyTaxCode"
+                        value={formData.companyTaxCode}
+                        onChange={handleChange}
+                        placeholder="vd: 0312345678"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 1. Giấy phép đăng ký kinh doanh của công ty (hoặc chi nhánh) */}
+                  <div>
+                    <FileUploadBox
+                      label="• Giấy phép đăng ký kinh doanh của công ty (hoặc chi nhánh)"
+                      sublabel="Bản gốc / sao y còn hiệu lực"
+                      required={true}
+                      value={formData.companyBusinessLicense}
+                      onChange={(val) => setFormData({ ...formData, companyBusinessLicense: val })}
+                      hint="Ảnh chụp Giấy chứng nhận Đăng ký Doanh nghiệp (tất cả các mặt có dấu mộc)"
+                      icon={Building}
+                    />
+                  </div>
+
+                  {/* 2. Giấy ủy quyền (nếu người ký không phải đại diện pháp luật) */}
+                  <div className="pt-2 border-t border-blue-200/60 space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-800 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={formData.isLegalRepresentative}
+                        onChange={(e) => setFormData({ ...formData, isLegalRepresentative: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Người đại diện ký kết là Người đại diện theo pháp luật (Ghi trên ĐKKD)</span>
+                    </label>
+
+                    {!formData.isLegalRepresentative && (
+                      <div className="animate-fadeIn">
+                        <FileUploadBox
+                          label="• Giấy ủy quyền (nếu người ký không phải đại diện pháp luật)"
+                          sublabel="Bản gốc có chữ ký & con dấu công ty"
+                          required={true}
+                          value={formData.powerOfAttorney}
+                          onChange={(val) => setFormData({ ...formData, powerOfAttorney: val })}
+                          hint="Bản gốc Giấy ủy quyền cho phép người ký đại diện tham gia ký kết hợp đồng hợp tác FoodFast"
+                          icon={FileText}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* THÔNG TIN NGƯỜI ĐẠI DIỆN KÝ KẾT */}
+              {/* ========================================================================= */}
+              <div className="space-y-4 pt-2">
+                <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">
+                  Thông tin cá nhân người đại diện
+                </h3>
+
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Số điện thoại đăng ký thanh toán tự động
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    <span className="text-red-500">*</span> Tên đầy đủ người đại diện
                   </label>
                   <input
                     type="text"
-                    name="repPhone"
-                    value={formData.repPhone}
+                    name="representativeName"
+                    value={formData.representativeName}
                     onChange={handleChange}
-                    placeholder="0969535231"
+                    placeholder="Nguyễn Ngọc Định"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Tên của người đăng ký phải trùng với tên chủ TK ngân hàng nhận thanh toán doanh thu.</p>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Số CMND/CCCD/Hộ chiếu
-                  </label>
-                  <input
-                    type="text"
-                    name="citizenId"
-                    value={formData.citizenId}
-                    onChange={handleChange}
-                    placeholder="082096010945"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Ngày cấp
-                  </label>
-                  <input
-                    type="date"
-                    name="citizenIdDate"
-                    value={formData.citizenIdDate}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Nơi cấp
-                  </label>
-                  <input
-                    type="text"
-                    name="citizenIdPlace"
-                    value={formData.citizenIdPlace}
-                    onChange={handleChange}
-                    placeholder="Tiền Giang"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Upload CMND/CCCD */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <span className="text-red-500">*</span> Ảnh chụp CMND/CCCD/Hộ chiếu
-                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-orange-500 transition-colors">
-                    <p className="text-xs font-semibold text-gray-600 mb-2">Mặt trước</p>
-                    <img
-                      src={formData.citizenIdFront}
-                      alt="CCCD mặt trước"
-                      className="w-full h-32 object-cover rounded-lg border mb-2"
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      <span className="text-red-500">*</span> Email nhận báo cáo doanh thu
+                    </label>
+                    <input
+                      type="email"
+                      name="repEmail"
+                      value={formData.repEmail}
+                      onChange={handleChange}
+                      placeholder="merchant@gmail.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
                     />
-                    <span className="text-xs text-emerald-600 font-medium">✓ Đã sẵn sàng ảnh xác thực</span>
                   </div>
-                  <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-orange-500 transition-colors">
-                    <p className="text-xs font-semibold text-gray-600 mb-2">Mặt sau</p>
-                    <img
-                      src={formData.citizenIdBack}
-                      alt="CCCD mặt sau"
-                      className="w-full h-32 object-cover rounded-lg border mb-2"
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      <span className="text-red-500">*</span> Số điện thoại đăng ký thanh toán tự động
+                    </label>
+                    <input
+                      type="text"
+                      name="repPhone"
+                      value={formData.repPhone}
+                      onChange={handleChange}
+                      placeholder="0969535231"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
                     />
-                    <span className="text-xs text-emerald-600 font-medium">✓ Đã sẵn sàng ảnh xác thực</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Mã số thuế */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Mã số thuế
-                  </label>
-                  <input
-                    type="text"
-                    name="taxCode"
-                    value={formData.taxCode}
-                    onChange={handleChange}
-                    placeholder="312259544"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      <span className="text-red-500">*</span> Số CMND/CCCD/Hộ chiếu
+                    </label>
+                    <input
+                      type="text"
+                      name="citizenId"
+                      value={formData.citizenId}
+                      onChange={handleChange}
+                      placeholder="082096010945"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Ngày cấp
+                    </label>
+                    <input
+                      type="date"
+                      name="citizenIdDate"
+                      value={formData.citizenIdDate}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Nơi cấp
+                    </label>
+                    <input
+                      type="text"
+                      name="citizenIdPlace"
+                      value={formData.citizenIdPlace}
+                      onChange={handleChange}
+                      placeholder="Cục CS QLHC về TTXH"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
+                    />
+                  </div>
                 </div>
+
+                {/* Upload CMND/CCCD (Mặt trước & Mặt sau) - NGƯỜI DÙNG TỰ TẢI ẢNH LÊN */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Ảnh chụp Giấy phép kinh doanh / MST (nếu có)
-                  </label>
-                  <div className="border border-dashed border-gray-200 rounded-xl p-3 flex items-center gap-3">
-                    <Upload className="w-6 h-6 text-gray-400" />
-                    <span className="text-xs text-gray-500">Ảnh giấy phép / đăng ký thuế</span>
+                  <div className="mb-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      <span className="text-red-500">*</span> Ảnh chụp CMND/CCCD/Hộ chiếu (Mặt trước & Mặt sau)
+                    </label>
+                    <p className="text-xs text-gray-400">Chụp rõ các thông tin, không bị mờ nhòe hoặc lóa ánh sáng</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FileUploadBox
+                      label="Mặt trước CMND/CCCD"
+                      required={true}
+                      value={formData.citizenIdFront}
+                      onChange={(val) => setFormData({ ...formData, citizenIdFront: val })}
+                      hint="Ảnh chụp mặt trước có ảnh và thông tin cá nhân"
+                      icon={User}
+                    />
+
+                    <FileUploadBox
+                      label="Mặt sau CMND/CCCD"
+                      required={true}
+                      value={formData.citizenIdBack}
+                      onChange={(val) => setFormData({ ...formData, citizenIdBack: val })}
+                      hint="Ảnh chụp mặt sau có vân tay và đặc điểm nhân dạng"
+                      icon={User}
+                    />
+                  </div>
+                </div>
+
+                {/* Mã số thuế cá nhân / giấy tờ liên quan nếu có */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Mã số thuế cá nhân (nếu có)
+                    </label>
+                    <input
+                      type="text"
+                      name="taxCode"
+                      value={formData.taxCode}
+                      onChange={handleChange}
+                      placeholder="312259544"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <FileUploadBox
+                      label="Ảnh chụp Đăng ký thuế / MST (nếu có)"
+                      required={false}
+                      value={formData.taxImage}
+                      onChange={(val) => setFormData({ ...formData, taxImage: val })}
+                      hint="Ảnh chụp giấy xác nhận mã số thuế cá nhân"
+                      icon={FileText}
+                    />
                   </div>
                 </div>
               </div>
@@ -678,7 +1112,7 @@ export default function MerchantRegister() {
           )}
 
           {/* ================================================================= */}
-          {/* BƯỚC 4: THÔNG TIN QUÁN - CHI TIẾT */}
+          {/* BƯỚC 4: THÔNG TIN QUÁN - CHI TIẾT & HÌNH ẢNH (TỰ TẢI LÊN) */}
           {/* ================================================================= */}
           {currentStep === 4 && (
             <div className="space-y-6">
@@ -709,7 +1143,7 @@ export default function MerchantRegister() {
                           <button
                             type="button"
                             onClick={() => handleOperatingHoursToggle(d.key)}
-                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
                               item.isOpen ? 'bg-orange-600' : 'bg-gray-300'
                             }`}
                           >
@@ -748,29 +1182,31 @@ export default function MerchantRegister() {
                 </div>
               </div>
 
-              {/* Hình ảnh đại diện & Ảnh bìa */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Ảnh đại diện quán (550x550px)
-                  </label>
-                  <img
-                    src={formData.image}
-                    alt="Avatar quán"
-                    className="w-full h-36 object-cover rounded-xl border mb-2"
+              {/* Hình ảnh đại diện & Ảnh bìa - NGƯỜI DÙNG TỰ TẢI ẢNH LÊN */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-800 mb-2">Hình ảnh gian hàng trên FoodFast</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FileUploadBox
+                    label="Ảnh đại diện quán (550x550px)"
+                    sublabel="Logo / Hình món ăn chính"
+                    required={true}
+                    value={formData.image}
+                    onChange={(val) => setFormData({ ...formData, image: val })}
+                    aspectRatio="aspect-square"
+                    hint="Tải lên ảnh vuông hiển thị trong danh sách quán"
+                    icon={ImageIcon}
                   />
-                  <p className="text-xs text-gray-400">Nên dùng logo quán hoặc hình món đặc trưng đẹp mắt.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="text-red-500">*</span> Ảnh bìa quán (960x550px)
-                  </label>
-                  <img
-                    src={formData.coverImage}
-                    alt="Ảnh bìa quán"
-                    className="w-full h-36 object-cover rounded-xl border mb-2"
+
+                  <FileUploadBox
+                    label="Ảnh bìa quán (960x550px)"
+                    sublabel="Banner đầu trang gian hàng"
+                    required={true}
+                    value={formData.coverImage}
+                    onChange={(val) => setFormData({ ...formData, coverImage: val })}
+                    aspectRatio="aspect-[16/9]"
+                    hint="Tải lên ảnh ngang hiển thị trên banner đầu quán"
+                    icon={ImageIcon}
                   />
-                  <p className="text-xs text-gray-400">Ảnh bìa sẽ hiển thị trên đầu trang gian hàng của bạn.</p>
                 </div>
               </div>
 
@@ -931,16 +1367,87 @@ export default function MerchantRegister() {
                 </div>
               </div>
 
-              {/* Tóm tắt Bước 2 */}
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-2 text-sm">
-                <h3 className="font-bold text-gray-900 border-b border-gray-200 pb-1.5">Thông tin người đại diện</h3>
+              {/* Tóm tắt Bước 2 & Giấy tờ pháp lý */}
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-3 text-sm">
+                <h3 className="font-bold text-gray-900 border-b border-gray-200 pb-1.5">
+                  Thông tin người đại diện & Pháp lý
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div><span className="text-gray-500">Danh nghĩa:</span> <strong>{formData.merchantType === 'INDIVIDUAL' ? 'Cá nhân' : 'Hộ kinh doanh'}</strong></div>
+                  <div>
+                    <span className="text-gray-500">Đăng ký với danh nghĩa:</span>{' '}
+                    <strong className="text-orange-600">
+                      {formData.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : formData.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}
+                    </strong>
+                  </div>
                   <div><span className="text-gray-500">Tên đại diện:</span> <strong>{formData.representativeName}</strong></div>
-                  <div><span className="text-gray-500">Email nhận báo cáo:</span> <strong>{formData.repEmail}</strong></div>
+                  <div><span className="text-gray-500">Email:</span> <strong>{formData.repEmail}</strong></div>
                   <div><span className="text-gray-500">Số điện thoại:</span> <strong>{formData.repPhone}</strong></div>
                   <div><span className="text-gray-500">Số CMND/CCCD:</span> <strong>****{formData.citizenId.slice(-4) || '0945'}</strong></div>
-                  <div><span className="text-gray-500">Nơi cấp:</span> <strong>{formData.citizenIdPlace}</strong></div>
+                  <div><span className="text-gray-500">Nơi cấp:</span> <strong>{formData.citizenIdPlace || 'Chưa điền'}</strong></div>
+
+                  {formData.merchantType === 'HOUSEHOLD' && (
+                    <div className="sm:col-span-2 pt-1 border-t border-gray-200/80">
+                      <span className="text-gray-500">Tên Hộ kinh doanh:</span> <strong>{formData.householdName}</strong>
+                      {formData.householdTaxCode && <span className="ml-3 text-gray-500">MST/ĐKKD: <strong>{formData.householdTaxCode}</strong></span>}
+                    </div>
+                  )}
+
+                  {formData.merchantType === 'ENTERPRISE' && (
+                    <div className="sm:col-span-2 pt-1 border-t border-gray-200/80">
+                      <div><span className="text-gray-500">Tên Doanh nghiệp:</span> <strong>{formData.companyName}</strong></div>
+                      <div><span className="text-gray-500">MST Doanh nghiệp:</span> <strong>{formData.companyTaxCode}</strong></div>
+                      <div><span className="text-gray-500">Vai trò người ký:</span> <strong>{formData.isLegalRepresentative ? 'Người đại diện theo pháp luật' : 'Người được ủy quyền'}</strong></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Thumbnails giấy tờ đã tải lên */}
+                <div className="pt-2 border-t border-gray-200/80">
+                  <p className="text-xs font-bold text-gray-700 mb-2">Giấy tờ & Hình ảnh đã tải lên:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {formData.citizenIdFront && (
+                      <div className="border rounded-xl p-1.5 bg-white text-center">
+                        <img src={formData.citizenIdFront} alt="CCCD trước" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-gray-600 font-medium block truncate">CCCD mặt trước</span>
+                      </div>
+                    )}
+                    {formData.citizenIdBack && (
+                      <div className="border rounded-xl p-1.5 bg-white text-center">
+                        <img src={formData.citizenIdBack} alt="CCCD sau" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-gray-600 font-medium block truncate">CCCD mặt sau</span>
+                      </div>
+                    )}
+                    {formData.merchantType === 'HOUSEHOLD' && formData.householdBusinessLicense && (
+                      <div className="border border-amber-300 rounded-xl p-1.5 bg-amber-50/50 text-center">
+                        <img src={formData.householdBusinessLicense} alt="ĐKKD Hộ KD" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-amber-900 font-bold block truncate">ĐKKD Hộ cá thể</span>
+                      </div>
+                    )}
+                    {formData.merchantType === 'ENTERPRISE' && formData.companyBusinessLicense && (
+                      <div className="border border-blue-300 rounded-xl p-1.5 bg-blue-50/50 text-center">
+                        <img src={formData.companyBusinessLicense} alt="ĐKKD Công ty" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-blue-900 font-bold block truncate">ĐKKD Công ty</span>
+                      </div>
+                    )}
+                    {formData.merchantType === 'ENTERPRISE' && formData.powerOfAttorney && (
+                      <div className="border border-purple-300 rounded-xl p-1.5 bg-purple-50/50 text-center">
+                        <img src={formData.powerOfAttorney} alt="Giấy ủy quyền" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-purple-900 font-bold block truncate">Giấy ủy quyền</span>
+                      </div>
+                    )}
+                    {formData.image && (
+                      <div className="border rounded-xl p-1.5 bg-white text-center">
+                        <img src={formData.image} alt="Avatar quán" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-gray-600 font-medium block truncate">Avatar quán</span>
+                      </div>
+                    )}
+                    {formData.coverImage && (
+                      <div className="border rounded-xl p-1.5 bg-white text-center">
+                        <img src={formData.coverImage} alt="Cover quán" className="w-full h-16 object-cover rounded-lg mb-1" />
+                        <span className="text-[10px] text-gray-600 font-medium block truncate">Ảnh bìa quán</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -971,7 +1478,7 @@ export default function MerchantRegister() {
                 type="button"
                 onClick={handleBack}
                 disabled={submitting}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" /> Quay lại
               </button>
@@ -981,7 +1488,7 @@ export default function MerchantRegister() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all"
+                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 Tiếp tục <ChevronRight className="w-4 h-4" />
               </button>
@@ -990,7 +1497,7 @@ export default function MerchantRegister() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all disabled:opacity-50"
+                className="px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? 'Đang gửi hồ sơ...' : 'Gửi hồ sơ đăng ký'}
                 <CheckCircle2 className="w-4 h-4" />
@@ -1002,4 +1509,3 @@ export default function MerchantRegister() {
     </div>
   );
 }
-

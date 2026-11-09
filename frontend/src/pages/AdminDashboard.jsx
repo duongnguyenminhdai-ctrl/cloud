@@ -1006,19 +1006,57 @@ export default function AdminDashboard() {
                   <div>Họ tên: <strong className="text-white">{selectedStore.representativeName}</strong></div>
                   <div>Email: <strong className="text-white">{selectedStore.repEmail}</strong></div>
                   <div>CCCD: <strong className="text-white">{selectedStore.citizenId}</strong></div>
-                  <div>Nơi cấp: <strong className="text-white">{selectedStore.citizenIdPlace}</strong></div>
+                  <div>Nơi cấp: <strong className="text-white">{selectedStore.citizenIdPlace || 'Chưa điền'}</strong></div>
+                  <div>Danh nghĩa: <strong className="text-orange-300">
+                    {selectedStore.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : selectedStore.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}
+                  </strong></div>
+                  {selectedStore.merchantType === 'HOUSEHOLD' && (
+                    <div className="col-span-2 text-amber-300">Tên Hộ KD: <strong>{selectedStore.householdName || 'Chưa cập nhật'}</strong></div>
+                  )}
+                  {selectedStore.merchantType === 'ENTERPRISE' && (
+                    <div className="col-span-2 text-blue-300">Công ty: <strong>{selectedStore.companyName || 'Chưa cập nhật'}</strong></div>
+                  )}
                 </div>
 
+                {/* CCCD Mặt trước & Mặt sau */}
                 {selectedStore.citizenIdFront && (
-                  <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-2 border-t border-slate-800">
                     <div>
                       <p className="text-[10px] text-slate-400 mb-1">Mặt trước CCCD</p>
-                      <img src={selectedStore.citizenIdFront} alt="CCCD" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
+                      <img src={selectedStore.citizenIdFront} alt="CCCD trước" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
                     </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400 mb-1">Mặt sau CCCD</p>
-                      <img src={selectedStore.citizenIdBack} alt="CCCD" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
-                    </div>
+                    {selectedStore.citizenIdBack && (
+                      <div>
+                        <p className="text-[10px] text-slate-400 mb-1">Mặt sau CCCD</p>
+                        <img src={selectedStore.citizenIdBack} alt="CCCD sau" className="w-full h-24 object-cover rounded-lg border border-slate-700" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Giấy đăng ký Hộ kinh doanh cá thể (bản gốc) */}
+                {selectedStore.merchantType === 'HOUSEHOLD' && selectedStore.householdBusinessLicense && (
+                  <div className="mt-3 pt-2 border-t border-slate-800">
+                    <p className="text-[10px] text-amber-400 font-bold mb-1">• Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)</p>
+                    <img src={selectedStore.householdBusinessLicense} alt="ĐKKD Hộ kinh doanh" className="w-full h-32 object-cover rounded-lg border border-slate-700" />
+                  </div>
+                )}
+
+                {/* Giấy tờ Doanh nghiệp */}
+                {selectedStore.merchantType === 'ENTERPRISE' && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-2 border-t border-slate-800">
+                    {selectedStore.companyBusinessLicense && (
+                      <div>
+                        <p className="text-[10px] text-blue-400 font-bold mb-1">• Giấy phép ĐKKD công ty</p>
+                        <img src={selectedStore.companyBusinessLicense} alt="ĐKKD Công ty" className="w-full h-28 object-cover rounded-lg border border-slate-700" />
+                      </div>
+                    )}
+                    {selectedStore.powerOfAttorney && (
+                      <div>
+                        <p className="text-[10px] text-purple-400 font-bold mb-1">• Giấy ủy quyền</p>
+                        <img src={selectedStore.powerOfAttorney} alt="Giấy ủy quyền" className="w-full h-28 object-cover rounded-lg border border-slate-700" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

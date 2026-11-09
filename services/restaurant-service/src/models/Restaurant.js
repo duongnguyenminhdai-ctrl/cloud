@@ -181,7 +181,7 @@ const restaurantSchema = new mongoose.Schema(
     ward: { type: String, default: '' },
     streetAddress: { type: String, default: '' },
 
-    // 2. Thông tin người đại diện
+    // 2. Thông tin người đại diện & Pháp lý
     merchantType: {
       type: String,
       enum: ['INDIVIDUAL', 'HOUSEHOLD', 'ENTERPRISE'],
@@ -196,6 +196,14 @@ const restaurantSchema = new mongoose.Schema(
     citizenIdPlace: { type: String, default: '' },
     citizenIdFront: { type: String, default: '' },
     citizenIdBack: { type: String, default: '' },
+    // Hộ kinh doanh cá thể
+    householdName: { type: String, default: '' },
+    householdBusinessLicense: { type: String, default: '' }, // Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)
+    // Doanh nghiệp
+    companyName: { type: String, default: '' },
+    companyBusinessLicense: { type: String, default: '' }, // Giấy phép đăng ký kinh doanh công ty / chi nhánh
+    powerOfAttorney: { type: String, default: '' }, // Giấy ủy quyền (nếu người ký không phải đại diện pháp luật)
+    isLegalRepresentative: { type: Boolean, default: true },
     businessLicenseImage: { type: String, default: '' },
     taxCode: { type: String, default: '' },
     taxImage: { type: String, default: '' },
