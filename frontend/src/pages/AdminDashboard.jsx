@@ -383,6 +383,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
+      if (!stores || stores.length === 0) {
+        fetchStores();
+      }
     }
   }, [activeTab, userPage, userRoleFilter, userSortBy, userSortOrder]);
 
@@ -426,19 +429,32 @@ export default function AdminDashboard() {
       role: 'USER',
       phone: '',
       isActive: true,
+      linkedStore: null,
+      linkedPhone: '',
     });
     setShowUserModal(true);
   };
 
   const handleOpenEditUser = (u) => {
     setEditingUserId(u._id);
+    // Tìm kiếm cửa hàng liên kết với tài khoản này theo ownerId hoặc email đại diện
+    const linkedStore = (stores || []).find(
+      (st) =>
+        String(st.ownerId) === String(u._id) ||
+        (st.repEmail && st.repEmail.toLowerCase().trim() === (u.email || '').toLowerCase().trim())
+    );
+    const storePhone = linkedStore?.phone || linkedStore?.repPhone || '';
+    const initialPhone = u.phone || storePhone || '';
+
     setUserForm({
       name: u.name,
       email: u.email,
       password: '',
       role: u.role || 'USER',
-      phone: u.phone || '',
+      phone: initialPhone,
       isActive: u.isActive !== false,
+      linkedStore: linkedStore || null,
+      linkedPhone: storePhone,
     });
     setShowUserModal(true);
   };
@@ -996,31 +1012,64 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/60">
-                    {users.map((u) => (
-                      <tr key={u._id} className="hover:bg-slate-700/30 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-white">{u.name}</div>
-                          <div className="text-[11px] text-slate-400">{u.email}</div>
-                          {u.phone && <div className="text-[10px] text-slate-500">SĐT: {u.phone}</div>}
-                        </td>
-                        <td className="py-3 px-4">
-                          {u.role === 'ADMIN' ? (
-                            <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold border border-red-500/30 text-[10px]">
-                              ADMIN
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 text-[10px]">
-                              USER
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {u.has_store ? (
-                            <span className="text-emerald-400 font-bold">✓ Đã có quán</span>
-                          ) : (
-                            <span className="text-slate-500">Chưa tạo quán</span>
-                          )}
-                        </td>
+                    {users.map((u) => {
+                      const linkedStore = (stores || []).find(
+                        (st) =>
+                          String(st.ownerId) === String(u._id) ||
+                          (st.repEmail && st.repEmail.toLowerCase().trim() === (u.email || '').toLowerCase().trim())
+                      );
+                      const storePhone = linkedStore?.phone || linkedStore?.repPhone || '';
+                      const displayPhone = u.phone || storePhone || '';
+
+                      return (
+                        <tr key={u._id} className="hover:bg-slate-700/30 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-white">{u.name}</div>
+                            <div className="text-[11px] text-slate-400">{u.email}</div>
+                            {displayPhone ? (
+                              <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5 font-mono">
+                                <Phone className="w-3 h-3 text-orange-400 shrink-0" />
+                                <span className="font-semibold">{displayPhone}</span>
+                                {!u.phone && storePhone && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-sans">
+                                    SĐT Quán liên kết
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-500 italic mt-0.5">Chưa cập nhật SĐT</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {u.role === 'ADMIN' ? (
+                              <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold border border-red-500/30 text-[10px]">
+                                ADMIN
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 text-[10px]">
+                                USER
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {linkedStore ? (
+                              <div>
+                                <div className="text-emerald-400 font-bold flex items-center gap-1">
+                                  <Store className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <span className="truncate max-w-[180px]">{linkedStore.name}</span>
+                                </div>
+                                {storePhone && (
+                                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                                    <Phone className="w-2.5 h-2.5 text-slate-500 shrink-0" /> {storePhone}
+                                  </div>
+                                )}
+                              </div>
+                            ) : u.has_store ? (
+                              <span className="text-emerald-400 font-bold">✓ Đã có quán</span>
+                            ) : (
+                              <span className="text-slate-500">Chưa tạo quán</span>
+                            )}
+                          </td>
                         <td className="py-3 px-4">
                           <button
                             onClick={() => handleToggleUserActive(u)}
@@ -1053,7 +1102,8 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
@@ -2546,10 +2596,43 @@ export default function AdminDashboard() {
                     type="text"
                     value={userForm.phone}
                     onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                    placeholder={userForm.linkedPhone || 'Nhập số điện thoại...'}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
+
+              {/* Hiển thị số điện thoại đã liên kết (từ hồ sơ đăng ký quán / đối tác) */}
+              {userForm.linkedPhone && (
+                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-200 flex items-center justify-between gap-3 animate-fadeIn">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-slate-400 block font-medium">Số điện thoại đã liên kết:</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <strong className="text-white text-xs font-mono font-bold tracking-wide">{userForm.linkedPhone}</strong>
+                        {userForm.linkedStore?.name && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-orange-300 border border-slate-700 truncate max-w-[200px]">
+                            Quán: {userForm.linkedStore.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {userForm.phone !== userForm.linkedPhone && (
+                    <button
+                      type="button"
+                      onClick={() => setUserForm({ ...userForm, phone: userForm.linkedPhone })}
+                      className="px-2.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] shrink-0 transition shadow-sm"
+                      title="Sử dụng số điện thoại đã liên kết này cho tài khoản"
+                    >
+                      Dùng số này
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-2">
                 <input

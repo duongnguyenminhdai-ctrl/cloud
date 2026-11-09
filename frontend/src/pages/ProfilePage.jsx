@@ -27,7 +27,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useLocationCity } from '../context/LocationContext';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { authApi } from '../api/client';
+import { authApi, storeApi } from '../api/client';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -65,6 +65,7 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', msg: '' });
+  const [linkedStoreInfo, setLinkedStoreInfo] = useState(null);
 
   // Tự động chuyển hướng nếu chưa đăng nhập
   useEffect(() => {
@@ -97,19 +98,36 @@ export default function ProfilePage() {
         setLoadingProfile(true);
         try {
           const res = await authApi.getProfile();
+          let storePhone = '';
+          let storeName = '';
+
+          // Lấy thêm thông tin quán đối tác nếu có để tìm SĐT đã liên kết
+          try {
+            const storeRes = await storeApi.getMyStore();
+            if (storeRes.data?.success && storeRes.data?.data) {
+              const st = storeRes.data.data;
+              storePhone = st.phone || st.repPhone || '';
+              storeName = st.name || '';
+              if (storePhone) {
+                setLinkedStoreInfo({ name: storeName, phone: storePhone });
+              }
+            }
+          } catch {}
+
           if (res.data?.success && res.data?.data) {
             const d = res.data.data;
+            const finalPhone = d.phone || storePhone || '';
             setProfileForm((prev) => ({
               ...prev,
               name: d.name || prev.name,
               birthYear: d.birthYear || prev.birthYear,
-              phone: d.phone || prev.phone,
+              phone: finalPhone || prev.phone,
               address: d.address || prev.address,
               email: d.email || prev.email,
               gender: d.gender || prev.gender,
               avatar: d.avatar || prev.avatar
             }));
-            updateUserProfile(d);
+            updateUserProfile({ ...d, phone: finalPhone });
           }
         } catch (err) {
           console.warn('Lấy thông tin profile từ server:', err.message);
@@ -455,10 +473,27 @@ export default function ProfilePage() {
                         type="tel"
                         value={profileForm.phone}
                         onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        placeholder="VD: 0987654321"
+                        placeholder={linkedStoreInfo?.phone || "VD: 0987654321"}
                         className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
                       />
                     </div>
+                    {linkedStoreInfo?.phone && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500">
+                        <Phone className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                        <span>
+                          SĐT liên kết từ quán <strong>{linkedStoreInfo.name}</strong>: <span className="font-mono text-gray-800 font-bold">{linkedStoreInfo.phone}</span>
+                        </span>
+                        {profileForm.phone !== linkedStoreInfo.phone && (
+                          <button
+                            type="button"
+                            onClick={() => setProfileForm((p) => ({ ...p, phone: linkedStoreInfo.phone }))}
+                            className="text-[10px] text-orange-600 hover:underline font-bold ml-1 cursor-pointer"
+                          >
+                            Dùng số này
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
