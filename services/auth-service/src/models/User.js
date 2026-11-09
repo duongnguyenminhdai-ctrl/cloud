@@ -44,6 +44,15 @@ const userSchema = new mongoose.Schema(
       default: '',
       trim: true
     },
+    birthYear: {
+      type: Number,
+      default: null
+    },
+    address: {
+      type: String,
+      default: '',
+      trim: true
+    },
     role: {
       type: String,
       enum: {

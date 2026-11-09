@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
+import UserProfileModal from '../components/UserProfileModal';
 
 const DAY_LABELS = {
   mon: 'Thứ 2',
@@ -335,40 +336,9 @@ export default function AdminDashboard() {
   };
 
   // =========================================================================
-  // TAB 4: ĐỔI MẬT KHẨU TÀI KHOẢN QUẢN TRỊ (SECURITY)
+  // MODAL QUẢN LÝ THÔNG TIN TÀI KHOẢN (THÔNG TIN LIÊN HỆ & ĐỔI MẬT KHẨU)
   // =========================================================================
-  const [securityForm, setSecurityForm] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [securityLoading, setSecurityLoading] = useState(false);
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (securityForm.newPassword !== securityForm.confirmPassword) {
-      showNotif('error', 'Mật khẩu xác nhận không khớp');
-      return;
-    }
-    if (securityForm.newPassword.length < 6) {
-      showNotif('error', 'Mật khẩu mới phải có tối thiểu 6 ký tự');
-      return;
-    }
-
-    setSecurityLoading(true);
-    try {
-      const res = await adminApi.changePassword({
-        oldPassword: securityForm.oldPassword,
-        newPassword: securityForm.newPassword,
-      });
-      showNotif('success', res.data?.message || 'Đổi mật khẩu Admin thành công!');
-      setSecurityForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      showNotif('error', err.response?.data?.message || err.message || 'Lỗi đổi mật khẩu');
-    } finally {
-      setSecurityLoading(false);
-    }
-  };
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 pb-16">
@@ -390,10 +360,23 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-bold text-slate-200">{user?.name}</span>
-              <span className="text-[11px] text-slate-400">{user?.email}</span>
-            </div>
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-orange-500/50 text-right transition cursor-pointer group shadow-xs"
+              title="Quản lý thông tin tài khoản & Đổi mật khẩu"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+              </div>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-bold text-slate-200 group-hover:text-orange-400 transition">
+                  {user?.name || 'Quản trị viên'}
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {user?.email || 'admin@foodfast.vn'}
+                </span>
+              </div>
+            </button>
 
             <button
               onClick={() => {
@@ -465,18 +448,6 @@ export default function AdminDashboard() {
           >
             <Users className="w-4 h-4" />
             Quản lý tài khoản
-          </button>
-
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'security'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-            }`}
-          >
-            <Key className="w-4 h-4" />
-            Đổi mật khẩu Admin
           </button>
         </div>
 
@@ -946,66 +917,6 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* TAB 4: ĐỔI MẬT KHẨU TÀI KHOẢN QUẢN TRỊ */}
-        {/* ================================================================= */}
-        {activeTab === 'security' && (
-          <div className="max-w-md mx-auto space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white">Đổi mật khẩu tài khoản quản trị</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Bảo vệ an toàn quyền truy cập quản trị hệ thống</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-800 border border-slate-700 shadow-xl">
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Mật khẩu hiện tại *</label>
-                  <input
-                    type="password"
-                    value={securityForm.oldPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, oldPassword: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Mật khẩu mới *</label>
-                  <input
-                    type="password"
-                    value={securityForm.newPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
-                    placeholder="Tối thiểu 6 ký tự"
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Xác nhận mật khẩu mới *</label>
-                  <input
-                    type="password"
-                    value={securityForm.confirmPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
-                    placeholder="Nhập lại mật khẩu mới"
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={securityLoading}
-                  className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md shadow-orange-600/20 transition-all disabled:opacity-50"
-                >
-                  {securityLoading ? 'Đang cập nhật...' : 'Lưu mật khẩu mới'}
-                </button>
-              </form>
             </div>
           </div>
         )}
@@ -2062,6 +1973,13 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Modal Quản lý thông tin tài khoản & Đổi mật khẩu Admin */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        isDark={true}
+      />
     </div>
   );
 }

@@ -108,4 +108,29 @@ router.put(
   authController.adminChangePassword
 );
 
+// -----------------------------------------------------------------------------
+// QUẢN LÝ THÔNG TIN TÀI KHOẢN & ĐỔI MẬT KHẨU (USER & ADMIN)
+// -----------------------------------------------------------------------------
+
+// Xem thông tin tài khoản cá nhân
+router.get(
+  ['/profile', '/auth/profile', '/api/auth/profile', '/api/v1/auth/profile', '/me', '/auth/me'],
+  verifyToken,
+  authController.getProfile
+);
+
+// Cập nhật thông tin liên hệ (tên, năm sinh, địa chỉ, sđt)
+router.put(
+  ['/profile', '/auth/profile', '/api/auth/profile', '/api/v1/auth/profile'],
+  verifyToken,
+  authController.updateProfile
+);
+
+// Đổi mật khẩu tài khoản
+router.put(
+  ['/change-password', '/auth/change-password', '/api/auth/change-password', '/api/v1/auth/change-password'],
+  verifyToken,
+  authController.changeUserPassword
+);
+
 module.exports = router;

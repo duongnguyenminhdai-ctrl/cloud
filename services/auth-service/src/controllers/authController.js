@@ -336,7 +336,10 @@ exports.login = async (req, res) => {
         role: user.role,
         avatar: user.avatar || '',
         has_store: user.has_store || false,
-        store_id: user.store_id || null
+        store_id: user.store_id || null,
+        phone: user.phone || '',
+        birthYear: user.birthYear || null,
+        address: user.address || ''
       }
     });
   } catch (error) {
@@ -370,7 +373,9 @@ exports.verify = async (req, res) => {
         avatar: user.avatar || '',
         has_store: user.has_store || false,
         store_id: user.store_id || null,
-        phone: user.phone || ''
+        phone: user.phone || '',
+        birthYear: user.birthYear || null,
+        address: user.address || ''
       }
     });
   } catch (error) {
@@ -651,7 +656,10 @@ exports.adminLogin = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        phone: user.phone || '',
+        birthYear: user.birthYear || null,
+        address: user.address || ''
       }
     });
   } catch (error) {
@@ -829,6 +837,124 @@ exports.adminChangePassword = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Đổi mật khẩu tài khoản quản trị thành công!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi đổi mật khẩu: ' + error.message });
+  }
+};
+
+// =============================================================================
+// QUẢN LÝ THÔNG TIN TÀI KHOẢN & ĐỔI MẬT KHẨU (USER PROFILE & SECURITY)
+// =============================================================================
+
+// Lấy thông tin tài khoản người dùng hiện tại (GET /api/v1/auth/profile)
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người dùng' });
+    }
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        birthYear: user.birthYear || null,
+        address: user.address || '',
+        role: user.role,
+        avatar: user.avatar || '',
+        authProvider: user.authProvider || 'LOCAL',
+        has_store: user.has_store || false,
+        store_id: user.store_id || null,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy thông tin tài khoản: ' + error.message });
+  }
+};
+
+// Cập nhật thông tin liên hệ (tên, năm sinh, địa chỉ, sđt) (PUT /api/v1/auth/profile)
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, birthYear, address, avatar } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người dùng' });
+    }
+
+    if (name && name.trim()) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+    if (birthYear !== undefined) {
+      const parsedYear = Number(birthYear);
+      user.birthYear = !isNaN(parsedYear) && parsedYear >= 1920 && parsedYear <= new Date().getFullYear() ? parsedYear : null;
+    }
+    if (address !== undefined) user.address = address.trim();
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật thông tin tài khoản thành công!',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        birthYear: user.birthYear || null,
+        address: user.address || '',
+        role: user.role,
+        avatar: user.avatar || '',
+        authProvider: user.authProvider || 'LOCAL',
+        has_store: user.has_store || false,
+        store_id: user.store_id || null
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật tài khoản: ' + error.message });
+  }
+};
+
+// Đổi mật khẩu tài khoản hiện tại (PUT /api/v1/auth/change-password)
+exports.changeUserPassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mật khẩu cũ và mật khẩu mới' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có tối thiểu 6 ký tự' });
+    }
+
+    const user = await User.findById(req.user.userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người dùng' });
+    }
+
+    // Nếu tài khoản Google chưa có mật khẩu
+    if (user.authProvider === 'GOOGLE' && !user.password) {
+      user.password = newPassword;
+      await user.save();
+      return res.status(200).json({
+        success: true,
+        message: 'Đã thiết lập mật khẩu mới cho tài khoản thành công!'
+      });
+    }
+
+    const isMatch = await user.matchPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đổi mật khẩu thành công!'
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi đổi mật khẩu: ' + error.message });

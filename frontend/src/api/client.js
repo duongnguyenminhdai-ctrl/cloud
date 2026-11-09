@@ -154,6 +154,51 @@ export const authApi = {
       throw err;
     }
   },
+  getProfile: async () => {
+    try {
+      return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/profile'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3005/api/v1/auth/profile', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  updateProfile: async (profileData) => {
+    try {
+      return await apiClient.put(buildUrl(AUTH_SERVICE_URL, '/auth/profile'), profileData);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.put('http://localhost:3005/api/v1/auth/profile', profileData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  changePassword: async ({ oldPassword, newPassword }) => {
+    try {
+      return await apiClient.put(buildUrl(AUTH_SERVICE_URL, '/auth/change-password'), { oldPassword, newPassword });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.put('http://localhost:3005/api/v1/auth/change-password', { oldPassword, newPassword }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
 };
 
 // -----------------------------------------------------------------------------
