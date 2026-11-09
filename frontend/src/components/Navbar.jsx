@@ -128,10 +128,10 @@ export default function Navbar() {
           {/* User Profile / Auth */}
           {isAuthenticated ? (
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-              <button
-                onClick={() => setShowProfileModal(true)}
+              <Link
+                to="/profile"
                 className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-orange-50/80 transition-all text-right group cursor-pointer"
-                title="Quản lý thông tin tài khoản & Đổi mật khẩu"
+                title="Xem và cập nhật thông tin tài khoản & Đổi mật khẩu"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0">
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
@@ -144,7 +144,7 @@ export default function Navbar() {
                     {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
                   </span>
                 </div>
-              </button>
+              </Link>
               <button
                 onClick={() => {
                   logout();

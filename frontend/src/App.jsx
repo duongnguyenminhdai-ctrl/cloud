@@ -12,6 +12,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Checkout from './pages/Checkout';
 import OrderTracking from './pages/OrderTracking';
 import OrdersPage from './pages/OrdersPage';
+import ProfilePage from './pages/ProfilePage';
 import MerchantRegister from './pages/MerchantRegister';
 import MerchantStatus from './pages/MerchantStatus';
 import MerchantDashboard from './pages/MerchantDashboard';
@@ -38,6 +39,7 @@ export default function App() {
                   <Route path="/orders" element={<OrdersPage />} />
                   <Route path="/cart" element={<OrdersPage initialTab="cart" />} />
                   <Route path="/orders/:orderId" element={<OrderTracking />} />
+                  <Route path="/profile" element={<ProfilePage />} />
 
                   {/* Cửa hàng của tôi (My Store & Seller Onboarding) */}
                   <Route path="/merchant/register" element={<MerchantRegister />} />
