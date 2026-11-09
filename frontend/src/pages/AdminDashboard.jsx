@@ -5,7 +5,8 @@ import {
   Trash2, Edit, CheckCircle2, XCircle, Clock, Plus, ChevronLeft,
   ChevronRight, RefreshCw, AlertCircle, Save, X, Eye, EyeOff, Lock,
   Building, User, CreditCard, Sparkles, FileText, Check, ExternalLink,
-  ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info
+  ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
+  Unlock, AlertTriangle, Bell, Send, Ban
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
@@ -76,6 +77,22 @@ export default function AdminDashboard() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
 
+  // Modal Khóa Quán (Ban Store có thời hạn & tính toán ngày kết thúc)
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [banDurationDays, setBanDurationDays] = useState(7);
+  const [banUntilDate, setBanUntilDate] = useState(() => {
+    const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    return d.toISOString().slice(0, 16);
+  });
+  const [banReason, setBanReason] = useState('');
+  const [banningStore, setBanningStore] = useState(false);
+
+  // Modal Gửi Cảnh Báo (Warn Store)
+  const [showWarnModal, setShowWarnModal] = useState(false);
+  const [warnTitle, setWarnTitle] = useState('Cảnh báo vi phạm từ Quản trị viên FoodFast');
+  const [warnContent, setWarnContent] = useState('');
+  const [warningStore, setWarningStore] = useState(false);
+
   // Modal Thêm / Sửa Quán (Admin CRUD)
   const [showStoreEditModal, setShowStoreEditModal] = useState(false);
   const [editingStoreId, setEditingStoreId] = useState(null);
@@ -145,6 +162,119 @@ export default function AdminDashboard() {
       fetchStores();
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi từ chối quán');
+    }
+  };
+
+  // Mở modal Khóa quán có thời hạn
+  const handleOpenBanModal = (store) => {
+    const targetStore = store || selectedStore;
+    if (!targetStore) return;
+    const defaultDays = 7;
+    setBanDurationDays(defaultDays);
+    const until = new Date(Date.now() + defaultDays * 24 * 60 * 60 * 1000);
+    setBanUntilDate(until.toISOString().slice(0, 16));
+    setBanReason('');
+    setShowBanModal(true);
+  };
+
+  // Thay đổi số ngày cấm -> tự động tính toán ngày kết thúc
+  const handleDurationDaysChange = (days) => {
+    const dNum = Math.max(1, Number(days) || 1);
+    setBanDurationDays(dNum);
+    const until = new Date(Date.now() + dNum * 24 * 60 * 60 * 1000);
+    setBanUntilDate(until.toISOString().slice(0, 16));
+  };
+
+  // Thay đổi ngày giờ kết thúc cụ thể -> tự động tính toán số ngày
+  const handleBanUntilDateChange = (dateStr) => {
+    setBanUntilDate(dateStr);
+    if (dateStr) {
+      const until = new Date(dateStr);
+      const diffMs = until.getTime() - Date.now();
+      const diffDays = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)));
+      setBanDurationDays(diffDays);
+    }
+  };
+
+  // Xác nhận khóa quán và gửi thông báo tới chủ quán
+  const handleConfirmBanStore = async () => {
+    if (!selectedStore) return;
+    if (!banReason.trim()) {
+      showNotif('error', 'Vui lòng nhập lý do khóa quán để gửi thông báo cho chủ quán.');
+      return;
+    }
+    setBanningStore(true);
+    try {
+      const res = await adminApi.banRestaurant(selectedStore._id, {
+        durationDays: banDurationDays,
+        banUntil: banUntilDate ? new Date(banUntilDate).toISOString() : undefined,
+        reason: banReason.trim()
+      });
+      showNotif('success', res.data?.message || `Đã khóa quán [${selectedStore.name}] thành công! Thông báo đã gửi tới chủ quán.`);
+      setShowBanModal(false);
+      const updatedStore = res.data?.data || {
+        ...selectedStore,
+        status: 'BANNED',
+        banInfo: {
+          isBanned: true,
+          banDurationDays,
+          banUntil: banUntilDate,
+          banReason: banReason.trim(),
+          bannedAt: new Date()
+        }
+      };
+      setSelectedStore(updatedStore);
+      fetchStores();
+    } catch (err) {
+      showNotif('error', err.response?.data?.message || err.message || 'Lỗi khóa quán');
+    } finally {
+      setBanningStore(false);
+    }
+  };
+
+  // Mở khóa quán / Bỏ cấm ngay
+  const handleUnbanStore = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn dỡ bỏ lệnh khóa và cho phép quán này mở bán trở lại?')) return;
+    try {
+      const res = await adminApi.unbanRestaurant(id);
+      showNotif('success', res.data?.message || 'Đã mở khóa quán thành công! Thông báo mở cấm đã gửi tới chủ quán.');
+      if (selectedStore && selectedStore._id === id) {
+        setSelectedStore(res.data?.data || { ...selectedStore, status: 'ACTIVE', banInfo: { isBanned: false } });
+      }
+      fetchStores();
+    } catch (err) {
+      showNotif('error', err.response?.data?.message || err.message || 'Lỗi mở khóa quán');
+    }
+  };
+
+  // Mở modal Gửi cảnh báo
+  const handleOpenWarnModal = (store) => {
+    const target = store || selectedStore;
+    if (!target) return;
+    setWarnTitle(`Cảnh báo vi phạm tới quán ${target.name}`);
+    setWarnContent('');
+    setShowWarnModal(true);
+  };
+
+  // Xác nhận gửi cảnh báo tới chủ quán
+  const handleConfirmWarnStore = async () => {
+    if (!selectedStore) return;
+    if (!warnContent.trim()) {
+      showNotif('error', 'Vui lòng nhập nội dung cảnh báo gửi tới chủ quán.');
+      return;
+    }
+    setWarningStore(true);
+    try {
+      const res = await adminApi.warnRestaurant(selectedStore._id, {
+        title: warnTitle.trim(),
+        content: warnContent.trim()
+      });
+      showNotif('success', res.data?.message || 'Đã gửi thông báo cảnh báo thành công tới chủ quán!');
+      setShowWarnModal(false);
+    } catch (err) {
+      showNotif('error', err.response?.data?.message || err.message || 'Lỗi gửi cảnh báo');
+    } finally {
+      setWarningStore(false);
     }
   };
 
@@ -611,6 +741,7 @@ export default function AdminDashboard() {
                   <option value="ALL">Tất cả trạng thái</option>
                   <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
                   <option value="PENDING">Chờ duyệt (PENDING)</option>
+                  <option value="BANNED">Đã bị khóa (BANNED)</option>
                   <option value="REJECTED">Bị từ chối (REJECTED)</option>
                 </select>
 
@@ -667,7 +798,12 @@ export default function AdminDashboard() {
                           <div className="text-[11px] text-slate-400">{st.phone || 'Chưa cập nhật SĐT'}</div>
                         </td>
                         <td className="py-3 px-4">
-                          {st.status === 'ACTIVE' && (
+                          {(st.status === 'BANNED' || st.status === 'LOCKED' || st.banInfo?.isBanned) && (
+                            <span className="px-2 py-0.5 rounded-full bg-red-600/30 text-red-300 font-bold border border-red-500/50 text-[10px] flex items-center gap-1 w-fit">
+                              <Lock className="w-2.5 h-2.5" /> BỊ KHÓA
+                            </span>
+                          )}
+                          {st.status === 'ACTIVE' && !st.banInfo?.isBanned && (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 text-[10px]">
                               ACTIVE
                             </span>
@@ -701,6 +837,33 @@ export default function AdminDashboard() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
+                            {st.status === 'ACTIVE' && !st.banInfo?.isBanned && (
+                              <>
+                                <button
+                                  onClick={() => handleOpenWarnModal(st)}
+                                  className="p-1.5 rounded-lg text-amber-400/80 hover:text-amber-300 hover:bg-slate-700 transition-colors"
+                                  title="Gửi cảnh báo tới chủ quán"
+                                >
+                                  <AlertCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleOpenBanModal(st)}
+                                  className="p-1.5 rounded-lg text-red-400/80 hover:text-red-300 hover:bg-slate-700 transition-colors"
+                                  title="Khóa quán có thời hạn"
+                                >
+                                  <Lock className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            {(st.status === 'BANNED' || st.status === 'LOCKED' || st.banInfo?.isBanned) && (
+                              <button
+                                onClick={() => handleUnbanStore(st._id)}
+                                className="p-1.5 rounded-lg text-emerald-400/80 hover:text-emerald-300 hover:bg-slate-700 transition-colors"
+                                title="Mở khóa quán ngay"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleOpenEditStore(st)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-orange-400 hover:bg-slate-700"
@@ -937,13 +1100,21 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base sm:text-lg font-bold text-white">Hồ sơ đăng ký: {selectedStore.name}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      selectedStore.status === 'ACTIVE'
+                      selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                        ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                        : selectedStore.status === 'ACTIVE'
                         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                         : selectedStore.status === 'REJECTED'
-                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
                         : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                     }`}>
-                      {selectedStore.status || 'PENDING'}
+                      {selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                        ? 'ĐÃ BỊ KHÓA (BANNED)'
+                        : selectedStore.status === 'ACTIVE'
+                        ? 'ACTIVE'
+                        : selectedStore.status === 'REJECTED'
+                        ? 'REJECTED'
+                        : 'PENDING'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">Xem xét và đối soát từng mục theo quy trình đăng ký ShopeeFood</p>
@@ -956,6 +1127,34 @@ export default function AdminDashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Banner hiển thị chi tiết khi quán đang bị Khóa */}
+            {(selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned) && (
+              <div className="mx-4 sm:mx-6 mt-3 p-3.5 rounded-xl bg-red-950/60 border border-red-500/50 text-red-200 flex items-start gap-3 shadow-inner">
+                <Lock className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1 text-xs space-y-1">
+                  <div className="font-bold text-red-300 text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-red-400" /> Quán đang bị tạm khóa hoạt động
+                    </span>
+                    <span className="text-[11px] bg-red-900/80 px-2 py-0.5 rounded-full border border-red-700/60 font-semibold">
+                      Thời hạn cấm: {selectedStore.banInfo?.banDurationDays || 7} ngày
+                    </span>
+                  </div>
+                  <div>
+                    <strong className="text-white">Lý do khóa:</strong> {selectedStore.banInfo?.banReason || 'Vi phạm chính sách nền tảng'}
+                  </div>
+                  <div className="text-[11px] text-red-300/80 flex flex-wrap gap-x-5 gap-y-1 pt-1 border-t border-red-800/40">
+                    <span>
+                      📅 Bắt đầu cấm: {selectedStore.banInfo?.bannedAt ? new Date(selectedStore.banInfo.bannedAt).toLocaleString('vi-VN') : 'Gần đây'}
+                    </span>
+                    <span>
+                      🔓 Thời hạn mở cấm: {selectedStore.banInfo?.banUntil ? new Date(selectedStore.banInfo.banUntil).toLocaleString('vi-VN') : 'Chưa xác định'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Stepper Tabs Navigation (6 Mục) */}
             <div className="border-b border-slate-700/80 bg-slate-900/60 px-3 py-2 overflow-x-auto scrollbar-none flex items-center gap-1.5">
@@ -1602,13 +1801,21 @@ export default function AdminDashboard() {
                       <div className="text-slate-400 text-xs">Trạng thái phê duyệt quán hiện tại:</div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                          selectedStore.status === 'ACTIVE'
+                          selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                            ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                            : selectedStore.status === 'ACTIVE'
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                             : selectedStore.status === 'REJECTED'
-                            ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
                             : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                         }`}>
-                          {selectedStore.status === 'ACTIVE' ? 'ĐÃ DUYỆT (ACTIVE)' : selectedStore.status === 'REJECTED' ? 'BỊ TỪ CHỐI (REJECTED)' : 'CHỜ DUYỆT (PENDING)'}
+                          {selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                            ? 'ĐÃ BỊ KHÓA (BANNED)'
+                            : selectedStore.status === 'ACTIVE'
+                            ? 'ĐÃ DUYỆT (ACTIVE)'
+                            : selectedStore.status === 'REJECTED'
+                            ? 'BỊ TỪ CHỐI (REJECTED)'
+                            : 'CHỜ DUYỆT (PENDING)'}
                         </span>
                         {selectedStore.rejectReason && (
                           <span className="text-xs text-red-400">Lý do từ chối: {selectedStore.rejectReason}</span>
@@ -1617,18 +1824,85 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <button
-                        onClick={() => setShowRejectModal(true)}
-                        className="px-4 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-bold border border-red-500/30 transition shadow-sm"
-                      >
-                        Từ chối hồ sơ
-                      </button>
-                      <button
-                        onClick={() => handleApproveStore(selectedStore._id)}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4" /> Duyệt mở quán ngay
-                      </button>
+                      {/* NẾU QUÁN ĐANG ACTIVE: Thay nút duyệt/từ chối bằng: Gửi cảnh báo & Khóa quán */}
+                      {selectedStore.status === 'ACTIVE' && !selectedStore.banInfo?.isBanned && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenWarnModal(selectedStore)}
+                            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition shadow-sm flex items-center gap-1.5"
+                          >
+                            <AlertCircle className="w-4 h-4 text-amber-400" /> Gửi cảnh báo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenBanModal(selectedStore)}
+                            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition flex items-center gap-1.5"
+                          >
+                            <Lock className="w-4 h-4" /> Khóa quán
+                          </button>
+                        </>
+                      )}
+
+                      {/* NẾU QUÁN ĐANG BỊ KHÓA / BANNED: Gửi cảnh báo & Mở khóa quán */}
+                      {(selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenWarnModal(selectedStore)}
+                            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition shadow-sm flex items-center gap-1.5"
+                          >
+                            <AlertCircle className="w-4 h-4 text-amber-400" /> Gửi cảnh báo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUnbanStore(selectedStore._id)}
+                            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
+                          >
+                            <Unlock className="w-4 h-4" /> Mở khóa quán ngay
+                          </button>
+                        </>
+                      )}
+
+                      {/* NẾU QUÁN ĐANG CHỜ DUYỆT (PENDING): Hiển thị Từ chối & Duyệt mở quán */}
+                      {(!selectedStore.status || selectedStore.status === 'PENDING') && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowRejectModal(true)}
+                            className="px-4 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-bold border border-red-500/30 transition shadow-sm"
+                          >
+                            Từ chối hồ sơ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveStore(selectedStore._id)}
+                            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> Duyệt mở quán ngay
+                          </button>
+                        </>
+                      )}
+
+                      {/* NẾU QUÁN BỊ TỪ CHỐI (REJECTED): Có thể duyệt lại */}
+                      {selectedStore.status === 'REJECTED' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenWarnModal(selectedStore)}
+                            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition shadow-sm flex items-center gap-1.5"
+                          >
+                            <AlertCircle className="w-4 h-4 text-amber-400" /> Gửi cảnh báo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveStore(selectedStore._id)}
+                            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> Phê duyệt lại quán
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1661,23 +1935,83 @@ export default function AdminDashboard() {
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button
+                  type="button"
                   onClick={() => setSelectedStore(null)}
                   className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-300 transition"
                 >
                   Đóng
                 </button>
-                <button
-                  onClick={() => setShowRejectModal(true)}
-                  className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition"
-                >
-                  Từ chối
-                </button>
-                <button
-                  onClick={() => handleApproveStore(selectedStore._id)}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
-                >
-                  <Check className="w-3.5 h-3.5 stroke-[3]" /> Duyệt quán
-                </button>
+
+                {/* NẾU QUÁN ĐÃ ACTIVE: Gửi cảnh báo & Khóa quán */}
+                {selectedStore.status === 'ACTIVE' && !selectedStore.banInfo?.isBanned && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWarnModal(selectedStore)}
+                      className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition flex items-center gap-1"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Gửi cảnh báo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenBanModal(selectedStore)}
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md shadow-red-600/20 transition flex items-center gap-1"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> Khóa quán
+                    </button>
+                  </>
+                )}
+
+                {/* NẾU QUÁN ĐANG BỊ KHÓA: Gửi cảnh báo & Mở khóa quán */}
+                {(selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWarnModal(selectedStore)}
+                      className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition flex items-center gap-1"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Gửi cảnh báo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUnbanStore(selectedStore._id)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
+                    >
+                      <Unlock className="w-3.5 h-3.5" /> Mở khóa quán
+                    </button>
+                  </>
+                )}
+
+                {/* NẾU QUÁN CHỜ DUYỆT (PENDING): Từ chối & Duyệt quán */}
+                {(!selectedStore.status || selectedStore.status === 'PENDING') && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowRejectModal(true)}
+                      className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition"
+                    >
+                      Từ chối
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveStore(selectedStore._id)}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[3]" /> Duyệt quán
+                    </button>
+                  </>
+                )}
+
+                {/* NẾU QUÁN BỊ TỪ CHỐI (REJECTED): Phê duyệt lại */}
+                {selectedStore.status === 'REJECTED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleApproveStore(selectedStore._id)}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Phê duyệt lại quán
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1756,6 +2090,282 @@ export default function AdminDashboard() {
               >
                 Xác nhận từ chối
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Khóa Quán Có Thời Hạn (Ban Store - Tính toán thời gian & Gửi thông báo) */}
+      {showBanModal && selectedStore && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-red-500/40 text-slate-200 shadow-2xl relative animate-fadeIn">
+            <button
+              onClick={() => setShowBanModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Khóa hoạt động quán ăn</h3>
+                <p className="text-xs text-slate-400">
+                  Quán: <strong className="text-red-300">{selectedStore.name}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Chọn số ngày cấm nhanh */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  1. Chọn thời gian cấm hoạt động:
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {[3, 7, 14, 30, 90].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleDurationDaysChange(days)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                        banDurationDays === days
+                          ? 'bg-red-600 text-white border-red-500 shadow-sm'
+                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {days} ngày
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Số ngày cụ thể:</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={banDurationDays}
+                        onChange={(e) => handleDurationDaysChange(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-red-500 font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-slate-400 text-xs">ngày</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Hoặc chọn thời hạn mở cấm:</label>
+                    <input
+                      type="datetime-local"
+                      value={banUntilDate}
+                      onChange={(e) => handleBanUntilDateChange(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-red-500 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bảng hiển thị thông tin tính toán thời gian cấm cho Admin thấy */}
+              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-red-500/30 space-y-2">
+                <div className="text-[11px] font-bold text-red-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Bảng tính thời hạn lệnh cấm
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-slate-400 block">Thời lượng bị cấm:</span>
+                    <strong className="text-red-400 text-sm">{banDurationDays} ngày</strong>
+                  </div>
+                  <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-slate-400 block">Bắt đầu hiệu lực:</span>
+                    <strong className="text-white text-xs">Ngay bây giờ</strong>
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-red-950/40 border border-red-500/40 text-red-200">
+                  <span className="text-red-300/80 block text-[10px]">Dự kiến mở khóa quán lúc:</span>
+                  <strong className="text-red-200 text-xs flex items-center gap-1 mt-0.5">
+                    <Clock className="w-3.5 h-3.5 text-red-400" />
+                    {banUntilDate ? new Date(banUntilDate).toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' }) : 'Chưa chọn'}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Lý do khóa quán & Mẫu gợi ý */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  2. Lý do khóa quán (sẽ gửi thông báo đến chủ quán) *:
+                </label>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {[
+                    'Hủy đơn hàng của khách liên tục',
+                    'Vi phạm vệ sinh an toàn thực phẩm',
+                    'Gian lận khuyến mãi / voucher',
+                    'Chất lượng món ăn bị phản ánh xấu',
+                    'Địa chỉ & giấy tờ không đúng thực tế'
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setBanReason(preset)}
+                      className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-700 text-slate-300 text-[10px] border border-slate-700 transition"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Ghi rõ lý do quán bị khóa và hướng dẫn cần thiết để chủ quán nắm được..."
+                  rows={3}
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-red-500 text-xs"
+                />
+              </div>
+
+              {/* Ghi chú về thông báo */}
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] flex items-start gap-2">
+                <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Hệ thống sẽ chuyển trạng thái quán sang <strong>BANNED</strong>, ẩn quán trên ứng dụng khách hàng và gửi thông báo chính thức đến trung tâm thông báo của chủ quán.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700">
+                <button
+                  type="button"
+                  disabled={banningStore}
+                  onClick={() => setShowBanModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={banningStore}
+                  onClick={handleConfirmBanStore}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {banningStore ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang khóa quán...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" /> Xác nhận khóa quán ({banDurationDays} ngày)
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gửi Cảnh Báo Tới Chủ Quán (Warn Store) */}
+      {showWarnModal && selectedStore && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-amber-500/40 text-slate-200 shadow-2xl relative animate-fadeIn">
+            <button
+              onClick={() => setShowWarnModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Gửi thông báo cảnh báo tới chủ quán</h3>
+                <p className="text-xs text-slate-400">
+                  Quán: <strong className="text-amber-300">{selectedStore.name}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Tiêu đề cảnh báo */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  1. Tiêu đề cảnh báo *:
+                </label>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {[
+                    'Cảnh báo tỷ lệ hủy đơn cao bất thường',
+                    'Cảnh báo chất lượng món ăn & vệ sinh',
+                    'Yêu cầu cập nhật giấy tờ kinh doanh & ATTP',
+                    'Nhắc nhở tuân thủ thời gian mở quán'
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setWarnTitle(preset)}
+                      className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-700 text-slate-300 text-[10px] border border-slate-700 transition"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={warnTitle}
+                  onChange={(e) => setWarnTitle(e.target.value)}
+                  placeholder="Nhập tiêu đề cảnh báo..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500 font-semibold"
+                />
+              </div>
+
+              {/* Nội dung cảnh báo */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  2. Nội dung cảnh báo chi tiết *:
+                </label>
+                <textarea
+                  value={warnContent}
+                  onChange={(e) => setWarnContent(e.target.value)}
+                  placeholder="Nhập chi tiết các vi phạm và yêu cầu chủ quán khắc phục trong vòng bao lâu..."
+                  rows={4}
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500 text-xs"
+                />
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] flex items-start gap-2">
+                <Bell className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Thông báo sẽ hiển thị trực tiếp trong hòm thư của Đối tác chủ quán và gửi tín hiệu cảnh báo trên trang Dashboard của chủ quán.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700">
+                <button
+                  type="button"
+                  disabled={warningStore}
+                  onClick={() => setShowWarnModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={warningStore}
+                  onClick={handleConfirmWarnStore}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {warningStore ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang gửi...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" /> Gửi cảnh báo ngay
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

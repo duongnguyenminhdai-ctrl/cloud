@@ -40,7 +40,9 @@ import {
   SlidersHorizontal,
   CalendarDays,
   UserPlus,
-  BadgeAlert
+  BadgeAlert,
+  Bell,
+  Unlock
 } from 'lucide-react';
 import { storeApi, orderApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -59,6 +61,27 @@ export default function MerchantDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successToast, setSuccessToast] = useState('');
+
+  // Trung tâm thông báo từ Admin (Cảnh báo, Khóa quán, Mở cấm)
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('foodfast_merchant_read_notifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const unreadNotifCount = useMemo(() => {
+    return (notifications || []).filter((n) => !readNotifIds.includes(n.id || n._id)).length;
+  }, [notifications, readNotifIds]);
+
+  const handleMarkAllNotifsAsRead = () => {
+    const allIds = (notifications || []).map((n) => n.id || n._id);
+    setReadNotifIds(allIds);
+    localStorage.setItem('foodfast_merchant_read_notifs', JSON.stringify(allIds));
+  };
 
   // 5 Tabs chính: 'orders' | 'menu' | 'operations' | 'staff' | 'wallet'
   const [activeMainTab, setActiveMainTab] = useState('orders');
@@ -172,6 +195,9 @@ export default function MerchantDashboard() {
       if (res.data?.success) {
         const storeData = res.data.data;
         setStore(storeData);
+        if (Array.isArray(storeData.notifications)) {
+          setNotifications(storeData.notifications);
+        }
 
         // Khởi tạo danh mục mặc định nếu chưa có
         if (!storeData.categories || storeData.categories.length === 0) {
@@ -519,6 +545,10 @@ export default function MerchantDashboard() {
 
   // Đổi trạng thái mở/đóng tức thì
   const handleToggleStoreOpen = async () => {
+    if (store?.status === 'BANNED' || store?.status === 'LOCKED' || store?.banInfo?.isBanned) {
+      alert(`Quán đang trong thời gian bị tạm khóa hoạt động đến ${store.banInfo?.banUntil ? new Date(store.banInfo.banUntil).toLocaleString('vi-VN') : 'khi có thông báo mới'}. Lý do: ${store.banInfo?.banReason || 'Vi phạm chính sách'}. Quán không thể mở cửa trong thời gian này.`);
+      return;
+    }
     const currentOpen = store?.operatingStatus?.isOpen !== false;
     const newOpen = !currentOpen;
     try {
@@ -730,8 +760,9 @@ export default function MerchantDashboard() {
     );
   }
 
-  const isStoreOpen = store.operatingStatus?.isOpen !== false;
-  const isStoreBusy = Boolean(store.operatingStatus?.isBusy);
+  const isStoreBanned = store.status === 'BANNED' || store.status === 'LOCKED' || Boolean(store.banInfo?.isBanned);
+  const isStoreOpen = !isStoreBanned && store.operatingStatus?.isOpen !== false;
+  const isStoreBusy = !isStoreBanned && Boolean(store.operatingStatus?.isBusy);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 pb-16">
@@ -750,8 +781,12 @@ export default function MerchantDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
           {/* Thông tin quán + Nút đổi trạng thái Mở/Đóng/Quán Bận */}
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-orange-400 flex items-center justify-center shrink-0">
-              <Store className="w-6 h-6" />
+            <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${
+              isStoreBanned
+                ? 'bg-red-600/20 border-red-500/40 text-red-400'
+                : 'bg-orange-600/20 border-orange-500/30 text-orange-400'
+            }`}>
+              {isStoreBanned ? <Lock className="w-6 h-6" /> : <Store className="w-6 h-6" />}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -759,7 +794,11 @@ export default function MerchantDashboard() {
                   {store.name}
                 </h1>
                 {/* Trạng thái hiện tại */}
-                {isStoreBusy ? (
+                {isStoreBanned ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> ĐÃ BỊ KHÓA ({store.banInfo?.banDurationDays || 7} NGÀY)
+                  </span>
+                ) : isStoreBusy ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
                     Quán Bận
                   </span>
@@ -779,28 +818,51 @@ export default function MerchantDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions Trạng thái quán & Rút tiền nhanh */}
+          {/* Quick Actions Trạng thái quán & Chuông thông báo */}
           <div className="flex items-center gap-2.5 shrink-0">
             {/* Nút bật/tắt Mở cửa / Đóng cửa */}
             <button
               onClick={handleToggleStoreOpen}
+              disabled={isStoreBanned}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
-                isStoreOpen
+                isStoreBanned
+                  ? 'bg-red-500/10 text-red-400/60 border-red-500/20 cursor-not-allowed opacity-60'
+                  : isStoreOpen
                   ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
                   : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
               }`}
+              title={isStoreBanned ? 'Quán đang trong thời gian bị khóa hoạt động' : undefined}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>{isStoreOpen ? 'Đóng cửa quán' : 'Mở cửa ngay'}</span>
+              <span>{isStoreBanned ? 'Bị tạm khóa' : isStoreOpen ? 'Đóng cửa quán' : 'Mở cửa ngay'}</span>
             </button>
 
             {/* Nút Quán bận */}
+            {!isStoreBanned && (
+              <button
+                onClick={() => setShowBusyModal(true)}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5"
+              >
+                <Coffee className="w-3.5 h-3.5" />
+                <span>Quán bận</span>
+              </button>
+            )}
+
+            {/* Nút Chuông Thông báo từ Admin */}
             <button
-              onClick={() => setShowBusyModal(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5"
+              onClick={() => {
+                setShowNotificationsModal(true);
+                handleMarkAllNotifsAsRead();
+              }}
+              className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+              title="Thông báo từ Ban quản trị FoodFast"
             >
-              <Coffee className="w-3.5 h-3.5" />
-              <span>Quán bận</span>
+              <Bell className="w-4 h-4" />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce shadow">
+                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                </span>
+              )}
             </button>
 
             {/* Nút Làm mới dữ liệu */}
@@ -820,6 +882,48 @@ export default function MerchantDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Banner Quán Bị Khóa Hoạt Động (Lệnh cấm có thời hạn của Admin) */}
+        {isStoreBanned && (
+          <div className="bg-gradient-to-r from-red-950/80 via-red-900/60 to-slate-900 border-2 border-red-500/80 rounded-3xl p-5 sm:p-6 shadow-2xl text-red-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-fadeIn">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-red-600/30 border border-red-500/60 text-red-400 flex items-center justify-center shrink-0 shadow-lg shadow-red-950">
+                <Lock className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-base sm:text-xl font-black text-white tracking-wide">
+                    QUÁN ĐANG BỊ TẠM KHÓA HOẠT ĐỘNG
+                  </h2>
+                  <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-red-600 text-white shadow-md border border-red-400/40">
+                    Bị cấm {store.banInfo?.banDurationDays || 7} ngày
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-red-200 leading-relaxed">
+                  <strong className="text-white">Lý do khóa:</strong> {store.banInfo?.banReason || 'Vi phạm chính sách hoạt động của nền tảng FoodFast'}
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-red-300/90 pt-1 border-t border-red-800/40 font-medium">
+                  <span>
+                    📅 Thời điểm bắt đầu cấm: {store.banInfo?.bannedAt ? new Date(store.banInfo.bannedAt).toLocaleString('vi-VN') : 'Gần đây'}
+                  </span>
+                  <span className="text-amber-300 font-bold flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    Thời hạn mở cấm dự kiến: {store.banInfo?.banUntil ? new Date(store.banInfo.banUntil).toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' }) : 'Chưa xác định'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowNotificationsModal(true);
+                handleMarkAllNotifsAsRead();
+              }}
+              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-600/40 transition flex items-center gap-2 shrink-0 self-end md:self-center"
+            >
+              <Bell className="w-4 h-4" /> Xem chi tiết thông báo
+            </button>
+          </div>
+        )}
         {/* ===================================================================== */}
         {/* 2. THỐNG KÊ NHANH KPI (Doanh thu hôm nay, Số đơn, Đánh giá, Ví) */}
         {/* ===================================================================== */}
@@ -2677,6 +2781,108 @@ export default function MerchantDashboard() {
             >
               Lưu lịch đặc biệt
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL 9: TRUNG TÂM THÔNG BÁO TỪ QUẢN TRỊ VIÊN FOODFAST */}
+      {/* ===================================================================== */}
+      {showNotificationsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">Thông báo từ Ban quản trị</h3>
+                  <p className="text-xs text-slate-400">Các thông báo, cảnh báo vi phạm và trạng thái hoạt động của quán</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNotificationsModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {(!notifications || notifications.length === 0) ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <Bell className="w-10 h-10 mx-auto text-slate-600" />
+                  <p className="text-sm font-semibold">Hiện chưa có thông báo nào từ Quản trị viên</p>
+                  <p className="text-xs text-slate-500">Mọi cảnh báo hoặc thay đổi trạng thái quán sẽ được gửi về đây.</p>
+                </div>
+              ) : (
+                notifications.map((notif, idx) => {
+                  const isBan = notif.type === 'BAN';
+                  const isUnban = notif.type === 'UNBAN';
+                  const isWarning = notif.type === 'WARNING';
+
+                  return (
+                    <div
+                      key={notif.id || idx}
+                      className={`p-4 rounded-2xl border transition-all space-y-2 ${
+                        isBan
+                          ? 'bg-red-950/40 border-red-500/40 text-red-100'
+                          : isUnban
+                          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100'
+                          : isWarning
+                          ? 'bg-amber-950/40 border-amber-500/40 text-amber-100'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {isBan && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> LỆNH KHÓA QUÁN
+                            </span>
+                          )}
+                          {isUnban && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white flex items-center gap-1">
+                              <Unlock className="w-2.5 h-2.5" /> MỞ KHÓA QUÁN
+                            </span>
+                          )}
+                          {isWarning && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1">
+                              <AlertCircle className="w-2.5 h-2.5" /> CẢNH BÁO
+                            </span>
+                          )}
+                          {!isBan && !isUnban && !isWarning && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                              HỆ THỐNG
+                            </span>
+                          )}
+                          <span className="font-bold text-xs text-white truncate max-w-[220px]">
+                            {notif.title}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 shrink-0">
+                          {notif.createdAt ? new Date(notif.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                        </span>
+                      </div>
+
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap opacity-90 pl-1">
+                        {notif.content}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end">
+              <button
+                onClick={() => setShowNotificationsModal(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition"
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}

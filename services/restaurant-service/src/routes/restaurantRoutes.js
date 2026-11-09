@@ -123,6 +123,37 @@ router.put(
   restaurantController.adminRejectRestaurant
 );
 
+// Khóa quán có thời hạn / Tạm ngưng hoạt động
+router.put(
+  ['/admin/:id/ban', '/restaurants/admin/:id/ban', '/api/v1/restaurants/admin/:id/ban'],
+  verifyToken,
+  requireAdmin,
+  restaurantController.adminBanRestaurant
+);
+
+// Mở khóa quán / Bỏ cấm
+router.put(
+  ['/admin/:id/unban', '/restaurants/admin/:id/unban', '/api/v1/restaurants/admin/:id/unban'],
+  verifyToken,
+  requireAdmin,
+  restaurantController.adminUnbanRestaurant
+);
+
+// Gửi cảnh báo vi phạm tới chủ quán
+router.post(
+  ['/admin/:id/warn', '/restaurants/admin/:id/warn', '/api/v1/restaurants/admin/:id/warn'],
+  verifyToken,
+  requireAdmin,
+  restaurantController.adminWarnRestaurant
+);
+
+// Chủ quán nhận danh sách thông báo & cảnh báo
+router.get(
+  ['/my-store/notifications', '/stores/my-store/notifications', '/api/v1/stores/my-store/notifications'],
+  verifyToken,
+  restaurantController.getStoreNotifications
+);
+
 router.delete(
   ['/admin/:id', '/restaurants/admin/:id', '/api/v1/restaurants/admin/:id'],
   verifyToken,

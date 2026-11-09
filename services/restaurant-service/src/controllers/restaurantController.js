@@ -394,6 +394,26 @@ exports.getMyStore = async (req, res) => {
         message: 'Bạn chưa có cửa hàng nào được tạo.'
       });
     }
+
+    // Tự động kiểm tra hết hạn lệnh khóa quán
+    if (store.status === 'BANNED' && store.banInfo?.banUntil && new Date() >= new Date(store.banInfo.banUntil)) {
+      store.status = 'ACTIVE';
+      if (!store.banInfo) store.banInfo = {};
+      store.banInfo.isBanned = false;
+      store.banInfo.unbannedAt = new Date();
+      if (!Array.isArray(store.notifications)) store.notifications = [];
+      store.notifications.unshift({
+        id: `notif_${Date.now()}`,
+        type: 'UNBAN',
+        title: `Thông báo: Hết hạn tạm khóa quán [${store.name}]`,
+        content: `Lệnh tạm khóa đối với cửa hàng của bạn đã kết thúc vào lúc ${new Date(store.banInfo.banUntil).toLocaleString('vi-VN')}. Quán đã được tự động kích hoạt mở lại hoạt động bình thường!`,
+        createdAt: new Date(),
+        isRead: false
+      });
+      await store.save();
+      await invalidateRestaurantCache(store._id);
+    }
+
     return res.status(200).json({
       success: true,
       data: store
@@ -649,6 +669,174 @@ exports.adminRejectRestaurant = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi từ chối duyệt quán: ' + error.message });
+  }
+};
+
+// 14.1. Admin Khóa quán / Tạm ngưng hoạt động có thời hạn
+exports.adminBanRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { durationDays, banUntil, reason } = req.body;
+
+    const store = await Restaurant.findById(id);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    let days = Number(durationDays) || 0;
+    let untilDate = banUntil ? new Date(banUntil) : null;
+
+    if (!untilDate && days > 0) {
+      untilDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    } else if (untilDate && days <= 0) {
+      days = Math.max(1, Math.round((untilDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+    } else if (!untilDate && days <= 0) {
+      days = 7;
+      untilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    const banReasonText = reason && reason.trim() ? reason.trim() : 'Vi phạm quy định và chính sách hoạt động của nền tảng';
+
+    store.status = 'BANNED';
+    store.banInfo = {
+      isBanned: true,
+      bannedAt: new Date(),
+      banUntil: untilDate,
+      banDurationDays: days,
+      banReason: banReasonText,
+      bannedBy: (req.user && req.user.email) ? req.user.email : 'Admin'
+    };
+
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+
+    const untilDateStr = untilDate ? untilDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : 'Khi có quyết định mới';
+
+    store.notifications.unshift({
+      id: `notif_${Date.now()}`,
+      type: 'BAN',
+      title: `Thông báo: Cửa hàng [${store.name}] đã bị tạm khóa hoạt động`,
+      content: `Cửa hàng của bạn đã bị tạm khóa trong vòng ${days} ngày. Thời hạn khóa đến: ${untilDateStr}. Lý do: ${banReasonText}. Vui lòng liên hệ bộ phận hỗ trợ đối tác nếu cần giải trình và mở cấm.`,
+      createdAt: new Date(),
+      isRead: false,
+      meta: { days, banUntil: untilDate, reason: banReasonText }
+    });
+
+    await store.save();
+    await invalidateRestaurantCache(id);
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã khóa quán [${store.name}] trong ${days} ngày (đến ${untilDateStr}). Thông báo đã được gửi tới chủ quán.`,
+      data: store
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi khóa quán: ' + error.message });
+  }
+};
+
+// 14.2. Admin Mở khóa quán / Bỏ cấm trước hạn
+exports.adminUnbanRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = await Restaurant.findById(id);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    store.status = 'ACTIVE';
+    if (!store.banInfo) {
+      store.banInfo = {};
+    }
+    store.banInfo.isBanned = false;
+    store.banInfo.unbannedAt = new Date();
+
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+
+    const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    store.notifications.unshift({
+      id: `notif_${Date.now()}`,
+      type: 'UNBAN',
+      title: `Thông báo: Cửa hàng [${store.name}] đã được mở khóa hoạt động`,
+      content: `Quản trị viên đã dỡ bỏ lệnh khóa đối với cửa hàng của bạn vào lúc ${nowStr}. Cửa hàng hiện đã có thể tiếp tục mở cửa bán hàng và tiếp nhận đơn bình thường.`,
+      createdAt: new Date(),
+      isRead: false
+    });
+
+    await store.save();
+    await invalidateRestaurantCache(id);
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã mở khóa hoạt động cho quán [${store.name}]. Thông báo mở cấm đã được gửi tới chủ quán.`,
+      data: store
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi mở khóa quán: ' + error.message });
+  }
+};
+
+// 14.3. Admin Gửi cảnh báo tới chủ quán
+exports.adminWarnRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    const store = await Restaurant.findById(id);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Nội dung cảnh báo không được để trống.' });
+    }
+
+    const warnTitle = title && title.trim() ? title.trim() : 'Cảnh báo vi phạm từ Quản trị viên FoodFast';
+
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+
+    store.notifications.unshift({
+      id: `notif_${Date.now()}`,
+      type: 'WARNING',
+      title: warnTitle,
+      content: content.trim(),
+      createdAt: new Date(),
+      isRead: false,
+      meta: { warnedBy: (req.user && req.user.email) ? req.user.email : 'Admin' }
+    });
+
+    await store.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã gửi cảnh báo thành công tới chủ quán [${store.name}]!`,
+      data: store
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi gửi cảnh báo: ' + error.message });
+  }
+};
+
+// 14.4. Chủ quán lấy danh sách thông báo & cảnh báo
+exports.getStoreNotifications = async (req, res) => {
+  try {
+    const ownerId = req.user?.id || req.user?.userId || req.user?._id;
+    const store = await Restaurant.findOne({ ownerId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: store.notifications || []
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy thông báo quán: ' + error.message });
   }
 };
 

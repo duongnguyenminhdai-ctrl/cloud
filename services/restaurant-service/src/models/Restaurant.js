@@ -117,7 +117,7 @@ const restaurantSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['NOT_REGISTERED', 'PENDING', 'ACTIVE', 'REJECTED'],
+      enum: ['NOT_REGISTERED', 'PENDING', 'ACTIVE', 'REJECTED', 'BANNED', 'LOCKED'],
       default: 'PENDING'
     },
     address: {
@@ -382,7 +382,31 @@ const restaurantSchema = new mongoose.Schema(
     likeCount: {
       type: Number,
       default: 0
-    }
+    },
+
+    // 16. Thông tin kỷ luật & Khóa quán từ Quản trị viên (Ban & Lock Management)
+    banInfo: {
+      isBanned: { type: Boolean, default: false },
+      bannedAt: { type: Date, default: null },
+      banUntil: { type: Date, default: null },
+      banDurationDays: { type: Number, default: 0 },
+      banReason: { type: String, default: '' },
+      bannedBy: { type: String, default: 'Admin' },
+      unbannedAt: { type: Date, default: null }
+    },
+
+    // 17. Thông báo và Cảnh báo gửi tới Chủ quán từ Admin
+    notifications: [
+      {
+        id: { type: String, default: '' },
+        type: { type: String, enum: ['WARNING', 'BAN', 'UNBAN', 'SYSTEM', 'INFO'], default: 'INFO' },
+        title: { type: String, required: true },
+        content: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+        isRead: { type: Boolean, default: false },
+        meta: { type: mongoose.Schema.Types.Mixed, default: () => ({}) }
+      }
+    ]
   },
   {
     timestamps: true

@@ -490,6 +490,9 @@ export const storeApi = {
   },
   getWallet: async () => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/wallet'));
+  },
+  getNotifications: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/notifications'));
   }
 };
 
@@ -567,6 +570,15 @@ export const adminApi = {
   },
   rejectRestaurant: async (id, reason) => {
     return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/reject`), { reason });
+  },
+  banRestaurant: async (id, { durationDays, banUntil, reason }) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/ban`), { durationDays, banUntil, reason });
+  },
+  unbanRestaurant: async (id) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/unban`));
+  },
+  warnRestaurant: async (id, { title, content }) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/warn`), { title, content });
   },
   createRestaurant: async (restaurantData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants'), restaurantData);
