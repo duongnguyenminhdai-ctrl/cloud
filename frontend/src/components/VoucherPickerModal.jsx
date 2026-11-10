@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Ticket, Truck, Store, BadgePercent, CheckCircle2 } from 'lucide-react';
+import Pagination, { paginateList } from './Pagination';
 
 export default function VoucherPickerModal({
   isOpen,
@@ -10,6 +11,12 @@ export default function VoucherPickerModal({
   onSelectVoucher
 }) {
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [voucherPage, setVoucherPage] = useState(1);
+  const PAGE_SIZE = 5;
+
+  useEffect(() => {
+    setVoucherPage(1);
+  }, [activeCategory, isOpen]);
 
   if (!isOpen) return null;
 
@@ -45,6 +52,8 @@ export default function VoucherPickerModal({
     if (activeCategory === 'ALL') return true;
     return v._categoryKey === activeCategory;
   });
+
+  const paginatedVouchers = paginateList(filteredVouchers, voucherPage, PAGE_SIZE);
 
   return (
     <div
@@ -107,7 +116,7 @@ export default function VoucherPickerModal({
               Không có mã giảm giá nào thuộc danh mục này.
             </div>
           ) : (
-            filteredVouchers.map((voucher) => {
+            paginatedVouchers.items.map((voucher) => {
               const isSelected = (currentAppliedCode || '').toUpperCase() === (voucher.code || '').toUpperCase();
 
               return (
@@ -211,6 +220,21 @@ export default function VoucherPickerModal({
             })
           )}
         </div>
+
+        {filteredVouchers.length > 0 && (
+          <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/70">
+            <Pagination
+              currentPage={paginatedVouchers.page}
+              totalPages={paginatedVouchers.totalPages}
+              totalItems={paginatedVouchers.totalItems}
+              pageSize={paginatedVouchers.pageSize}
+              itemLabel="voucher"
+              theme="light"
+              className="border-t-0 pt-1"
+              onPageChange={(p) => setVoucherPage(p)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

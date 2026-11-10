@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   const [stores, setStores] = useState([]);
   const [storeTotal, setStoreTotal] = useState(0);
   const [storePage, setStorePage] = useState(1);
-  const [storeLimit] = useState(8);
+  const [storeLimit, setStoreLimit] = useState(6);
   const [storeSearch, setStoreSearch] = useState('');
   const [storeStatusFilter, setStoreStatusFilter] = useState('ALL');
   const [storeSortBy, setStoreSortBy] = useState('createdAt');
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
       fetchStores();
     }
     fetchPendingCount();
-  }, [activeTab, storePage, storeStatusFilter, storeSortBy, storeSortOrder]);
+  }, [activeTab, storePage, storeLimit, storeStatusFilter, storeSortBy, storeSortOrder]);
 
   const handleSearchStores = (e) => {
     e.preventDefault();
@@ -437,7 +437,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [userTotal, setUserTotal] = useState(0);
   const [userPage, setUserPage] = useState(1);
-  const [userLimit] = useState(10);
+  const [userLimit, setUserLimit] = useState(5);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
   const [userSortBy, setUserSortBy] = useState('createdAt');
@@ -488,7 +488,7 @@ export default function AdminDashboard() {
         fetchStores({ silent: true });
       }
     }
-  }, [activeTab, userPage, userRoleFilter, userSortBy, userSortOrder]);
+  }, [activeTab, userPage, userLimit, userRoleFilter, userSortBy, userSortOrder]);
 
   const handleSearchUsers = (e) => {
     e.preventDefault();
@@ -592,7 +592,7 @@ export default function AdminDashboard() {
   const [vouchersLoading, setVouchersLoading] = useState(false);
   const [voucherTotal, setVoucherTotal] = useState(0);
   const [voucherPage, setVoucherPage] = useState(1);
-  const [voucherLimit, setVoucherLimit] = useState(10);
+  const [voucherLimit, setVoucherLimit] = useState(6);
   const [voucherSearch, setVoucherSearch] = useState('');
   const [voucherIssuerFilter, setVoucherIssuerFilter] = useState('ALL'); // 'ALL' | 'PLATFORM' | 'STORE'
   const [voucherStatusFilter, setVoucherStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'DISABLED'
@@ -654,7 +654,7 @@ export default function AdminDashboard() {
         fetchStores({ silent: true });
       }
     }
-  }, [activeTab, voucherPage, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
+  }, [activeTab, voucherPage, voucherLimit, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
 
   // Đồng bộ Realtime toàn bộ Admin Portal (SSE + Cross-tab + Silent polling 5s)
   useEffect(() => {
@@ -682,7 +682,7 @@ export default function AdminDashboard() {
       }
     });
     return () => unsubscribe();
-  }, [isAuthenticated, user?.role, activeTab, storePage, storeSearch, storeStatusFilter, storeSortBy, storeSortOrder, userPage, userSearch, userRoleFilter, userSortBy, userSortOrder, voucherPage, voucherSearch, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
+  }, [isAuthenticated, user?.role, activeTab, storePage, storeLimit, storeSearch, storeStatusFilter, storeSortBy, storeSortOrder, userPage, userLimit, userSearch, userRoleFilter, userSortBy, userSortOrder, voucherPage, voucherLimit, voucherSearch, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
 
   const handleSearchVouchers = (e) => {
     e.preventDefault();
@@ -1036,6 +1036,11 @@ export default function AdminDashboard() {
               totalPages={Math.ceil(storeTotal / storeLimit) || 1}
               totalItems={storeTotal}
               pageSize={storeLimit}
+              pageSizeOptions={[6, 12, 24]}
+              onPageSizeChange={(lim) => {
+                setStoreLimit(lim);
+                setStorePage(1);
+              }}
               itemLabel="hồ sơ"
               theme="dark"
               onPageChange={(p) => setStorePage(p)}
@@ -1270,6 +1275,11 @@ export default function AdminDashboard() {
                   totalPages={Math.ceil(storeTotal / storeLimit) || 1}
                   totalItems={storeTotal}
                   pageSize={storeLimit}
+                  pageSizeOptions={[6, 10, 20, 50]}
+                  onPageSizeChange={(lim) => {
+                    setStoreLimit(lim);
+                    setStorePage(1);
+                  }}
                   itemLabel="quán ăn"
                   theme="dark"
                   onPageChange={(p) => setStorePage(p)}
@@ -1466,6 +1476,11 @@ export default function AdminDashboard() {
                   totalPages={Math.ceil(userTotal / userLimit) || 1}
                   totalItems={userTotal}
                   pageSize={userLimit}
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  onPageSizeChange={(lim) => {
+                    setUserLimit(lim);
+                    setUserPage(1);
+                  }}
                   itemLabel="tài khoản"
                   theme="dark"
                   onPageChange={(p) => setUserPage(p)}
@@ -1780,6 +1795,11 @@ export default function AdminDashboard() {
                   totalPages={Math.ceil(voucherTotal / voucherLimit) || 1}
                   totalItems={voucherTotal}
                   pageSize={voucherLimit}
+                  pageSizeOptions={[6, 10, 20, 50]}
+                  onPageSizeChange={(lim) => {
+                    setVoucherLimit(lim);
+                    setVoucherPage(1);
+                  }}
                   itemLabel="mã giảm giá"
                   theme="dark"
                   onPageChange={(p) => setVoucherPage(p)}

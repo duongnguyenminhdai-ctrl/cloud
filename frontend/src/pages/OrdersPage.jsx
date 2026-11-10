@@ -33,7 +33,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderApi, voucherApi, reviewApi } from '../api/client';
 import { getOrderDishImage, enrichOrderWithDishImages } from '../utils/menuImageSync';
-import Pagination from '../components/Pagination';
+import Pagination, { paginateList } from '../components/Pagination';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 
 export default function OrdersPage({ initialTab }) {
@@ -423,6 +423,9 @@ export default function OrdersPage({ initialTab }) {
   }, [defaultVouchersList, customVouchers, voucherCategory, isAuthenticated]);
 
   // Các trạng thái phân trang cho các Tab trong OrdersPage
+  const [activePage, setActivePage] = useState(1);
+  const ACTIVE_PAGE_SIZE = 5;
+
   const [historyPage, setHistoryPage] = useState(1);
   const HISTORY_PAGE_SIZE = 5;
 
@@ -435,6 +438,9 @@ export default function OrdersPage({ initialTab }) {
   const [reviewsPage, setReviewsPage] = useState(1);
   const REVIEWS_PAGE_SIZE = 5;
 
+  const [cartPage, setCartPage] = useState(1);
+  const CART_PAGE_SIZE = 6;
+
   // Reset trang khi đổi bộ lọc
   useEffect(() => {
     setHistoryPage(1);
@@ -443,6 +449,16 @@ export default function OrdersPage({ initialTab }) {
   useEffect(() => {
     setVoucherPage(1);
   }, [voucherCategory]);
+
+  const paginatedActiveOrders = useMemo(
+    () => paginateList(activeOrders, activePage, ACTIVE_PAGE_SIZE),
+    [activeOrders, activePage]
+  );
+
+  const paginatedCartItems = useMemo(
+    () => paginateList(cartItems, cartPage, CART_PAGE_SIZE),
+    [cartItems, cartPage]
+  );
 
   const paginatedHistoryOrders = useMemo(() => {
     const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
@@ -772,7 +788,7 @@ export default function OrdersPage({ initialTab }) {
                   </button>
                 </div>
 
-                {activeOrders.map((ord) => (
+                {paginatedActiveOrders.items.map((ord) => (
                   <div
                     key={ord._id}
                     className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
@@ -820,6 +836,17 @@ export default function OrdersPage({ initialTab }) {
                     </div>
                   </div>
                 ))}
+
+                <Pagination
+                  currentPage={paginatedActiveOrders.page}
+                  totalPages={paginatedActiveOrders.totalPages}
+                  totalItems={paginatedActiveOrders.totalItems}
+                  pageSize={paginatedActiveOrders.pageSize}
+                  itemLabel="đơn đang giao"
+                  theme="light"
+                  onPageChange={(p) => setActivePage(p)}
+                  className="mt-2"
+                />
               </div>
             )}
           </div>
@@ -1543,7 +1570,7 @@ export default function OrdersPage({ initialTab }) {
 
                 {/* Danh sách các món trong giỏ */}
                 <div className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 space-y-3">
-                  {cartItems.map((item) => {
+                  {paginatedCartItems.items.map((item) => {
                     const itemKey = item.cartItemId || item.menuItemId || item._id;
                     const optionTexts = [
                       item.selectedSize?.name,
@@ -1603,6 +1630,16 @@ export default function OrdersPage({ initialTab }) {
                       </div>
                     );
                   })}
+                  <Pagination
+                    currentPage={paginatedCartItems.page}
+                    totalPages={paginatedCartItems.totalPages}
+                    totalItems={paginatedCartItems.totalItems}
+                    pageSize={paginatedCartItems.pageSize}
+                    itemLabel="món trong giỏ"
+                    theme="light"
+                    onPageChange={(p) => setCartPage(p)}
+                    className="pt-3"
+                  />
                 </div>
 
                 {/* Tổng tiền & Nút Đặt hàng */}

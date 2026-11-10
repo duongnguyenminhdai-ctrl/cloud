@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { storeApi, orderApi, reviewApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import Pagination from '../components/Pagination';
+import Pagination, { paginateList } from '../components/Pagination';
 import {
   calculateMerchantSettlement,
   simulateMerchantVoucher,
@@ -295,7 +295,7 @@ export default function MerchantDashboard() {
     }
   };
 
-  // Tải danh sách đơn hàng thật của quán & tự động quyết toán đơn hoàn thành vào Ví thật
+  // Tải danh sách đánh giá thật của quán & tự động đồng bộ lại số sao
   const [storeReviews, setStoreReviews] = useState([]);
 
   const fetchReviews = async () => {
@@ -529,10 +529,11 @@ export default function MerchantDashboard() {
     setOrderPage(1);
   }, [orderSubTab]);
 
-  const paginatedOrders = useMemo(() => {
-    const start = (orderPage - 1) * ORDER_PAGE_SIZE;
-    return filteredOrders.slice(start, start + ORDER_PAGE_SIZE);
-  }, [filteredOrders, orderPage]);
+  const paginatedOrdersState = useMemo(
+    () => paginateList(filteredOrders, orderPage, ORDER_PAGE_SIZE),
+    [filteredOrders, orderPage]
+  );
+  const paginatedOrders = paginatedOrdersState.items;
 
   // Phân trang thực đơn món ăn (Menu Items)
   const [menuPage, setMenuPage] = useState(1);
@@ -540,7 +541,7 @@ export default function MerchantDashboard() {
 
   useEffect(() => {
     setMenuPage(1);
-  }, [selectedCategory]);
+  }, [selectedCategory, menuSearch]);
 
   const filteredMenuItems = useMemo(() => {
     return (store?.menuItems || []).filter((m) =>
@@ -548,10 +549,50 @@ export default function MerchantDashboard() {
     );
   }, [store?.menuItems, selectedCategory]);
 
-  const paginatedMenuItems = useMemo(() => {
-    const start = (menuPage - 1) * MENU_PAGE_SIZE;
-    return filteredMenuItems.slice(start, start + MENU_PAGE_SIZE);
-  }, [filteredMenuItems, menuPage]);
+  const paginatedMenuState = useMemo(
+    () => paginateList(filteredMenuItems, menuPage, MENU_PAGE_SIZE),
+    [filteredMenuItems, menuPage]
+  );
+  const paginatedMenuItems = paginatedMenuState.items;
+
+  // Phân trang cho các danh sách còn lại: Topping, Lịch đặc biệt, Nhân viên, Voucher Quán, Lịch sử giao dịch, Thông báo
+  const [toppingGroupPage, setToppingGroupPage] = useState(1);
+  const TOPPING_PAGE_SIZE = 4;
+  const paginatedToppingGroups = useMemo(
+    () => paginateList(store?.toppingGroups || [], toppingGroupPage, TOPPING_PAGE_SIZE),
+    [store?.toppingGroups, toppingGroupPage]
+  );
+
+  const [specialSchedulePage, setSpecialSchedulePage] = useState(1);
+  const SCHEDULE_PAGE_SIZE = 5;
+  const paginatedSpecialSchedules = useMemo(
+    () => paginateList(store?.specialSchedules || [], specialSchedulePage, SCHEDULE_PAGE_SIZE),
+    [store?.specialSchedules, specialSchedulePage]
+  );
+
+  const [staffPage, setStaffPage] = useState(1);
+  const STAFF_PAGE_SIZE = 6;
+  const paginatedStaff = useMemo(
+    () => paginateList(store?.staff || [], staffPage, STAFF_PAGE_SIZE),
+    [store?.staff, staffPage]
+  );
+
+  const [merchantVoucherPage, setMerchantVoucherPage] = useState(1);
+  const MERCHANT_VOUCHER_PAGE_SIZE = 4;
+
+  const [txPage, setTxPage] = useState(1);
+  const [txLimit, setTxLimit] = useState(6);
+  const paginatedTransactions = useMemo(
+    () => paginateList(realTransactions, txPage, txLimit),
+    [realTransactions, txPage, txLimit]
+  );
+
+  const [notifPage, setNotifPage] = useState(1);
+  const NOTIF_PAGE_SIZE = 5;
+  const paginatedNotifications = useMemo(
+    () => paginateList(notifications, notifPage, NOTIF_PAGE_SIZE),
+    [notifications, notifPage]
+  );
 
   // Xác nhận đơn hàng mới -> chuyển sang PREPARING
   const handleConfirmOrder = async (orderId) => {
@@ -1034,6 +1075,11 @@ export default function MerchantDashboard() {
   // =========================================================================
   const [merchantVouchers, setMerchantVouchers] = useState([]);
   const [vouchersLoading, setVouchersLoading] = useState(false);
+
+  const paginatedMerchantVouchers = useMemo(
+    () => paginateList(merchantVouchers, merchantVoucherPage, MERCHANT_VOUCHER_PAGE_SIZE),
+    [merchantVouchers, merchantVoucherPage]
+  );
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState(null);
   const [submittingVoucher, setSubmittingVoucher] = useState(false);
@@ -1850,10 +1896,10 @@ export default function MerchantDashboard() {
 
                 {/* Phân trang danh sách đơn hàng của quán */}
                 <Pagination
-                  currentPage={orderPage}
-                  totalPages={Math.ceil(filteredOrders.length / ORDER_PAGE_SIZE) || 1}
-                  totalItems={filteredOrders.length}
-                  pageSize={ORDER_PAGE_SIZE}
+                  currentPage={paginatedOrdersState.page}
+                  totalPages={paginatedOrdersState.totalPages}
+                  totalItems={paginatedOrdersState.totalItems}
+                  pageSize={paginatedOrdersState.pageSize}
                   itemLabel="đơn hàng"
                   theme="dark"
                   onPageChange={(p) => setOrderPage(p)}
@@ -2037,10 +2083,10 @@ export default function MerchantDashboard() {
 
                 {/* Phân trang danh sách món ăn của quán */}
                 <Pagination
-                  currentPage={menuPage}
-                  totalPages={Math.ceil(filteredMenuItems.length / MENU_PAGE_SIZE) || 1}
-                  totalItems={filteredMenuItems.length}
-                  pageSize={MENU_PAGE_SIZE}
+                  currentPage={paginatedMenuState.page}
+                  totalPages={paginatedMenuState.totalPages}
+                  totalItems={paginatedMenuState.totalItems}
+                  pageSize={paginatedMenuState.pageSize}
                   itemLabel="món ăn"
                   theme="dark"
                   onPageChange={(p) => setMenuPage(p)}
@@ -2068,8 +2114,9 @@ export default function MerchantDashboard() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {store.toppingGroups.map((group) => (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {paginatedToppingGroups.items.map((group) => (
                       <div
                         key={group.id}
                         className="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3"
@@ -2124,6 +2171,17 @@ export default function MerchantDashboard() {
                         </div>
                       </div>
                     ))}
+                    </div>
+
+                    <Pagination
+                      currentPage={paginatedToppingGroups.page}
+                      totalPages={paginatedToppingGroups.totalPages}
+                      totalItems={paginatedToppingGroups.totalItems}
+                      pageSize={paginatedToppingGroups.pageSize}
+                      itemLabel="nhóm topping"
+                      theme="dark"
+                      onPageChange={(p) => setToppingGroupPage(p)}
+                    />
                   </div>
                 )}
               </div>
@@ -2270,30 +2328,46 @@ export default function MerchantDashboard() {
               {(store.specialSchedules || []).length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-4">Chưa có lịch đặc biệt nào được thiết lập.</p>
               ) : (
-                <div className="space-y-2">
-                  {store.specialSchedules.map((sc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                      <div>
-                        <span className="font-bold text-white">{sc.date}</span>
-                        <span className={`ml-3 px-2 py-0.5 rounded text-[10px] font-bold ${
-                          sc.status === 'CLOSED' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-                        }`}>
-                          {sc.status === 'CLOSED' ? 'Đóng cửa cả ngày' : 'Mở theo giờ riêng'}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const updated = store.specialSchedules.filter((_, i) => i !== idx);
-                          await storeApi.updateOperations({ specialSchedules: updated });
-                          showToast('Đã xóa lịch đặc biệt!');
-                          fetchStoreData();
-                        }}
-                        className="text-rose-400 hover:text-rose-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    {paginatedSpecialSchedules.items.map((sc, idx) => {
+                      const globalIdx = (paginatedSpecialSchedules.page - 1) * SCHEDULE_PAGE_SIZE + idx;
+                      return (
+                        <div key={`${sc.date || 'sc'}-${globalIdx}`} className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                          <div>
+                            <span className="font-bold text-white">{sc.date}</span>
+                            <span className={`ml-3 px-2 py-0.5 rounded text-[10px] font-bold ${
+                              sc.status === 'CLOSED' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
+                            }`}>
+                              {sc.status === 'CLOSED' ? 'Đóng cửa cả ngày' : 'Mở theo giờ riêng'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              const updated = store.specialSchedules.filter((_, i) => i !== globalIdx);
+                              await storeApi.updateOperations({ specialSchedules: updated });
+                              showToast('Đã xóa lịch đặc biệt!');
+                              fetchStoreData({ silent: true });
+                              publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
+                            }}
+                            className="text-rose-400 hover:text-rose-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <Pagination
+                    currentPage={paginatedSpecialSchedules.page}
+                    totalPages={paginatedSpecialSchedules.totalPages}
+                    totalItems={paginatedSpecialSchedules.totalItems}
+                    pageSize={paginatedSpecialSchedules.pageSize}
+                    itemLabel="lịch đặc biệt"
+                    theme="dark"
+                    onPageChange={(p) => setSpecialSchedulePage(p)}
+                  />
                 </div>
               )}
             </div>
@@ -2340,8 +2414,9 @@ export default function MerchantDashboard() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {store.staff.map((st) => (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedStaff.items.map((st) => (
                   <div key={st.id} className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
@@ -2384,6 +2459,17 @@ export default function MerchantDashboard() {
                     </div>
                   </div>
                 ))}
+                </div>
+
+                <Pagination
+                  currentPage={paginatedStaff.page}
+                  totalPages={paginatedStaff.totalPages}
+                  totalItems={paginatedStaff.totalItems}
+                  pageSize={paginatedStaff.pageSize}
+                  itemLabel="nhân viên"
+                  theme="dark"
+                  onPageChange={(p) => setStaffPage(p)}
+                />
               </div>
             )}
           </div>
@@ -2475,8 +2561,9 @@ export default function MerchantDashboard() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {merchantVouchers.map((v) => {
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginatedMerchantVouchers.items.map((v) => {
                   const usagePct = v.usage_limit > 0 ? Math.min(100, Math.round(((v.used_count || 0) / v.usage_limit) * 100)) : 0;
                   const isExpired = v.end_date && new Date(v.end_date) < new Date();
                   const sampleSim = simulateMerchantVoucher({
@@ -2583,6 +2670,17 @@ export default function MerchantDashboard() {
                     </div>
                   );
                 })}
+                </div>
+
+                <Pagination
+                  currentPage={paginatedMerchantVouchers.page}
+                  totalPages={paginatedMerchantVouchers.totalPages}
+                  totalItems={paginatedMerchantVouchers.totalItems}
+                  pageSize={paginatedMerchantVouchers.pageSize}
+                  itemLabel="voucher"
+                  theme="dark"
+                  onPageChange={(p) => setMerchantVoucherPage(p)}
+                />
               </div>
             )}
           </div>
@@ -2733,8 +2831,9 @@ export default function MerchantDashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-700/60">
-                  {realTransactions.map((tr, idx) => {
+                <div className="space-y-4">
+                  <div className="divide-y divide-slate-700/60">
+                    {paginatedTransactions.items.map((tr, idx) => {
                     const isPositive = Number(tr.amount) > 0;
                     const isGrant = tr.type === 'ADMIN_GRANT';
                     const isOrder = tr.type === 'ORDER_SETTLEMENT';
@@ -2795,6 +2894,22 @@ export default function MerchantDashboard() {
                       </div>
                     );
                   })}
+                  </div>
+
+                  <Pagination
+                    currentPage={paginatedTransactions.page}
+                    totalPages={paginatedTransactions.totalPages}
+                    totalItems={paginatedTransactions.totalItems}
+                    pageSize={paginatedTransactions.pageSize}
+                    pageSizeOptions={[6, 12, 24]}
+                    onPageSizeChange={(lim) => {
+                      setTxLimit(lim);
+                      setTxPage(1);
+                    }}
+                    itemLabel="giao dịch"
+                    theme="dark"
+                    onPageChange={(p) => setTxPage(p)}
+                  />
                 </div>
               )}
             </div>
@@ -3788,7 +3903,7 @@ export default function MerchantDashboard() {
                   <p className="text-xs text-slate-500">Mọi cảnh báo hoặc thay đổi trạng thái quán sẽ được gửi về đây.</p>
                 </div>
               ) : (
-                notifications.map((notif, idx) => {
+                paginatedNotifications.items.map((notif, idx) => {
                   const isBan = notif.type === 'BAN';
                   const isUnban = notif.type === 'UNBAN';
                   const isWarning = notif.type === 'WARNING';
@@ -3853,6 +3968,21 @@ export default function MerchantDashboard() {
                 })
               )}
             </div>
+
+            {notifications && notifications.length > 0 && (
+              <div className="px-5 py-2 border-t border-slate-800 bg-slate-950/40">
+                <Pagination
+                  currentPage={paginatedNotifications.page}
+                  totalPages={paginatedNotifications.totalPages}
+                  totalItems={paginatedNotifications.totalItems}
+                  pageSize={paginatedNotifications.pageSize}
+                  itemLabel="thông báo"
+                  theme="dark"
+                  className="border-t-0 pt-2"
+                  onPageChange={(p) => setNotifPage(p)}
+                />
+              </div>
+            )}
 
             <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end">
               <button

@@ -2,6 +2,25 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 /**
+ * Helper cắt trang an toàn cho danh sách client-side (tự động kẹp trang về biên hợp lệ)
+ */
+export function paginateList(items = [], page = 1, pageSize = 10) {
+  const list = Array.isArray(items) ? items : [];
+  const safeSize = Math.max(1, Number(pageSize) || 10);
+  const totalItems = list.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / safeSize));
+  const safePage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+  const start = (safePage - 1) * safeSize;
+  return {
+    items: list.slice(start, start + safeSize),
+    page: safePage,
+    pageSize: safeSize,
+    totalItems,
+    totalPages
+  };
+}
+
+/**
  * Component Phân trang chuẩn FoodFast (Pagination)
  * Hỗ trợ giao diện sáng (Light Mode cho Khách hàng) và giao diện tối (Dark Mode cho Admin/Merchant).
  *
@@ -21,16 +40,22 @@ export default function Pagination({
   onPageChange,
   totalItems,
   pageSize,
+  pageSizeOptions = null,
+  onPageSizeChange = null,
   itemLabel = 'mục',
   theme = 'light',
   showDetails = true,
+  alwaysShow = true,
   className = ''
 }) {
   const safeTotalPages = Math.max(1, totalPages || (totalItems && pageSize ? Math.ceil(totalItems / pageSize) : 1));
   const safeCurrentPage = Math.min(Math.max(1, currentPage), safeTotalPages);
 
-  // Không hiển thị nếu chỉ có 1 trang và số lượng phần tử không vượt quá pageSize
-  if (safeTotalPages <= 1 && (!totalItems || (pageSize && totalItems <= pageSize))) {
+  // Ẩn khi danh sách hoàn toàn rỗng hoặc tắt alwaysShow ở chế độ 1 trang
+  if (typeof totalItems === 'number' && totalItems <= 0) {
+    return null;
+  }
+  if (!alwaysShow && safeTotalPages <= 1 && (!totalItems || (pageSize && totalItems <= pageSize))) {
     return null;
   }
 
@@ -71,20 +96,43 @@ export default function Pagination({
     <div
       className={`flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t ${containerStyles} ${className}`}
     >
-      {/* Thông tin mô tả trang & số lượng */}
-      {showDetails && (
-        <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
-          <span>
-            Trang <strong className={isDark ? 'text-white' : 'text-gray-900'}>{safeCurrentPage}</strong> /{' '}
-            <strong className={isDark ? 'text-white' : 'text-gray-900'}>{safeTotalPages}</strong>
-          </span>
-          {typeof totalItems === 'number' && (
-            <span className="ml-1.5 opacity-90">
-              (Tổng <strong>{totalItems}</strong> {itemLabel})
+      {/* Thông tin mô tả trang, số lượng & chọn số dòng mỗi trang */}
+      <div className="flex flex-wrap items-center gap-3">
+        {showDetails && (
+          <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+            <span>
+              Trang <strong className={isDark ? 'text-white' : 'text-gray-900'}>{safeCurrentPage}</strong> /{' '}
+              <strong className={isDark ? 'text-white' : 'text-gray-900'}>{safeTotalPages}</strong>
             </span>
-          )}
-        </div>
-      )}
+            {typeof totalItems === 'number' && (
+              <span className="ml-1.5 opacity-90">
+                (Tổng <strong>{totalItems}</strong> {itemLabel})
+              </span>
+            )}
+          </div>
+        )}
+
+        {Array.isArray(pageSizeOptions) && pageSizeOptions.length > 0 && typeof onPageSizeChange === 'function' && (
+          <label className={`flex items-center gap-1.5 text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+            <span>Hiển thị:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className={`px-2 py-1 rounded-lg border text-xs font-semibold outline-none cursor-pointer ${
+                isDark
+                  ? 'bg-slate-800 border-slate-700 text-slate-200 focus:border-orange-500'
+                  : 'bg-white border-gray-200 text-gray-700 focus:border-[#EE4D2D]'
+              }`}
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt} / trang
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {/* Các nút điều hướng trang */}
       <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
