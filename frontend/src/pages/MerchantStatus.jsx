@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UtensilsCrossed, Clock, CheckCircle2, XCircle, AlertCircle, ArrowRight, Store, RefreshCw, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../api/client';
+import { subscribeRealtimeStream } from '../utils/realtimeSync';
 
 export default function MerchantStatus() {
   const { user, isAuthenticated } = useAuth();
@@ -13,18 +14,22 @@ export default function MerchantStatus() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const fetchStatus = async () => {
-    setLoading(true);
-    setErrorMsg('');
+  const fetchStatus = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setErrorMsg('');
+    }
     try {
       const res = await storeApi.getMyStatus();
       if (res.data?.success) {
         setStoreStatus(res.data);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || err.message || 'Lỗi tải trạng thái quán');
+      if (!silent) {
+        setErrorMsg(err.response?.data?.message || err.message || 'Lỗi tải trạng thái quán');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -34,6 +39,16 @@ export default function MerchantStatus() {
       return;
     }
     fetchStatus();
+
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'restaurant',
+      path: '/stores/my-store/stream',
+      events: ['store.approved', 'store.rejected', 'store.updated', 'notification.created'],
+      broadcastChannels: ['restaurant', 'admin'],
+      fallbackIntervalMs: 4000,
+      onPoll: () => fetchStatus({ silent: true })
+    });
+    return () => unsubscribe();
   }, [isAuthenticated]);
 
   const store = storeStatus?.store;

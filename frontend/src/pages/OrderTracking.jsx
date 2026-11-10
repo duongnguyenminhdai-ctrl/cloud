@@ -18,6 +18,7 @@ import {
 import { orderApi, deliveryApi, paymentApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { getDishImageByName } from '../utils/menuImageSync';
+import { subscribeRealtimeStream } from '../utils/realtimeSync';
 
 export default function OrderTracking() {
   const { user } = useAuth();
@@ -92,15 +93,21 @@ export default function OrderTracking() {
     }
   };
 
-  // Khởi tạo và thiết lập Polling định kỳ mỗi 3 giây
+  // Khởi tạo và thiết lập Realtime SSE + Polling định kỳ mỗi 3 giây
   useEffect(() => {
     fetchTrackingData(true);
 
-    const intervalId = setInterval(() => {
-      fetchTrackingData(false);
-    }, 3000);
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'order',
+      path: '/orders/stream',
+      params: { orderId },
+      events: ['order.created', 'order.updated'],
+      broadcastChannels: ['order'],
+      fallbackIntervalMs: 3000,
+      onPoll: () => fetchTrackingData(false)
+    });
 
-    return () => clearInterval(intervalId);
+    return () => unsubscribe();
   }, [orderId]);
 
   const isCod = order?.paymentMethod === 'COD';

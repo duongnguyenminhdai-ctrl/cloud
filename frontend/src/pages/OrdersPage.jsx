@@ -31,9 +31,10 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi, voucherApi } from '../api/client';
+import { orderApi, voucherApi, reviewApi } from '../api/client';
 import { getOrderDishImage, enrichOrderWithDishImages } from '../utils/menuImageSync';
 import Pagination from '../components/Pagination';
+import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 
 export default function OrdersPage({ initialTab }) {
   const navigate = useNavigate();
@@ -154,7 +155,7 @@ export default function OrdersPage({ initialTab }) {
   ], []);
 
   // Tải danh sách đơn hàng & Tự động xử lý dọn dẹp các đơn cũ bị treo
-  const fetchOrders = async () => {
+  const fetchOrders = async ({ silent = false } = {}) => {
     // Nếu chưa đăng nhập: Tuyệt đối không hiển thị đơn của người khác và làm rỗng danh sách
     if (!isAuthenticated || (!currentUserId && !currentUserEmail)) {
       setOrders([]);
@@ -162,7 +163,7 @@ export default function OrdersPage({ initialTab }) {
       return;
     }
 
-    setLoadingOrders(true);
+    if (!silent) setLoadingOrders(true);
     let allOrders = [];
 
     // 1. Tự động gọi API quét dọn các đơn cũ bị kẹt trên server MongoDB
@@ -266,7 +267,7 @@ export default function OrdersPage({ initialTab }) {
     // Sắp xếp đơn mới nhất lên đầu
     allOrders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     setOrders(allOrders);
-    setLoadingOrders(false);
+    if (!silent) setLoadingOrders(false);
   };
 
   // Hoàn tất tất cả đơn hàng đang đến hiện tại
@@ -293,7 +294,8 @@ export default function OrdersPage({ initialTab }) {
       } catch (e) {}
     }
 
-    fetchOrders();
+    fetchOrders({ silent: true });
+    publishRealtimeSignal('order', { type: 'order.completed_all' });
   };
 
   // Hoàn tất 1 đơn hàng cụ thể
@@ -317,7 +319,8 @@ export default function OrdersPage({ initialTab }) {
         localStorage.setItem(userOrderKey, JSON.stringify(updated));
       } catch (e) {}
     }
-    fetchOrders();
+    fetchOrders({ silent: true });
+    publishRealtimeSignal('order', { type: 'order.completed', orderId });
   };
 
   // Tải danh sách voucher từ server
@@ -340,11 +343,11 @@ export default function OrdersPage({ initialTab }) {
           issuer: v.issuer_type || 'PLATFORM'
         }));
 
-        // Gộp những voucher chưa có
         setCustomVouchers((prev) => {
-          const codes = new Set([...defaultVouchersList.map((d) => d.code), ...prev.map((p) => p.code)]);
-          const fresh = serverVouchers.filter((sv) => !codes.has(sv.code));
-          return [...prev, ...fresh];
+          const defaultCodes = new Set(defaultVouchersList.map((d) => d.code));
+          const serverMap = new Map(serverVouchers.filter((sv) => !defaultCodes.has(sv.code)).map((sv) => [sv.code, sv]));
+          const userSaved = prev.filter((p) => p.issuer === 'USER' && !serverMap.has(p.code));
+          return [...userSaved, ...Array.from(serverMap.values())];
         });
       }
     } catch (err) {
@@ -355,6 +358,23 @@ export default function OrdersPage({ initialTab }) {
   useEffect(() => {
     fetchOrders();
     fetchVouchers();
+
+    if (!isAuthenticated) return;
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'order',
+      path: '/orders/stream',
+      params: { customerId: currentUserId },
+      events: ['order.created', 'order.updated'],
+      broadcastChannels: ['order', 'voucher', 'review'],
+      fallbackIntervalMs: 4000,
+      onPoll: async () => {
+        await Promise.all([
+          fetchOrders({ silent: true }),
+          fetchVouchers()
+        ]);
+      }
+    });
+    return () => unsubscribe();
   }, [isAuthenticated, user]);
 
   // Phân loại đơn: Đang đến (Active) vs Lịch sử (Completed / Cancelled)
@@ -535,11 +555,29 @@ export default function OrdersPage({ initialTab }) {
     }
   };
 
-  // Gửi đánh giá quán để nhận 500 xu
-  const handleSendReview = () => {
+  // Gửi đánh giá quán thật lên hệ thống & cập nhật Realtime
+  const handleSendReview = async () => {
+    if (reviewOrderModal?.restaurantId) {
+      try {
+        await reviewApi.create({
+          order_id: reviewOrderModal._id,
+          store_id: reviewOrderModal.restaurantId,
+          rating: Number(ratingScore) || 5,
+          comment: (reviewComment || '').trim() || 'Món ăn ngon, giao hàng nhanh!'
+        });
+        publishRealtimeSignal('review', {
+          storeId: reviewOrderModal.restaurantId,
+          orderId: reviewOrderModal._id,
+          rating: Number(ratingScore) || 5
+        });
+      } catch {
+        // Bỏ qua nếu đơn đã đánh giá trước đó hoặc thiếu store_id
+      }
+    }
     setReviewedSuccess(true);
     setTimeout(() => {
       setReviewedSuccess(false);
+      setReviewComment('');
       setReviewOrderModal(null);
     }, 1800);
   };

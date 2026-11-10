@@ -29,6 +29,7 @@ import DeliveryBadge from '../components/DeliveryBadge';
 import AddressPickerModal from '../components/AddressPickerModal';
 import PromotionPopupModal from '../components/PromotionPopupModal';
 import Pagination from '../components/Pagination';
+import { subscribeRealtimeStream } from '../utils/realtimeSync';
 
 // Danh sách quán ăn mẫu chuẩn FoodFast (Bao phủ đầy đủ 100% các danh mục món ăn)
 const DEFAULT_FOODFAST_STORES = [
@@ -536,9 +537,11 @@ export default function Home() {
   // Trạng thái mở modal "Bạn muốn giao đến đâu?"
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
-  const fetchRestaurants = async (bypassCache = false) => {
-    setLoading(true);
-    setError(null);
+  const fetchRestaurants = async (bypassCache = false, { silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const params = { city: selectedCity?.code || 'hcm' };
       if (bypassCache) {
@@ -549,21 +552,38 @@ export default function Home() {
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setRestaurants(res.data.data);
         setDataSource(res.data.source || 'database');
-      } else {
+      } else if (!silent) {
         console.warn('Dữ liệu phản hồi không đúng chuẩn:', res.data);
         setError('Không thể lấy danh sách quán ăn từ máy chủ. Vui lòng thử lại.');
       }
     } catch (err) {
-      console.error('Lỗi tải danh sách quán:', err);
-      // Giữ demo fallback
+      if (!silent) {
+        console.error('Lỗi tải danh sách quán:', err);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchRestaurants(true);
     setSelectedDistrict('ALL');
+
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'restaurant',
+      path: '/restaurants/stream',
+      events: [
+        'store.created', 'store.updated', 'store.approved', 'store.rejected',
+        'store.banned', 'store.unbanned', 'store.deleted',
+        'store.operations_updated', 'store.menu_updated', 'wallet.settled', 'review.created'
+      ],
+      broadcastChannels: ['restaurant', 'review', 'voucher'],
+      fallbackIntervalMs: 8000,
+      onPoll: () => fetchRestaurants(true, { silent: true })
+    });
+    return () => unsubscribe();
   }, [selectedCity?.code]);
 
   const handleCopyVoucher = (code) => {

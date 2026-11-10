@@ -1,7 +1,7 @@
 const app = require('./app');
 const connectDB = require('./db');
 const { connectRabbitMQ } = require('./src/rabbitmq');
-const { startVoucherIncentiveWorker } = require('./src/workers/voucherIncentiveWorker');
+const { startVoucherIncentiveWorker, startRealtimeOrderRelayWorker } = require('./src/workers/voucherIncentiveWorker');
 
 const PORT = process.env.PORT || 3001;
 const SERVICE_NAME = 'restaurant-service';
@@ -9,9 +9,10 @@ const SERVICE_NAME = 'restaurant-service';
 // 1. Kết nối cơ sở dữ liệu MongoDB Atlas (restaurant_db) & Redis Cache
 connectDB();
 
-// 2. Kết nối RabbitMQ Event Broker & Khởi động Voucher Worker
+// 2. Kết nối RabbitMQ Event Broker & Khởi động Voucher + Realtime Workers
 connectRabbitMQ().then(() => {
   startVoucherIncentiveWorker().catch(() => {});
+  startRealtimeOrderRelayWorker().catch(() => {});
 }).catch(() => {});
 
 // 3. Lắng nghe cổng

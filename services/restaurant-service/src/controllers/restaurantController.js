@@ -1,6 +1,58 @@
 const Restaurant = require('../models/Restaurant');
 const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../redis');
 const { calculateMerchantSettlement } = require('../utils/settlementEngine');
+const { subscribe, emitStoreUpdate, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
+
+function getAuthenticatedUserId(req) {
+  return String(req.user?.userId || req.user?.id || req.user?._id || '').trim();
+}
+
+function buildNotification({ type = 'INFO', title, content, meta = {} }) {
+  return {
+    id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    type,
+    title,
+    content,
+    createdAt: new Date(),
+    isRead: false,
+    meta
+  };
+}
+
+function normalizeStoreNotifications(notifications = []) {
+  return [...(Array.isArray(notifications) ? notifications : [])]
+    .map((n) => {
+      const obj = n && typeof n.toObject === 'function' ? n.toObject() : { ...n };
+      return {
+        ...obj,
+        id: String(obj.id || obj._id || ''),
+        isRead: Boolean(obj.isRead)
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
+
+async function applyAutoUnbanIfExpired(store) {
+  if (!store) return false;
+  if (store.status === 'BANNED' && store.banInfo?.banUntil && new Date() >= new Date(store.banInfo.banUntil)) {
+    store.status = 'ACTIVE';
+    if (!store.banInfo) store.banInfo = {};
+    store.banInfo.isBanned = false;
+    store.banInfo.unbannedAt = new Date();
+    if (!Array.isArray(store.notifications)) store.notifications = [];
+    const notif = buildNotification({
+      type: 'UNBAN',
+      title: `Thông báo: Hết hạn tạm khóa quán [${store.name}]`,
+      content: `Lệnh tạm khóa đối với cửa hàng của bạn đã kết thúc vào lúc ${new Date(store.banInfo.banUntil).toLocaleString('vi-VN')}. Quán đã được tự động kích hoạt mở lại hoạt động bình thường!`
+    });
+    store.notifications.unshift(notif);
+    await store.save();
+    await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({ store, event: 'store.unbanned', notification: notif, includePublic: true });
+    return true;
+  }
+  return false;
+}
 
 // 1. Lấy danh sách tất cả nhà hàng (kèm lọc theo Tỉnh/Thành phố & Cache Redis)
 exports.getAllRestaurants = async (req, res) => {
@@ -138,6 +190,7 @@ exports.createRestaurant = async (req, res) => {
 
     // Cache Invalidation: Xóa cache danh sách để người dùng thấy quán mới
     await invalidateRestaurantCache(savedRestaurant._id.toString());
+    emitStoreUpdate({ store: savedRestaurant, event: 'store.created', includePublic: true });
 
     return res.status(201).json({
       success: true,
@@ -169,6 +222,7 @@ exports.updateRestaurant = async (req, res) => {
 
     // Cache Invalidation: Xóa cả cache danh sách và cache menu của quán này
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store: updatedRestaurant, event: 'store.updated', includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -191,7 +245,7 @@ exports.updateRestaurant = async (req, res) => {
 // 5. Kiểm tra trạng thái cửa hàng của người dùng hiện tại
 exports.getStoreStatus = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = getAuthenticatedUserId(req);
     const store = await Restaurant.findOne({ ownerId: userId });
 
     if (!store) {
@@ -391,6 +445,7 @@ exports.registerStore = async (req, res) => {
 
     const savedStore = await newStore.save();
     await invalidateRestaurantCache(savedStore._id.toString());
+    emitStoreUpdate({ store: savedStore, event: 'store.registered', includePublic: false });
 
     return res.status(201).json({
       success: true,
@@ -409,7 +464,7 @@ exports.registerStore = async (req, res) => {
 // 7. Lấy thông tin quán của người dùng hiện tại
 exports.getMyStore = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = getAuthenticatedUserId(req);
     const store = await Restaurant.findOne({ ownerId: userId });
     if (!store) {
       return res.status(404).json({
@@ -419,23 +474,7 @@ exports.getMyStore = async (req, res) => {
     }
 
     // Tự động kiểm tra hết hạn lệnh khóa quán
-    if (store.status === 'BANNED' && store.banInfo?.banUntil && new Date() >= new Date(store.banInfo.banUntil)) {
-      store.status = 'ACTIVE';
-      if (!store.banInfo) store.banInfo = {};
-      store.banInfo.isBanned = false;
-      store.banInfo.unbannedAt = new Date();
-      if (!Array.isArray(store.notifications)) store.notifications = [];
-      store.notifications.unshift({
-        id: `notif_${Date.now()}`,
-        type: 'UNBAN',
-        title: `Thông báo: Hết hạn tạm khóa quán [${store.name}]`,
-        content: `Lệnh tạm khóa đối với cửa hàng của bạn đã kết thúc vào lúc ${new Date(store.banInfo.banUntil).toLocaleString('vi-VN')}. Quán đã được tự động kích hoạt mở lại hoạt động bình thường!`,
-        createdAt: new Date(),
-        isRead: false
-      });
-      await store.save();
-      await invalidateRestaurantCache(store._id);
-    }
+    await applyAutoUnbanIfExpired(store);
 
     return res.status(200).json({
       success: true,
@@ -468,6 +507,7 @@ exports.updateMyStore = async (req, res) => {
 
     const updated = await store.save();
     await invalidateRestaurantCache(updated._id.toString());
+    emitStoreUpdate({ store: updated, event: 'store.updated', includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -516,6 +556,7 @@ exports.addMenuItem = async (req, res) => {
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({ store, event: 'store.menu_updated', includePublic: true });
 
     return res.status(201).json({
       success: true,
@@ -555,6 +596,7 @@ exports.updateMenuItem = async (req, res) => {
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({ store, event: 'store.menu_updated', includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -579,6 +621,7 @@ exports.deleteMenuItem = async (req, res) => {
     store.menuItems.pull({ _id: itemId });
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({ store, event: 'store.menu_updated', includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -653,8 +696,20 @@ exports.adminApproveRestaurant = async (req, res) => {
     store.reviewedAt = new Date();
     store.reviewedBy = (req.user && req.user.email) ? req.user.email : 'Admin';
 
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+    const approvalNotif = buildNotification({
+      type: 'SYSTEM',
+      title: `Hồ sơ quán [${store.name}] đã được phê duyệt!`,
+      content: `Chúc mừng đối tác! Quản trị viên FoodFast đã duyệt hồ sơ quán [${store.name}]. Gian hàng của bạn hiện đã sẵn sàng mở cửa đón đơn trên nền tảng.`,
+      meta: { approvedBy: store.reviewedBy }
+    });
+    store.notifications.unshift(approvalNotif);
+
     await store.save();
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, event: 'store.approved', notification: approvalNotif, includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -682,8 +737,20 @@ exports.adminRejectRestaurant = async (req, res) => {
     store.reviewedAt = new Date();
     store.reviewedBy = (req.user && req.user.email) ? req.user.email : 'Admin';
 
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+    const rejectNotif = buildNotification({
+      type: 'WARNING',
+      title: `Hồ sơ quán [${store.name}] cần bổ sung thông tin`,
+      content: `Lý do từ chối từ Quản trị viên FoodFast: ${store.rejectedReason}. Vui lòng cập nhật lại hồ sơ để được xét duyệt lại.`,
+      meta: { reviewedBy: store.reviewedBy, reason: store.rejectedReason }
+    });
+    store.notifications.unshift(rejectNotif);
+
     await store.save();
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, event: 'store.rejected', notification: rejectNotif, includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -736,18 +803,17 @@ exports.adminBanRestaurant = async (req, res) => {
 
     const untilDateStr = untilDate ? untilDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : 'Khi có quyết định mới';
 
-    store.notifications.unshift({
-      id: `notif_${Date.now()}`,
+    const banNotification = buildNotification({
       type: 'BAN',
       title: `Thông báo: Cửa hàng [${store.name}] đã bị tạm khóa hoạt động`,
       content: `Cửa hàng của bạn đã bị tạm khóa trong vòng ${days} ngày. Thời hạn khóa đến: ${untilDateStr}. Lý do: ${banReasonText}. Vui lòng liên hệ bộ phận hỗ trợ đối tác nếu cần giải trình và mở cấm.`,
-      createdAt: new Date(),
-      isRead: false,
       meta: { days, banUntil: untilDate, reason: banReasonText }
     });
+    store.notifications.unshift(banNotification);
 
     await store.save();
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, event: 'store.banned', notification: banNotification, includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -780,17 +846,16 @@ exports.adminUnbanRestaurant = async (req, res) => {
     }
 
     const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-    store.notifications.unshift({
-      id: `notif_${Date.now()}`,
+    const unbanNotification = buildNotification({
       type: 'UNBAN',
       title: `Thông báo: Cửa hàng [${store.name}] đã được mở khóa hoạt động`,
-      content: `Quản trị viên đã dỡ bỏ lệnh khóa đối với cửa hàng của bạn vào lúc ${nowStr}. Cửa hàng hiện đã có thể tiếp tục mở cửa bán hàng và tiếp nhận đơn bình thường.`,
-      createdAt: new Date(),
-      isRead: false
+      content: `Quản trị viên đã dỡ bỏ lệnh khóa đối với cửa hàng của bạn vào lúc ${nowStr}. Cửa hàng hiện đã có thể tiếp tục mở cửa bán hàng và tiếp nhận đơn bình thường.`
     });
+    store.notifications.unshift(unbanNotification);
 
     await store.save();
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, event: 'store.unbanned', notification: unbanNotification, includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -823,17 +888,17 @@ exports.adminWarnRestaurant = async (req, res) => {
       store.notifications = [];
     }
 
-    store.notifications.unshift({
-      id: `notif_${Date.now()}`,
+    const warnNotification = buildNotification({
       type: 'WARNING',
       title: warnTitle,
       content: content.trim(),
-      createdAt: new Date(),
-      isRead: false,
       meta: { warnedBy: (req.user && req.user.email) ? req.user.email : 'Admin' }
     });
+    store.notifications.unshift(warnNotification);
 
     await store.save();
+    await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, event: 'notification.created', notification: warnNotification, includePublic: false });
 
     return res.status(200).json({
       success: true,
@@ -848,19 +913,96 @@ exports.adminWarnRestaurant = async (req, res) => {
 // 14.4. Chủ quán lấy danh sách thông báo & cảnh báo
 exports.getStoreNotifications = async (req, res) => {
   try {
-    const ownerId = req.user?.id || req.user?.userId || req.user?._id;
+    const ownerId = getAuthenticatedUserId(req);
     const store = await Restaurant.findOne({ ownerId });
     if (!store) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
     }
 
+    await applyAutoUnbanIfExpired(store);
+    const normalized = normalizeStoreNotifications(store.notifications);
+    const unreadCount = normalized.filter((n) => !n.isRead).length;
+
     return res.status(200).json({
       success: true,
-      data: store.notifications || []
+      unreadCount,
+      data: normalized
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi lấy thông báo quán: ' + error.message });
   }
+};
+
+// 14.5. Chủ quán đánh dấu đã đọc thông báo
+exports.markStoreNotificationsRead = async (req, res) => {
+  try {
+    const ownerId = getAuthenticatedUserId(req);
+    const store = await Restaurant.findOne({ ownerId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
+    }
+
+    const targetIds = Array.isArray(req.body?.notificationIds)
+      ? req.body.notificationIds.map((x) => String(x))
+      : null;
+
+    if (!Array.isArray(store.notifications)) {
+      store.notifications = [];
+    }
+
+    let modified = false;
+    store.notifications.forEach((n) => {
+      const nid = String(n.id || n._id || '');
+      if (!targetIds || targetIds.includes(nid)) {
+        if (!n.isRead) {
+          n.isRead = true;
+          modified = true;
+        }
+      }
+    });
+
+    if (modified) {
+      store.markModified('notifications');
+      await store.save();
+    }
+
+    const normalized = normalizeStoreNotifications(store.notifications);
+    const unreadCount = normalized.filter((n) => !n.isRead).length;
+    emitStoreUpdate({ store, event: 'notifications.read', extra: { unreadCount } });
+
+    return res.status(200).json({
+      success: true,
+      unreadCount,
+      data: normalized
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái đọc thông báo: ' + error.message });
+  }
+};
+
+// 14.6. Kênh SSE Realtime cho Chủ quán, Admin và Khách hàng Public
+exports.streamMyStore = async (req, res) => {
+  try {
+    const ownerId = getAuthenticatedUserId(req);
+    const channels = ownerId ? [`merchant:${ownerId}`] : [];
+    const store = ownerId ? await Restaurant.findOne({ ownerId }).select('_id') : null;
+    if (store && store._id) {
+      channels.push(`store:${store._id.toString()}`);
+    }
+    return subscribe(req, res, channels);
+  } catch {
+    return subscribe(req, res, []);
+  }
+};
+
+exports.streamAdmin = (req, res) => {
+  return subscribe(req, res, ['admin']);
+};
+
+exports.streamPublicStores = (req, res) => {
+  const storeId = req.query?.storeId ? String(req.query.storeId) : null;
+  const channels = storeId ? ['public', `store:${storeId}`] : ['public'];
+  return subscribe(req, res, channels);
 };
 
 // 15. Admin xóa quán
@@ -873,6 +1015,7 @@ exports.adminDeleteRestaurant = async (req, res) => {
     }
 
     await invalidateRestaurantCache(id);
+    emitStoreUpdate({ store, storeId: id, event: 'store.deleted', includePublic: true });
 
     return res.status(200).json({
       success: true,
@@ -903,6 +1046,12 @@ exports.toggleMenuItemAvailability = async (req, res) => {
     item.isAvailable = !item.isAvailable;
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({
+      store,
+      event: 'store.menu_updated',
+      includePublic: true,
+      extra: { itemId: String(itemId), isAvailable: item.isAvailable }
+    });
     return res.status(200).json({
       success: true,
       message: `Món [${item.name}] đã chuyển sang: ${item.isAvailable ? 'Còn món' : 'Hết món'}`,
@@ -937,6 +1086,12 @@ exports.updateStoreOperations = async (req, res) => {
     }
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({
+      store,
+      event: 'store.operations_updated',
+      includePublic: true,
+      extra: { operatingStatus: store.operatingStatus }
+    });
     return res.status(200).json({
       success: true,
       message: 'Cập nhật trạng thái và lịch hoạt động quán thành công!',
@@ -964,6 +1119,7 @@ exports.manageCategories = async (req, res) => {
       store.categories = categories;
       await store.save();
       await invalidateRestaurantCache(store._id.toString());
+      emitStoreUpdate({ store, event: 'store.menu_updated', includePublic: true });
     }
     return res.status(200).json({
       success: true,
@@ -988,6 +1144,7 @@ exports.manageToppingGroups = async (req, res) => {
       store.toppingGroups = toppingGroups;
       await store.save();
       await invalidateRestaurantCache(store._id.toString());
+      emitStoreUpdate({ store, event: 'store.menu_updated', includePublic: true });
     }
     return res.status(200).json({
       success: true,
@@ -1011,6 +1168,7 @@ exports.manageStaff = async (req, res) => {
     if (staff && Array.isArray(staff)) {
       store.staff = staff;
       await store.save();
+      emitStoreUpdate({ store, event: 'store.staff_updated' });
     }
     return res.status(200).json({
       success: true,
@@ -1066,6 +1224,7 @@ exports.manageWallet = async (req, res) => {
       store.wallet.walletPinHash = newPin;
       store.wallet.failedPinAttempts = 0;
       await store.save();
+      emitStoreUpdate({ store, event: 'wallet.updated' });
       return res.status(200).json({ success: true, message: 'Thiết lập mã PIN rút tiền 6 số thành công!' });
     }
 
@@ -1073,6 +1232,7 @@ exports.manageWallet = async (req, res) => {
       if (bankAccount) {
         store.wallet.bankAccount = { ...store.wallet.bankAccount, ...bankAccount };
         await store.save();
+        emitStoreUpdate({ store, event: 'wallet.updated' });
       }
       return res.status(200).json({
         success: true,
@@ -1135,6 +1295,7 @@ exports.manageWallet = async (req, res) => {
       });
 
       await store.save();
+      emitStoreUpdate({ store, event: 'wallet.withdrawn' });
       return res.status(200).json({
         success: true,
         message: 'Tạo yêu cầu rút tiền thành công! Tiền sẽ được chuyển về tài khoản ngân hàng từ 2 - 4 ngày làm việc.',
@@ -1313,6 +1474,9 @@ exports.syncMyStoreSettlements = async (req, res) => {
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    if (settledNewCount > 0) {
+      emitStoreUpdate({ store, event: 'wallet.settled', includePublic: true, extra: { settledNewCount } });
+    }
 
     return res.status(200).json({
       success: true,
@@ -1394,20 +1558,19 @@ exports.adminGrantWallet = async (req, res) => {
       createdAt: new Date()
     });
 
-    store.notifications.unshift({
-      id: 'NTF_GRANT_' + Date.now(),
+    const grantNotification = buildNotification({
       type: 'WALLET',
       title: `Quán nhận +${grantAmount.toLocaleString('vi-VN')} đ vào Ví đối tác từ Admin`,
       content: `Quản trị viên FoodFast (${adminEmail}) đã chuyển +${grantAmount.toLocaleString('vi-VN')} đ vào ${
         isPendingTarget ? 'Số dư chờ xử lý' : 'Số dư khả dụng'
       } của quán.\nLý do: ${txReason}\nMã giao dịch: ${txCode}`,
-      createdAt: new Date(),
-      isRead: false,
       meta: { code: txCode, amount: grantAmount, targetBalance }
     });
+    store.notifications.unshift(grantNotification);
 
     await store.save();
     await invalidateRestaurantCache(store._id.toString());
+    emitStoreUpdate({ store, event: 'wallet.granted', notification: grantNotification, includePublic: false });
 
     return res.status(200).json({
       success: true,

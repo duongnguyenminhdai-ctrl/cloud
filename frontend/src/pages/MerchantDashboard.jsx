@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Store,
@@ -58,6 +58,11 @@ import {
   simulateMerchantVoucher,
   MERCHANT_TYPE_LABELS
 } from '../utils/merchantSettlement';
+import {
+  subscribeRealtimeStream,
+  publishRealtimeSignal,
+  playNotificationChime
+} from '../utils/realtimeSync';
 
 // Định dạng tiền tệ VNĐ
 const formatVND = (amount) => {
@@ -74,9 +79,14 @@ export default function MerchantDashboard() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
-  // Trung tâm thông báo từ Admin (Cảnh báo, Khóa quán, Mở cấm)
+  // Trung tâm thông báo từ Admin (Cảnh báo, Khóa quán, Mở cấm, Ví đối tác)
   const [notifications, setNotifications] = useState([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [liveNotifBanner, setLiveNotifBanner] = useState(null);
+  const knownNotifIdsRef = useRef(null);
+  const knownOrderIdsRef = useRef(null);
+  const storeRef = useRef(null);
+  const showCategoryModalRef = useRef(false);
   const [readNotifIds, setReadNotifIds] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('foodfast_merchant_read_notifs') || '[]');
@@ -86,13 +96,23 @@ export default function MerchantDashboard() {
   });
 
   const unreadNotifCount = useMemo(() => {
-    return (notifications || []).filter((n) => !readNotifIds.includes(n.id || n._id)).length;
+    return (notifications || []).filter((n) => {
+      const nid = String(n.id || n._id || '');
+      return !n.isRead && !readNotifIds.includes(nid);
+    }).length;
   }, [notifications, readNotifIds]);
 
-  const handleMarkAllNotifsAsRead = () => {
-    const allIds = (notifications || []).map((n) => n.id || n._id);
-    setReadNotifIds(allIds);
-    localStorage.setItem('foodfast_merchant_read_notifs', JSON.stringify(allIds));
+  const handleMarkAllNotifsAsRead = async () => {
+    const allIds = (notifications || []).map((n) => String(n.id || n._id || '')).filter(Boolean);
+    setReadNotifIds((prev) => Array.from(new Set([...prev, ...allIds])));
+    setNotifications((prev) => (prev || []).map((n) => ({ ...n, isRead: true })));
+    setLiveNotifBanner(null);
+    try {
+      localStorage.setItem('foodfast_merchant_read_notifs', JSON.stringify(allIds));
+    } catch {}
+    try {
+      await storeApi.markNotificationsRead(allIds);
+    } catch {}
   };
 
   // 5 Tabs chính: 'orders' | 'menu' | 'operations' | 'staff' | 'wallet'
@@ -198,39 +218,80 @@ export default function MerchantDashboard() {
     setTimeout(() => setSuccessToast(''), 3500);
   };
 
-  // Tải dữ liệu quán từ Backend
-  const fetchStoreData = async () => {
-    setLoading(true);
-    setErrorMsg('');
+  // Đồng bộ danh sách thông báo & phát hiện thông báo mới realtime từ Admin
+  const syncNotificationsList = (rawList) => {
+    if (!Array.isArray(rawList)) return;
+    const sorted = [...rawList]
+      .map((n) => ({ ...n, id: String(n.id || n._id || '') }))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    if (knownNotifIdsRef.current === null) {
+      knownNotifIdsRef.current = new Set(sorted.map((n) => n.id).filter(Boolean));
+    } else {
+      const freshUnread = sorted.find(
+        (n) => n.id && !knownNotifIdsRef.current.has(n.id) && !n.isRead
+      );
+      sorted.forEach((n) => {
+        if (n.id) knownNotifIdsRef.current.add(n.id);
+      });
+      if (freshUnread) {
+        setLiveNotifBanner(freshUnread);
+        playNotificationChime();
+      }
+    }
+
+    setNotifications(sorted);
+  };
+
+  // Tải danh sách thông báo trực tiếp từ API chuông
+  const fetchNotifications = async () => {
+    try {
+      const res = await storeApi.getNotifications();
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        syncNotificationsList(res.data.data);
+      }
+    } catch {}
+  };
+
+  // Tải dữ liệu quán từ Backend (hỗ trợ chế độ silent để cập nhật realtime mượt không chớp màn hình)
+  const fetchStoreData = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setErrorMsg('');
+    }
     try {
       const res = await storeApi.getMyStore();
       if (res.data?.success) {
         const storeData = res.data.data;
         setStore(storeData);
         if (Array.isArray(storeData.notifications)) {
-          setNotifications(storeData.notifications);
+          syncNotificationsList(storeData.notifications);
         }
 
-        // Khởi tạo danh mục mặc định nếu chưa có
-        if (!storeData.categories || storeData.categories.length === 0) {
-          const defaultCats = [
-            { id: 'cat_main', name: 'Món chính', order: 1 },
-            { id: 'cat_drink', name: 'Đồ uống & Trà sữa', order: 2 },
-            { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
-          ];
-          setEditingCategories(defaultCats);
-        } else {
-          setEditingCategories(storeData.categories);
+        // Chỉ cập nhật editingCategories khi modal sắp xếp danh mục KHÔNG mở
+        if (!showCategoryModalRef.current) {
+          if (!storeData.categories || storeData.categories.length === 0) {
+            const defaultCats = [
+              { id: 'cat_main', name: 'Món chính', order: 1 },
+              { id: 'cat_drink', name: 'Đồ uống & Trà sữa', order: 2 },
+              { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
+            ];
+            setEditingCategories(defaultCats);
+          } else {
+            setEditingCategories(storeData.categories);
+          }
         }
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        navigate('/merchant/status');
-      } else {
-        setErrorMsg(err.response?.data?.message || err.message || 'Lỗi tải thông tin quán');
+      if (!silent) {
+        if (err.response?.status === 404) {
+          navigate('/merchant/status');
+        } else {
+          setErrorMsg(err.response?.data?.message || err.message || 'Lỗi tải thông tin quán');
+        }
       }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -238,9 +299,10 @@ export default function MerchantDashboard() {
   const [storeReviews, setStoreReviews] = useState([]);
 
   const fetchReviews = async () => {
-    if (!store?._id) return;
+    const targetId = storeRef.current?._id || store?._id;
+    if (!targetId) return;
     try {
-      const res = await reviewApi.getByStore(store._id);
+      const res = await reviewApi.getByStore(targetId);
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setStoreReviews(res.data.data);
       }
@@ -249,12 +311,30 @@ export default function MerchantDashboard() {
     }
   };
 
-  const fetchOrders = async () => {
-    if (!store?._id) return;
+  const fetchOrders = async (overrideStoreId = null) => {
+    const activeStore = storeRef.current || store;
+    const targetStoreId = overrideStoreId || activeStore?._id;
+    if (!targetStoreId) return;
     try {
-      const res = await orderApi.getAll({ restaurantId: store._id });
+      const res = await orderApi.getAll({ restaurantId: targetStoreId });
       if (res.data?.success && Array.isArray(res.data?.data)) {
         const realOrders = res.data.data;
+
+        if (knownOrderIdsRef.current === null) {
+          knownOrderIdsRef.current = new Set(realOrders.map((o) => String(o._id)));
+        } else {
+          const newlyArrived = realOrders.find(
+            (o) => o._id && !knownOrderIdsRef.current.has(String(o._id)) && ['PENDING', 'NEW', 'CONFIRMED'].includes(o.status)
+          );
+          realOrders.forEach((o) => {
+            if (o._id) knownOrderIdsRef.current.add(String(o._id));
+          });
+          if (newlyArrived) {
+            showToast(`Có đơn hàng mới #${String(newlyArrived._id).slice(-6).toUpperCase()} vừa đặt!`);
+            playNotificationChime();
+          }
+        }
+
         setOrders(realOrders);
 
         const completedOrders = realOrders.filter((o) => ['COMPLETED', 'DELIVERED'].includes(o.status));
@@ -263,15 +343,15 @@ export default function MerchantDashboard() {
         );
 
         const settledOrderIds = new Set(
-          (store.walletTransactions || [])
+          (activeStore?.walletTransactions || [])
             .filter((t) => t.type === 'ORDER_SETTLEMENT' && t.orderId)
             .map((t) => String(t.orderId))
         );
         const hasUnsettledOrder = completedOrders.some((o) => !settledOrderIds.has(String(o._id)));
         const hasLegacyFakeDefaults =
-          !(store.walletTransactions?.length) &&
-          !(store.payouts?.length) &&
-          (store.wallet?.availableBalance === 1368922 || store.completed_orders === 25);
+          !(activeStore?.walletTransactions?.length) &&
+          !(activeStore?.payouts?.length) &&
+          (activeStore?.wallet?.availableBalance === 1368922 || activeStore?.completed_orders === 25);
 
         if (hasUnsettledOrder || hasLegacyFakeDefaults) {
           try {
@@ -291,6 +371,14 @@ export default function MerchantDashboard() {
   };
 
   useEffect(() => {
+    storeRef.current = store;
+  }, [store]);
+
+  useEffect(() => {
+    showCategoryModalRef.current = showCategoryOrderModal;
+  }, [showCategoryOrderModal]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login?redirect=/merchant/dashboard');
       return;
@@ -298,16 +386,56 @@ export default function MerchantDashboard() {
     fetchStoreData();
   }, [isAuthenticated]);
 
+  // Kênh Realtime 1: Thông báo chuông Admin, Khóa/Mở quán, Ví đối tác, Voucher, Đánh giá, Thực đơn
   useEffect(() => {
-    if (store?._id) {
-      fetchOrders();
-      fetchReviews();
-      const interval = setInterval(() => {
-        fetchOrders();
-        fetchReviews();
-      }, 10000); // Tự động cập nhật đơn & đánh giá thật mỗi 10 giây
-      return () => clearInterval(interval);
-    }
+    if (!isAuthenticated) return;
+    const unsubscribeStoreStream = subscribeRealtimeStream({
+      service: 'restaurant',
+      path: '/stores/my-store/stream',
+      events: [
+        'notification.created', 'store.banned', 'store.unbanned', 'store.approved',
+        'store.rejected', 'wallet.granted', 'wallet.withdrawn', 'wallet.settled',
+        'store.updated', 'store.operations_updated', 'store.menu_updated',
+        'voucher.updated', 'review.created', 'order.updated', 'notifications.read'
+      ],
+      broadcastChannels: ['restaurant', 'admin', 'voucher', 'review', 'order'],
+      fallbackIntervalMs: 4000,
+      onEvent: (evtName) => {
+        if (evtName === 'order.updated' && storeRef.current?._id) {
+          fetchOrders(storeRef.current._id);
+        }
+      },
+      onPoll: async () => {
+        await Promise.all([
+          fetchStoreData({ silent: true }),
+          fetchNotifications(),
+          storeRef.current?._id ? fetchReviews() : Promise.resolve(),
+          storeRef.current?._id ? fetchMerchantVouchers({ silent: true }) : Promise.resolve()
+        ]);
+      }
+    });
+    return () => unsubscribeStoreStream();
+  }, [isAuthenticated]);
+
+  // Kênh Realtime 2: Đơn hàng Live Orders từ Order Service SSE Stream
+  useEffect(() => {
+    if (!store?._id) return;
+    fetchOrders(store._id);
+    fetchReviews();
+
+    const unsubscribeOrderStream = subscribeRealtimeStream({
+      service: 'order',
+      path: '/orders/stream',
+      params: { restaurantId: store._id },
+      events: ['order.created', 'order.updated'],
+      broadcastChannels: ['order'],
+      fallbackIntervalMs: 4000,
+      onPoll: async () => {
+        await fetchOrders(store._id);
+      }
+    });
+
+    return () => unsubscribeOrderStream();
   }, [store?._id]);
 
   // Tính toán 100% SỐ LIỆU THẬT ("Tiền tươi thóc thật" - Tuyệt đối không dùng số ảo)
@@ -431,6 +559,7 @@ export default function MerchantDashboard() {
       await orderApi.updateStatus(orderId, { status: 'PREPARING' });
       showToast('Đã xác nhận đơn hàng thành công! Quán tiến hành làm món.');
       fetchOrders();
+      publishRealtimeSignal('order', { type: 'order.updated', orderId, status: 'PREPARING' });
     } catch (err) {
       alert('Lỗi xác nhận đơn: ' + (err.response?.data?.message || err.message));
     }
@@ -442,6 +571,7 @@ export default function MerchantDashboard() {
       await orderApi.updateStatus(orderId, { status: 'READY' });
       showToast('Đã báo hoàn tất làm món! Đang chờ tài xế đến nhận.');
       fetchOrders();
+      publishRealtimeSignal('order', { type: 'order.updated', orderId, status: 'READY' });
     } catch (err) {
       alert('Lỗi cập nhật: ' + (err.response?.data?.message || err.message));
     }
@@ -474,6 +604,7 @@ export default function MerchantDashboard() {
       setShowModifyModal(false);
       setSelectedOrder(null);
       fetchOrders();
+      publishRealtimeSignal('order', { type: 'order.modified', orderId: selectedOrder._id });
     } catch (err) {
       alert('Không thể chỉnh sửa đơn: ' + (err.response?.data?.message || err.message));
     }
@@ -497,6 +628,7 @@ export default function MerchantDashboard() {
           );
           return { ...prev, menuItems: updated };
         });
+        publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
       }
     } catch (err) {
       alert('Lỗi chuyển trạng thái: ' + (err.response?.data?.message || err.message));
@@ -509,7 +641,8 @@ export default function MerchantDashboard() {
       await storeApi.updateCategories({ categories: editingCategories });
       showToast('Đã lưu thứ tự danh mục thành công!');
       setShowCategoryOrderModal(false);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi lưu thứ tự: ' + (err.response?.data?.message || err.message));
     }
@@ -611,7 +744,8 @@ export default function MerchantDashboard() {
         showToast(`Đã thêm món mới [${itemForm.name}] vào thực đơn!`);
       }
       setShowItemModal(false);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi lưu món: ' + (err.response?.data?.message || err.message));
     }
@@ -623,7 +757,8 @@ export default function MerchantDashboard() {
     try {
       await storeApi.deleteMenuItem(itemId);
       showToast(`Đã xóa món [${itemName}] thành công!`);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi xóa món: ' + (err.response?.data?.message || err.message));
     }
@@ -682,7 +817,8 @@ export default function MerchantDashboard() {
       await storeApi.updateToppingGroups({ toppingGroups: currentGroups });
       showToast('Đã lưu Nhóm Topping thành công!');
       setShowToppingGroupModal(false);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi lưu nhóm topping: ' + (err.response?.data?.message || err.message));
     }
@@ -694,7 +830,8 @@ export default function MerchantDashboard() {
     try {
       await storeApi.updateToppingGroups({ toppingGroups: updated });
       showToast(`Đã xóa nhóm topping [${groupName}]!`);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.menu_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi xóa nhóm topping: ' + (err.response?.data?.message || err.message));
     }
@@ -721,7 +858,8 @@ export default function MerchantDashboard() {
         }
       });
       showToast(`Quán đã chuyển sang trạng thái: ${newOpen ? '🟢 Đang mở cửa' : '🔴 Đã đóng cửa'}`);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi đổi trạng thái: ' + (err.response?.data?.message || err.message));
     }
@@ -750,7 +888,8 @@ export default function MerchantDashboard() {
       });
       showToast(`Đã kích hoạt chế độ Quán Bận đến ${busyUntil.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}!`);
       setShowBusyModal(false);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi cài đặt quán bận: ' + (err.response?.data?.message || err.message));
     }
@@ -761,7 +900,8 @@ export default function MerchantDashboard() {
     try {
       await storeApi.updateOperations({ weeklySchedule: newWeekly });
       showToast('Đã lưu Lịch mở cửa thường ngày thành công!');
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi lưu lịch: ' + (err.response?.data?.message || err.message));
     }
@@ -775,7 +915,8 @@ export default function MerchantDashboard() {
       await storeApi.updateOperations({ specialSchedules: currentSpecial });
       showToast(`Đã thêm lịch đặc biệt cho ngày ${specialScheduleForm.date}!`);
       setShowSpecialScheduleModal(false);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
     } catch (err) {
       alert('Lỗi lưu lịch đặc biệt: ' + (err.response?.data?.message || err.message));
     }
@@ -806,7 +947,7 @@ export default function MerchantDashboard() {
       showToast(`Đã thêm nhân viên [${staffForm.name}] thành công!`);
       setShowStaffModal(false);
       setStaffForm({ name: '', phone: '', email: '', role: 'STAFF', scope: 'ALL' });
-      fetchStoreData();
+      fetchStoreData({ silent: true });
     } catch (err) {
       alert('Lỗi thêm nhân viên: ' + (err.response?.data?.message || err.message));
     }
@@ -818,7 +959,7 @@ export default function MerchantDashboard() {
     try {
       await storeApi.updateStaff({ staff: updated });
       showToast(`Đã xóa nhân viên [${staffName}]!`);
-      fetchStoreData();
+      fetchStoreData({ silent: true });
     } catch (err) {
       alert('Lỗi xóa nhân viên: ' + (err.response?.data?.message || err.message));
     }
@@ -879,7 +1020,8 @@ export default function MerchantDashboard() {
       if (res.data?.success) {
         setLastPayoutRecord(res.data.data.payout);
         setWithdrawStep('success');
-        fetchStoreData();
+        fetchStoreData({ silent: true });
+        publishRealtimeSignal('restaurant', { type: 'wallet.withdrawn', storeId: store?._id });
       }
     } catch (err) {
       setPinError(err.response?.data?.message || 'Mã PIN bảo mật không chính xác. Vui lòng thử lại!');
@@ -909,9 +1051,10 @@ export default function MerchantDashboard() {
     is_active: true
   });
 
-  const fetchMerchantVouchers = async () => {
-    if (!store?._id) return;
-    setVouchersLoading(true);
+  const fetchMerchantVouchers = async ({ silent = false } = {}) => {
+    const targetStoreId = storeRef.current?._id || store?._id;
+    if (!targetStoreId) return;
+    if (!silent) setVouchersLoading(true);
     try {
       const res = await storeApi.getVouchers();
       if (res.data?.success) {
@@ -920,7 +1063,7 @@ export default function MerchantDashboard() {
     } catch {
       // Giữ nguyên danh sách hiện tại nếu offline
     } finally {
-      setVouchersLoading(false);
+      if (!silent) setVouchersLoading(false);
     }
   };
 
@@ -1003,7 +1146,8 @@ export default function MerchantDashboard() {
         showToast(res.data?.message || `Đã tạo voucher [${payload.code}] miễn phí khởi tạo thành công!`);
       }
       setShowVoucherModal(false);
-      fetchMerchantVouchers();
+      fetchMerchantVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.saved', code: payload.code, storeId: store?._id });
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Lỗi lưu voucher quán');
     } finally {
@@ -1015,7 +1159,8 @@ export default function MerchantDashboard() {
     try {
       const res = await storeApi.toggleVoucher(voucherId);
       showToast(res.data?.message || 'Đã chuyển trạng thái voucher!');
-      fetchMerchantVouchers();
+      fetchMerchantVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.toggled', voucherId, storeId: store?._id });
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Lỗi chuyển trạng thái');
     }
@@ -1026,7 +1171,8 @@ export default function MerchantDashboard() {
     try {
       const res = await storeApi.deleteVoucher(voucherId);
       showToast(res.data?.message || `Đã xóa voucher [${code}]!`);
-      fetchMerchantVouchers();
+      fetchMerchantVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.deleted', code, storeId: store?._id });
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Lỗi xóa voucher');
     }
@@ -1128,6 +1274,48 @@ export default function MerchantDashboard() {
         </div>
       )}
 
+      {/* Banner Popup Thông báo Mới Realtime từ Ban quản trị / Ví đối tác */}
+      {liveNotifBanner && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 max-w-sm w-full p-4 rounded-2xl shadow-2xl border-2 backdrop-blur-md animate-fadeIn flex items-start gap-3 ${
+            liveNotifBanner.type === 'BAN'
+              ? 'bg-red-950/95 border-red-500 text-red-100'
+              : liveNotifBanner.type === 'WARNING'
+              ? 'bg-amber-950/95 border-amber-500 text-amber-100'
+              : 'bg-slate-900/95 border-emerald-500 text-slate-100'
+          }`}
+        >
+          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+            <Bell className="w-5 h-5 text-orange-400 animate-bounce" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-extrabold uppercase tracking-wide text-orange-400">
+              Thông báo mới từ FoodFast
+            </div>
+            <div className="text-xs font-bold text-white truncate mt-0.5">{liveNotifBanner.title}</div>
+            <p className="text-[11px] opacity-85 line-clamp-2 mt-1">{liveNotifBanner.content}</p>
+            <div className="flex items-center gap-2 mt-2.5">
+              <button
+                onClick={() => {
+                  setLiveNotifBanner(null);
+                  setShowNotificationsModal(true);
+                  handleMarkAllNotifsAsRead();
+                }}
+                className="px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-bold transition"
+              >
+                Mở chuông xem ngay
+              </button>
+              <button
+                onClick={() => setLiveNotifBanner(null)}
+                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold"
+              >
+                Ẩn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===================================================================== */}
       {/* 1. HEADER CHỦ QUÁN (FOODFAST PARTNER HERO BAR) */}
       {/* ===================================================================== */}
@@ -1165,6 +1353,13 @@ export default function MerchantDashboard() {
                     Đã đóng cửa
                   </span>
                 )}
+                <span
+                  className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30"
+                  title="Tự động đồng bộ thông báo, đơn hàng, ví và số liệu theo thời gian thực"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Live
+                </span>
               </div>
               <p className="text-xs text-slate-400 truncate max-w-sm">
                 {store.address || 'TP. Hồ Chí Minh'}
@@ -1204,8 +1399,9 @@ export default function MerchantDashboard() {
 
             {/* Nút Chuông Thông báo từ Admin */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowNotificationsModal(true);
+                await fetchNotifications();
                 handleMarkAllNotifsAsRead();
               }}
               className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
@@ -1221,10 +1417,15 @@ export default function MerchantDashboard() {
 
             {/* Nút Làm mới dữ liệu */}
             <button
-              onClick={() => {
-                fetchStoreData();
-                fetchOrders();
-                showToast('Đã làm mới dữ liệu đối tác!');
+              onClick={async () => {
+                await Promise.all([
+                  fetchStoreData({ silent: true }),
+                  fetchNotifications(),
+                  fetchOrders(),
+                  fetchReviews(),
+                  fetchMerchantVouchers({ silent: true })
+                ]);
+                showToast('Đã đồng bộ toàn bộ dữ liệu đối tác mới nhất!');
               }}
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
               title="Làm mới dữ liệu"
@@ -3591,39 +3792,47 @@ export default function MerchantDashboard() {
                   const isBan = notif.type === 'BAN';
                   const isUnban = notif.type === 'UNBAN';
                   const isWarning = notif.type === 'WARNING';
+                  const isWallet = notif.type === 'WALLET';
 
                   return (
                     <div
-                      key={notif.id || idx}
+                      key={notif.id || notif._id || idx}
                       className={`p-4 rounded-2xl border transition-all space-y-2 ${
                         isBan
                           ? 'bg-red-950/40 border-red-500/40 text-red-100'
                           : isUnban
                           ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100'
+                          : isWallet
+                          ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-100'
                           : isWarning
                           ? 'bg-amber-950/40 border-amber-500/40 text-amber-100'
                           : 'bg-slate-800/60 border-slate-700 text-slate-200'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {isBan && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white flex items-center gap-1 shrink-0">
                               <Lock className="w-2.5 h-2.5" /> LỆNH KHÓA QUÁN
                             </span>
                           )}
                           {isUnban && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white flex items-center gap-1 shrink-0">
                               <Unlock className="w-2.5 h-2.5" /> MỞ KHÓA QUÁN
                             </span>
                           )}
+                          {isWallet && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white flex items-center gap-1 shrink-0">
+                              <Wallet className="w-2.5 h-2.5" /> VÍ ĐỐI TÁC
+                            </span>
+                          )}
                           {isWarning && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shrink-0">
                               <AlertCircle className="w-2.5 h-2.5" /> CẢNH BÁO
                             </span>
                           )}
-                          {!isBan && !isUnban && !isWarning && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                          {!isBan && !isUnban && !isWallet && !isWarning && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white shrink-0">
                               HỆ THỐNG
                             </span>
                           )}

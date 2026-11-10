@@ -189,11 +189,35 @@ router.post(
   restaurantController.adminGrantWallet
 );
 
-// Chủ quán nhận danh sách thông báo & cảnh báo
+// Chủ quán nhận danh sách thông báo & cảnh báo + Đánh dấu đã đọc + SSE Realtime
+router.get(
+  ['/my-store/stream', '/stores/my-store/stream', '/api/v1/stores/my-store/stream'],
+  verifyToken,
+  restaurantController.streamMyStore
+);
+
 router.get(
   ['/my-store/notifications', '/stores/my-store/notifications', '/api/v1/stores/my-store/notifications'],
   verifyToken,
   restaurantController.getStoreNotifications
+);
+
+router.put(
+  ['/my-store/notifications/read', '/stores/my-store/notifications/read', '/api/v1/stores/my-store/notifications/read'],
+  verifyToken,
+  restaurantController.markStoreNotificationsRead
+);
+
+router.get(
+  ['/admin/stream', '/restaurants/admin/stream', '/api/v1/restaurants/admin/stream'],
+  verifyToken,
+  requireAdmin,
+  restaurantController.streamAdmin
+);
+
+router.get(
+  ['/stream', '/restaurants/stream', '/api/v1/restaurants/stream'],
+  restaurantController.streamPublicStores
 );
 
 router.delete(

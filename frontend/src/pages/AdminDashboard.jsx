@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
+import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 import UserProfileModal from '../components/UserProfileModal';
 import Pagination from '../components/Pagination';
 
@@ -85,6 +86,7 @@ export default function AdminDashboard() {
 
   // Modal Khóa Quán (Ban Store có thời hạn & tính toán ngày kết thúc)
   const [showBanModal, setShowBanModal] = useState(false);
+  const [banTargetStore, setBanTargetStore] = useState(null);
   const [banDurationDays, setBanDurationDays] = useState(7);
   const [banUntilDate, setBanUntilDate] = useState(() => {
     const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -95,9 +97,13 @@ export default function AdminDashboard() {
 
   // Modal Gửi Cảnh Báo (Warn Store)
   const [showWarnModal, setShowWarnModal] = useState(false);
+  const [warnTargetStore, setWarnTargetStore] = useState(null);
   const [warnTitle, setWarnTitle] = useState('Cảnh báo vi phạm từ Quản trị viên FoodFast');
   const [warnContent, setWarnContent] = useState('');
   const [warningStore, setWarningStore] = useState(false);
+
+  // Đếm realtime số hồ sơ đang chờ duyệt trên badge Tab 1
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   // Modal Tặng tiền / Cấp số dư Ví cho Quán (Admin Grant Wallet)
   const [showGrantModal, setShowGrantModal] = useState(false);
@@ -119,8 +125,17 @@ export default function AdminDashboard() {
     status: 'ACTIVE',
   });
 
-  const fetchStores = async () => {
-    setStoresLoading(true);
+  const fetchPendingCount = async () => {
+    try {
+      const res = await adminApi.getRestaurants({ page: 1, limit: 1, status: 'PENDING' });
+      if (res.data?.success && res.data?.pagination) {
+        setPendingApprovalsCount(res.data.pagination.total || 0);
+      }
+    } catch {}
+  };
+
+  const fetchStores = async ({ silent = false } = {}) => {
+    if (!silent) setStoresLoading(true);
     try {
       const params = {
         page: storePage,
@@ -134,11 +149,16 @@ export default function AdminDashboard() {
       if (res.data?.success) {
         setStores(res.data.data);
         setStoreTotal(res.data.pagination.total);
+        if (activeTab === 'approvals') {
+          setPendingApprovalsCount(res.data.pagination.total || 0);
+        }
       }
     } catch (err) {
-      showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách quán');
+      if (!silent) {
+        showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách quán');
+      }
     } finally {
-      setStoresLoading(false);
+      if (!silent) setStoresLoading(false);
     }
   };
 
@@ -146,6 +166,7 @@ export default function AdminDashboard() {
     if (activeTab === 'approvals' || activeTab === 'stores') {
       fetchStores();
     }
+    fetchPendingCount();
   }, [activeTab, storePage, storeStatusFilter, storeSortBy, storeSortOrder]);
 
   const handleSearchStores = (e) => {
@@ -159,7 +180,9 @@ export default function AdminDashboard() {
       const res = await adminApi.approveRestaurant(id);
       showNotif('success', res.data?.message || 'Đã phê duyệt quán thành công!');
       setSelectedStore(null);
-      fetchStores();
+      fetchStores({ silent: true });
+      fetchPendingCount();
+      publishRealtimeSignal('restaurant', { type: 'store.approved', storeId: id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi duyệt quán');
     }
@@ -167,13 +190,16 @@ export default function AdminDashboard() {
 
   const handleRejectStore = async () => {
     if (!selectedStore) return;
+    const rejectedId = selectedStore._id;
     try {
-      const res = await adminApi.rejectRestaurant(selectedStore._id, rejectReason);
+      const res = await adminApi.rejectRestaurant(rejectedId, rejectReason);
       showNotif('success', res.data?.message || 'Đã từ chối đơn đăng ký quán');
       setShowRejectModal(false);
       setSelectedStore(null);
       setRejectReason('');
-      fetchStores();
+      fetchStores({ silent: true });
+      fetchPendingCount();
+      publishRealtimeSignal('restaurant', { type: 'store.rejected', storeId: rejectedId });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi từ chối quán');
     }
@@ -183,6 +209,7 @@ export default function AdminDashboard() {
   const handleOpenBanModal = (store) => {
     const targetStore = store || selectedStore;
     if (!targetStore) return;
+    setBanTargetStore(targetStore);
     const defaultDays = 7;
     setBanDurationDays(defaultDays);
     const until = new Date(Date.now() + defaultDays * 24 * 60 * 60 * 1000);
@@ -212,22 +239,24 @@ export default function AdminDashboard() {
 
   // Xác nhận khóa quán và gửi thông báo tới chủ quán
   const handleConfirmBanStore = async () => {
-    if (!selectedStore) return;
+    const target = banTargetStore || selectedStore;
+    if (!target) return;
     if (!banReason.trim()) {
       showNotif('error', 'Vui lòng nhập lý do khóa quán để gửi thông báo cho chủ quán.');
       return;
     }
     setBanningStore(true);
     try {
-      const res = await adminApi.banRestaurant(selectedStore._id, {
+      const res = await adminApi.banRestaurant(target._id, {
         durationDays: banDurationDays,
         banUntil: banUntilDate ? new Date(banUntilDate).toISOString() : undefined,
         reason: banReason.trim()
       });
-      showNotif('success', res.data?.message || `Đã khóa quán [${selectedStore.name}] thành công! Thông báo đã gửi tới chủ quán.`);
+      showNotif('success', res.data?.message || `Đã khóa quán [${target.name}] thành công! Thông báo đã gửi tới chủ quán.`);
       setShowBanModal(false);
+      setBanTargetStore(null);
       const updatedStore = res.data?.data || {
-        ...selectedStore,
+        ...target,
         status: 'BANNED',
         banInfo: {
           isBanned: true,
@@ -237,8 +266,11 @@ export default function AdminDashboard() {
           bannedAt: new Date()
         }
       };
-      setSelectedStore(updatedStore);
-      fetchStores();
+      if (selectedStore && selectedStore._id === target._id) {
+        setSelectedStore(updatedStore);
+      }
+      fetchStores({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.banned', storeId: target._id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi khóa quán');
     } finally {
@@ -255,7 +287,8 @@ export default function AdminDashboard() {
       if (selectedStore && selectedStore._id === id) {
         setSelectedStore(res.data?.data || { ...selectedStore, status: 'ACTIVE', banInfo: { isBanned: false } });
       }
-      fetchStores();
+      fetchStores({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'store.unbanned', storeId: id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi mở khóa quán');
     }
@@ -265,6 +298,7 @@ export default function AdminDashboard() {
   const handleOpenWarnModal = (store) => {
     const target = store || selectedStore;
     if (!target) return;
+    setWarnTargetStore(target);
     setWarnTitle(`Cảnh báo vi phạm tới quán ${target.name}`);
     setWarnContent('');
     setShowWarnModal(true);
@@ -272,19 +306,26 @@ export default function AdminDashboard() {
 
   // Xác nhận gửi cảnh báo tới chủ quán
   const handleConfirmWarnStore = async () => {
-    if (!selectedStore) return;
+    const target = warnTargetStore || selectedStore;
+    if (!target) return;
     if (!warnContent.trim()) {
       showNotif('error', 'Vui lòng nhập nội dung cảnh báo gửi tới chủ quán.');
       return;
     }
     setWarningStore(true);
     try {
-      const res = await adminApi.warnRestaurant(selectedStore._id, {
+      const res = await adminApi.warnRestaurant(target._id, {
         title: warnTitle.trim(),
         content: warnContent.trim()
       });
       showNotif('success', res.data?.message || 'Đã gửi thông báo cảnh báo thành công tới chủ quán!');
+      if (selectedStore && selectedStore._id === target._id && res.data?.data) {
+        setSelectedStore(res.data.data);
+      }
       setShowWarnModal(false);
+      setWarnTargetStore(null);
+      fetchStores({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'notification.created', storeId: target._id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi gửi cảnh báo');
     } finally {
@@ -323,7 +364,8 @@ export default function AdminDashboard() {
         setSelectedStore(res.data.data);
       }
       setShowGrantModal(false);
-      fetchStores();
+      fetchStores({ silent: true });
+      publishRealtimeSignal('restaurant', { type: 'wallet.granted', storeId: grantStore._id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi tặng tiền vào ví quán');
     } finally {
@@ -336,7 +378,9 @@ export default function AdminDashboard() {
     try {
       await adminApi.deleteRestaurant(id);
       showNotif('success', `Đã xóa quán [${name}] thành công!`);
-      fetchStores();
+      fetchStores({ silent: true });
+      fetchPendingCount();
+      publishRealtimeSignal('restaurant', { type: 'store.deleted', storeId: id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi xóa quán');
     }
@@ -379,7 +423,9 @@ export default function AdminDashboard() {
         showNotif('success', 'Thêm quán mới thành công!');
       }
       setShowStoreEditModal(false);
-      fetchStores();
+      fetchStores({ silent: true });
+      fetchPendingCount();
+      publishRealtimeSignal('restaurant', { type: editingStoreId ? 'store.updated' : 'store.created', storeId: editingStoreId });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi lưu thông tin quán');
     }
@@ -410,8 +456,8 @@ export default function AdminDashboard() {
     isActive: true,
   });
 
-  const fetchUsers = async () => {
-    setUsersLoading(true);
+  const fetchUsers = async ({ silent = false } = {}) => {
+    if (!silent) setUsersLoading(true);
     try {
       const params = {
         page: userPage,
@@ -427,9 +473,11 @@ export default function AdminDashboard() {
         setUserTotal(res.data.pagination.total);
       }
     } catch (err) {
-      showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách tài khoản');
+      if (!silent) {
+        showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách tài khoản');
+      }
     } finally {
-      setUsersLoading(false);
+      if (!silent) setUsersLoading(false);
     }
   };
 
@@ -437,7 +485,7 @@ export default function AdminDashboard() {
     if (activeTab === 'users') {
       fetchUsers();
       if (!stores || stores.length === 0) {
-        fetchStores();
+        fetchStores({ silent: true });
       }
     }
   }, [activeTab, userPage, userRoleFilter, userSortBy, userSortOrder]);
@@ -452,7 +500,8 @@ export default function AdminDashboard() {
     try {
       await adminApi.updateUser(u._id, { isActive: !u.isActive });
       showNotif('success', `Đã ${!u.isActive ? 'mở khóa' : 'khóa'} tài khoản [${u.email}] thành công!`);
-      fetchUsers();
+      fetchUsers({ silent: true });
+      publishRealtimeSignal('admin', { type: 'user.updated', userId: u._id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi đổi trạng thái tài khoản');
     }
@@ -467,7 +516,8 @@ export default function AdminDashboard() {
     try {
       await adminApi.deleteUser(id);
       showNotif('success', `Đã xóa tài khoản [${email}] thành công!`);
-      fetchUsers();
+      fetchUsers({ silent: true });
+      publishRealtimeSignal('admin', { type: 'user.deleted', userId: id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi xóa tài khoản');
     }
@@ -528,7 +578,8 @@ export default function AdminDashboard() {
         showNotif('success', 'Tạo tài khoản mới thành công!');
       }
       setShowUserModal(false);
-      fetchUsers();
+      fetchUsers({ silent: true });
+      publishRealtimeSignal('admin', { type: 'user.saved' });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi lưu tài khoản');
     }
@@ -569,8 +620,8 @@ export default function AdminDashboard() {
     is_active: true
   });
 
-  const fetchVouchers = async () => {
-    setVouchersLoading(true);
+  const fetchVouchers = async ({ silent = false } = {}) => {
+    if (!silent) setVouchersLoading(true);
     try {
       const params = {
         page: voucherPage,
@@ -588,9 +639,11 @@ export default function AdminDashboard() {
         setVoucherTotal(res.data.pagination?.total || 0);
       }
     } catch (err) {
-      showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách mã giảm giá');
+      if (!silent) {
+        showNotif('error', err.response?.data?.message || err.message || 'Lỗi tải danh sách mã giảm giá');
+      }
     } finally {
-      setVouchersLoading(false);
+      if (!silent) setVouchersLoading(false);
     }
   };
 
@@ -598,10 +651,38 @@ export default function AdminDashboard() {
     if (activeTab === 'vouchers') {
       fetchVouchers();
       if (!stores || stores.length === 0) {
-        fetchStores();
+        fetchStores({ silent: true });
       }
     }
   }, [activeTab, voucherPage, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
+
+  // Đồng bộ Realtime toàn bộ Admin Portal (SSE + Cross-tab + Silent polling 5s)
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'ADMIN') return;
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'restaurant',
+      path: '/restaurants/admin/stream',
+      events: [
+        'store.registered', 'store.approved', 'store.rejected', 'store.banned',
+        'store.unbanned', 'notification.created', 'wallet.granted', 'wallet.withdrawn',
+        'wallet.settled', 'store.updated', 'store.operations_updated', 'store.menu_updated',
+        'voucher.updated', 'review.created', 'order.updated', 'store.deleted'
+      ],
+      broadcastChannels: ['restaurant', 'admin', 'voucher', 'review', 'order'],
+      fallbackIntervalMs: 5000,
+      onPoll: async () => {
+        await fetchPendingCount();
+        if (activeTab === 'approvals' || activeTab === 'stores') {
+          await fetchStores({ silent: true });
+        } else if (activeTab === 'users') {
+          await fetchUsers({ silent: true });
+        } else if (activeTab === 'vouchers') {
+          await fetchVouchers({ silent: true });
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [isAuthenticated, user?.role, activeTab, storePage, storeSearch, storeStatusFilter, storeSortBy, storeSortOrder, userPage, userSearch, userRoleFilter, userSortBy, userSortOrder, voucherPage, voucherSearch, voucherIssuerFilter, voucherStatusFilter, voucherCityFilter, voucherSortBy, voucherSortOrder]);
 
   const handleSearchVouchers = (e) => {
     e.preventDefault();
@@ -613,7 +694,8 @@ export default function AdminDashboard() {
     try {
       const res = await adminApi.toggleVoucher(id);
       showNotif('success', res.data?.message || 'Đã chuyển đổi trạng thái voucher thành công!');
-      fetchVouchers();
+      fetchVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.toggled', id });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi chuyển trạng thái voucher');
     }
@@ -624,7 +706,8 @@ export default function AdminDashboard() {
     try {
       const res = await adminApi.deleteVoucher(id);
       showNotif('success', res.data?.message || `Đã xóa voucher [${code}] thành công!`);
-      fetchVouchers();
+      fetchVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.deleted', code });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi xóa voucher');
     }
@@ -703,7 +786,8 @@ export default function AdminDashboard() {
         showNotif('success', res.data?.message || `Đã tạo voucher [${payload.code}] và đồng bộ Redis thành công!`);
       }
       setShowVoucherModal(false);
-      fetchVouchers();
+      fetchVouchers({ silent: true });
+      publishRealtimeSignal('voucher', { type: 'voucher.saved', code: payload.code });
     } catch (err) {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi lưu voucher');
     } finally {
@@ -799,7 +883,7 @@ export default function AdminDashboard() {
             }`}
           >
             <Clock className="w-4 h-4" />
-            Duyệt hồ sơ quán ({stores.filter((s) => s.status === 'PENDING').length || '...'})
+            Duyệt hồ sơ quán ({pendingApprovalsCount})
           </button>
 
           <button
@@ -2724,11 +2808,14 @@ export default function AdminDashboard() {
       )}
 
       {/* Modal Khóa Quán Có Thời Hạn (Ban Store - Tính toán thời gian & Gửi thông báo) */}
-      {showBanModal && selectedStore && (
+      {showBanModal && (banTargetStore || selectedStore) && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-red-500/40 text-slate-200 shadow-2xl relative animate-fadeIn">
             <button
-              onClick={() => setShowBanModal(false)}
+              onClick={() => {
+                setShowBanModal(false);
+                setBanTargetStore(null);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
             >
               <X className="w-5 h-5" />
@@ -2741,7 +2828,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-base font-bold text-white">Khóa hoạt động quán ăn</h3>
                 <p className="text-xs text-slate-400">
-                  Quán: <strong className="text-red-300">{selectedStore.name}</strong>
+                  Quán: <strong className="text-red-300">{(banTargetStore || selectedStore).name}</strong>
                 </p>
               </div>
             </div>
@@ -2893,11 +2980,14 @@ export default function AdminDashboard() {
       )}
 
       {/* Modal Gửi Cảnh Báo Tới Chủ Quán (Warn Store) */}
-      {showWarnModal && selectedStore && (
+      {showWarnModal && (warnTargetStore || selectedStore) && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-amber-500/40 text-slate-200 shadow-2xl relative animate-fadeIn">
             <button
-              onClick={() => setShowWarnModal(false)}
+              onClick={() => {
+                setShowWarnModal(false);
+                setWarnTargetStore(null);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
             >
               <X className="w-5 h-5" />
@@ -2910,7 +3000,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-base font-bold text-white">Gửi thông báo cảnh báo tới chủ quán</h3>
                 <p className="text-xs text-slate-400">
-                  Quán: <strong className="text-amber-300">{selectedStore.name}</strong>
+                  Quán: <strong className="text-amber-300">{(warnTargetStore || selectedStore).name}</strong>
                 </p>
               </div>
             </div>

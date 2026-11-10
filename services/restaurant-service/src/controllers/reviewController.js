@@ -2,6 +2,7 @@ const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
 const { publishEvent } = require('../rabbitmq');
 const { invalidateRestaurantCache } = require('../../redis');
+const { emitStoreUpdate } = require('../utils/realtimeHub');
 
 /**
  * 1. POST /api/v1/reviews
@@ -78,6 +79,13 @@ exports.createReview = async (req, res) => {
       console.warn('[Review] ⚠️ Không thể publish event foodfast_events, thử exchange mặc định:', pubErr.message);
       await publishEvent(undefined, 'review.submitted', eventPayload).catch(() => {});
     }
+
+    emitStoreUpdate({
+      storeId: store_id.toString(),
+      event: 'review.created',
+      includePublic: true,
+      extra: { review: savedReview }
+    });
 
     return res.status(201).json({
       success: true,

@@ -10,6 +10,7 @@ import VoucherPickerModal from '../components/VoucherPickerModal';
 import { calculateShippingFee } from '../utils/pricingEngine';
 import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import { getDishImageByName } from '../utils/menuImageSync';
+import { publishRealtimeSignal } from '../utils/realtimeSync';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -293,6 +294,11 @@ export default function Checkout() {
         }
 
         clearCart();
+        publishRealtimeSignal('order', {
+          type: 'order.created',
+          orderId,
+          restaurantId: currentRestaurant?._id
+        });
 
         // Nếu chọn thanh toán qua VNPay Sandbox: lấy URL thanh toán và chuyển hướng ngay
         if (paymentMethod === 'VNPAY') {

@@ -3,6 +3,7 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 
 // Định tuyến hỗ trợ cả truy cập trực tiếp (/orders) và qua Gateway (/)
+router.get(['/stream', '/orders/stream'], orderController.streamOrders);
 router.post(['/', '/orders'], orderController.createOrder);
 router.get(['/', '/orders'], orderController.getAllOrders);
 router.post(['/cleanup-stale', '/orders/cleanup-stale'], orderController.cleanupStaleOrders);

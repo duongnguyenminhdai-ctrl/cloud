@@ -1,5 +1,14 @@
 const Order = require('../models/Order');
 const { publishEvent, DEFAULT_EXCHANGE } = require('../rabbitmq');
+const { subscribe, emitOrderEvent } = require('../utils/realtimeHub');
+
+exports.streamOrders = (req, res) => {
+  return subscribe(req, res, {
+    customerId: req.query?.customerId,
+    restaurantId: req.query?.restaurantId,
+    orderId: req.query?.orderId
+  });
+};
 
 // 1. Tạo đơn hàng mới (POST /orders)
 exports.createOrder = async (req, res) => {
@@ -77,6 +86,7 @@ exports.createOrder = async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
+    emitOrderEvent('order.created', savedOrder);
     console.log(`[orderController] 📝 Đã lưu đơn hàng vào MongoDB: ${savedOrder._id} (Phương thức: ${savedOrder.paymentMethod})`);
 
     // Bắn event 'order.created' qua RabbitMQ Topic Exchange
@@ -234,6 +244,9 @@ exports.cleanupStaleOrders = async (req, res) => {
     );
 
     console.log(`[orderController] 🧹 Đã dọn dẹp và cập nhật ${result.modifiedCount} đơn hàng cũ sang DELIVERED`);
+    if (result.modifiedCount > 0) {
+      emitOrderEvent('order.updated', { status: 'DELIVERED', modifiedCount: result.modifiedCount });
+    }
     return res.status(200).json({
       success: true,
       message: `Đã dọn dẹp và hoàn tất ${result.modifiedCount} đơn hàng cũ bị treo.`,
@@ -260,6 +273,17 @@ exports.updateOrderStatus = async (req, res) => {
     if (status) order.status = status;
     if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
     await order.save();
+
+    emitOrderEvent('order.updated', order);
+    const routingKey = ['DELIVERED', 'COMPLETED'].includes(order.status) ? 'order.completed' : 'order.status_updated';
+    if (typeof publishEvent === 'function') {
+      Promise.resolve(publishEvent(DEFAULT_EXCHANGE, routingKey, {
+        orderId: order._id ? String(order._id) : id,
+        restaurantId: order.restaurantId ? String(order.restaurantId) : null,
+        customerId: order.customerId ? String(order.customerId) : null,
+        status: order.status
+      })).catch(() => {});
+    }
 
     return res.status(200).json({
       success: true,
@@ -301,6 +325,7 @@ exports.modifyOrderItems = async (req, res) => {
     if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
 
     await order.save();
+    emitOrderEvent('order.updated', order);
     return res.status(200).json({
       success: true,
       message: 'Chỉnh sửa đơn hàng thành công!',

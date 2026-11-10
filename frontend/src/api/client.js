@@ -494,6 +494,12 @@ export const storeApi = {
   getNotifications: async () => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/notifications'));
   },
+  markNotificationsRead: async (notificationIds = null) => {
+    return await apiClient.put(
+      buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/notifications/read'),
+      notificationIds ? { notificationIds } : {}
+    );
+  },
   // Quản lý Voucher riêng của Quán (Merchant Self-Service)
   getVouchers: async () => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/vouchers'));
@@ -631,6 +637,43 @@ export const adminApi = {
   deleteVoucher: async (id) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`));
   }
+};
+
+// Helper tạo URL cho Server-Sent Events (SSE Realtime Stream)
+export const buildStreamUrl = (service, path, queryParams = {}) => {
+  const serviceMap = {
+    auth: AUTH_SERVICE_URL,
+    restaurant: RESTAURANT_SERVICE_URL,
+    order: ORDER_SERVICE_URL,
+    delivery: DELIVERY_SERVICE_URL,
+    payment: PAYMENT_SERVICE_URL
+  };
+  const directServiceUrl = serviceMap[service];
+  let baseUrl = '';
+
+  if (import.meta.env.VITE_FORCE_DIRECT_URL === 'true' && directServiceUrl) {
+    baseUrl = directServiceUrl.replace(/\/+$/, '');
+  } else {
+    baseUrl = API_BASE_URL.replace(/\/+$/, '');
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = new URL(`${baseUrl}${normalizedPath}`, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
+  Object.entries(queryParams || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') {
+      url.searchParams.set(k, String(v));
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token && !url.searchParams.has('token')) {
+      url.searchParams.set('token', token);
+    }
+  }
+
+  return url.toString();
 };
 
 export default apiClient;

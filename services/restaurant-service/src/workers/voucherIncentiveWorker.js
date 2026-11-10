@@ -1,6 +1,7 @@
 const { consumeEvent } = require('../rabbitmq');
 const Voucher = require('../models/Voucher');
 const { setQuota } = require('../../redis');
+const { emitStoreUpdate, broadcastAdminEvent } = require('../utils/realtimeHub');
 
 /**
  * Worker tự động tặng Voucher khi có Review (Event-Driven qua RabbitMQ)
@@ -40,6 +41,7 @@ async function startVoucherIncentiveWorker() {
 
         await newVoucher.save();
         await setQuota(`voucher:quota:${voucherCode}`, 1);
+        emitStoreUpdate({ storeId: store_id ? String(store_id) : null, event: 'voucher.updated', extra: { code: voucherCode } });
         console.log(`[Voucher Worker] 🎁 ĐÃ TẶNG VOUCHER ĐỀN BÙ [${voucherCode}] giảm 20% cho user [${user_id}]`);
       }
       // Trường hợp 2: rating === 5 (Đánh giá 5 sao khen ngợi) -> Tặng voucher THANKYOU-XXXXXX giảm 10%
@@ -62,6 +64,7 @@ async function startVoucherIncentiveWorker() {
 
         await newVoucher.save();
         await setQuota(`voucher:quota:${voucherCode}`, 1);
+        emitStoreUpdate({ storeId: store_id ? String(store_id) : null, event: 'voucher.updated', extra: { code: voucherCode } });
         console.log(`[Voucher Worker] 🌟 ĐÃ TẶNG VOUCHER TRI ÂN [${voucherCode}] giảm 10% cho user [${user_id}]`);
       }
     } catch (err) {
@@ -78,7 +81,38 @@ async function startVoucherIncentiveWorker() {
   }
 }
 
+/**
+ * Worker lắng nghe các sự kiện đơn hàng từ order-service / delivery-service qua RabbitMQ
+ * để phát sóng SSE Realtime ngay lập tức về Dashboard của Chủ quán & Admin.
+ */
+async function startRealtimeOrderRelayWorker() {
+  const handleOrderRelayEvent = async (data) => {
+    try {
+      const storeId = data?.restaurantId || data?.store_id || null;
+      if (storeId) {
+        emitStoreUpdate({
+          storeId: String(storeId),
+          event: 'order.updated',
+          extra: {
+            orderId: data?.orderId || data?._id,
+            status: data?.status || data?.newStatus
+          }
+        });
+      } else {
+        broadcastAdminEvent('order.updated', data);
+      }
+    } catch {}
+  };
+
+  for (const routingKey of ['order.created', 'order.status_updated', 'order.completed', 'delivery.completed']) {
+    try {
+      await consumeEvent(undefined, `q.restaurant_rt_${routingKey.replace(/\./g, '_')}`, routingKey, handleOrderRelayEvent);
+    } catch {}
+  }
+}
+
 module.exports = {
-  startVoucherIncentiveWorker
+  startVoucherIncentiveWorker,
+  startRealtimeOrderRelayWorker
 };
 

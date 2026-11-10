@@ -2,6 +2,21 @@ const mongoose = require('mongoose');
 const Voucher = require('../models/Voucher');
 const Restaurant = require('../models/Restaurant');
 const { client, decrQuota, incrQuota, setQuota } = require('../../redis');
+const { broadcastAdminEvent, emitStoreUpdate } = require('../utils/realtimeHub');
+
+function emitVoucherUpdate(action, voucher, store = null) {
+  const storeId = voucher?.store_id ? String(voucher.store_id) : (store?._id ? String(store._id) : null);
+  broadcastAdminEvent('voucher.updated', { action, code: voucher?.code, storeId });
+  if (storeId) {
+    emitStoreUpdate({
+      store,
+      storeId,
+      event: 'voucher.updated',
+      includePublic: true,
+      extra: { action, code: voucher?.code }
+    });
+  }
+}
 
 /**
  * 1. Khởi tạo sẵn một số mã Voucher mẫu (Seed Data)
@@ -176,6 +191,7 @@ exports.applyVoucher = async (req, res) => {
 
     // Cập nhật số lượt dùng trong MongoDB
     await Voucher.updateOne({ _id: voucher._id }, { $inc: { used_count: 1 } });
+    emitVoucherUpdate('applied', voucher);
 
     return res.status(200).json({
       success: true,
@@ -460,6 +476,7 @@ exports.adminCreateVoucher = async (req, res) => {
     // Đồng bộ ngay lập tức với Redis để chống Race Condition
     await setQuota(`voucher:quota:${cleanCode}`, numLimit);
     console.log(`[voucherController] ⚡ Đã tạo voucher [${cleanCode}] và đồng bộ quota Redis [voucher:quota:${cleanCode} = ${numLimit}]`);
+    emitVoucherUpdate('created', saved);
 
     return res.status(201).json({
       success: true,
@@ -530,6 +547,7 @@ exports.adminUpdateVoucher = async (req, res) => {
     }
 
     await voucher.save();
+    emitVoucherUpdate('updated', voucher);
 
     return res.status(200).json({
       success: true,
@@ -552,6 +570,7 @@ exports.adminToggleVoucher = async (req, res) => {
 
     voucher.is_active = !voucher.is_active;
     await voucher.save();
+    emitVoucherUpdate('toggled', voucher);
 
     return res.status(200).json({
       success: true,
@@ -574,6 +593,7 @@ exports.adminDeleteVoucher = async (req, res) => {
 
     const code = voucher.code;
     await Voucher.findByIdAndDelete(id);
+    emitVoucherUpdate('deleted', voucher);
 
     // Dọn sạch key trong Redis Cache
     if (client && client.isOpen) {
@@ -712,6 +732,7 @@ exports.merchantCreateVoucher = async (req, res) => {
 
     const saved = await newVoucher.save();
     await setQuota(`voucher:quota:${cleanCode}`, numLimit);
+    emitVoucherUpdate('created', saved, store);
 
     return res.status(201).json({
       success: true,
@@ -787,6 +808,7 @@ exports.merchantUpdateVoucher = async (req, res) => {
     }
 
     await voucher.save();
+    emitVoucherUpdate('updated', voucher, store);
 
     return res.status(200).json({
       success: true,
@@ -819,6 +841,7 @@ exports.merchantToggleVoucher = async (req, res) => {
 
     voucher.is_active = !voucher.is_active;
     await voucher.save();
+    emitVoucherUpdate('toggled', voucher, store);
 
     return res.status(200).json({
       success: true,
@@ -851,6 +874,7 @@ exports.merchantDeleteVoucher = async (req, res) => {
 
     const code = voucher.code;
     await Voucher.findByIdAndDelete(voucher._id);
+    emitVoucherUpdate('deleted', voucher, store);
 
     if (client && client.isOpen) {
       try {

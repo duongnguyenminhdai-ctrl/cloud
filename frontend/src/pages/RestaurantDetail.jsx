@@ -29,6 +29,7 @@ import DishCustomizationModal from '../components/DishCustomizationModal';
 import UpdateVariantModal from '../components/UpdateVariantModal';
 import { hasDishCustomization } from '../utils/dishCustomization';
 import Pagination from '../components/Pagination';
+import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -70,49 +71,75 @@ export default function RestaurantDetail() {
   // Tab danh mục món ăn đang chọn
   const [activeCategoryTab, setActiveCategoryTab] = useState('ALL');
 
-  const fetchReviews = async () => {
-    setReviewsLoading(true);
+  const fetchReviews = async ({ silent = false } = {}) => {
+    if (!silent) setReviewsLoading(true);
     try {
       const res = await reviewApi.getByStore(id);
       if (res.data?.success) {
         setReviews(res.data.data || []);
       }
     } catch (err) {
-      console.error('Lỗi tải đánh giá quán:', err);
+      if (!silent) {
+        console.error('Lỗi tải đánh giá quán:', err);
+      }
     } finally {
-      setReviewsLoading(false);
+      if (!silent) setReviewsLoading(false);
+    }
+  };
+
+  const fetchDetail = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
+    try {
+      const res = await restaurantApi.getById(id);
+      if (res.data?.success) {
+        const storeData = res.data.data;
+        setRestaurant(storeData);
+        setDataSource(res.data.source || 'database');
+
+        const uid = user?.id || user?.userId || user?._id || user?.email;
+        if (uid && storeData.likes) {
+          setIsLiked(storeData.likes.includes(String(uid)));
+        }
+        setLikeCount(storeData.likeCount || storeData.likes?.length || 0);
+      } else if (!silent) {
+        setError('Không tìm thấy nhà hàng');
+      }
+    } catch (err) {
+      if (!silent) {
+        console.error('Lỗi tải chi tiết quán:', err);
+        setError('Không thể tải thông tin nhà hàng.');
+      }
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await restaurantApi.getById(id);
-        if (res.data?.success) {
-          const storeData = res.data.data;
-          setRestaurant(storeData);
-          setDataSource(res.data.source || 'database');
-
-          const uid = user?.id || user?.userId || user?._id || user?.email;
-          if (uid && storeData.likes) {
-            setIsLiked(storeData.likes.includes(String(uid)));
-          }
-          setLikeCount(storeData.likeCount || storeData.likes?.length || 0);
-        } else {
-          setError('Không tìm thấy nhà hàng');
-        }
-      } catch (err) {
-        console.error('Lỗi tải chi tiết quán:', err);
-        setError('Không thể tải thông tin nhà hàng.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDetail();
     fetchReviews();
+
+    const unsubscribe = subscribeRealtimeStream({
+      service: 'restaurant',
+      path: '/restaurants/stream',
+      params: { storeId: id },
+      events: [
+        'store.updated', 'store.operations_updated', 'store.menu_updated',
+        'store.banned', 'store.unbanned', 'review.created', 'voucher.updated'
+      ],
+      broadcastChannels: ['restaurant', 'review', 'voucher'],
+      fallbackIntervalMs: 5000,
+      onPoll: async () => {
+        await Promise.all([
+          fetchDetail({ silent: true }),
+          fetchReviews({ silent: true })
+        ]);
+      }
+    });
+
+    return () => unsubscribe();
   }, [id, user]);
 
   const handleToggleFavorite = async () => {
@@ -248,7 +275,9 @@ export default function RestaurantDetail() {
         }
 
         setReviewComment('');
-        fetchReviews();
+        fetchReviews({ silent: true });
+        fetchDetail({ silent: true });
+        publishRealtimeSignal('review', { storeId: id, rating: Number(reviewRating) });
       } else {
         setReviewError(res.data?.message || 'Không thể gửi đánh giá.');
       }
