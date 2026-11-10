@@ -63,6 +63,7 @@ export function toE164VNPhone(rawPhone) {
 }
 
 const verifierRegistry = new Map();
+let recaptchaSlotSeq = 0;
 
 export function resetRecaptchaVerifier(containerId) {
   const existing = verifierRegistry.get(containerId);
@@ -73,15 +74,24 @@ export function resetRecaptchaVerifier(containerId) {
     verifierRegistry.delete(containerId);
   }
   if (typeof document !== 'undefined') {
-    const el = document.getElementById(containerId);
-    if (el) el.innerHTML = '';
+    const host = document.getElementById(containerId);
+    if (host) {
+      host.replaceChildren();
+    }
   }
 }
 
 export function translateFirebasePhoneError(error) {
   const code = error?.code || '';
+  const msg = error?.message || '';
+  if (msg.includes('already been rendered')) {
+    return 'Phiên reCAPTCHA cũ đang được làm mới. Vui lòng bấm Gửi OTP SMS lại lần nữa.';
+  }
   if (code === 'auth/invalid-phone-number') {
     return 'Số điện thoại không đúng định dạng Việt Nam (+84 / 0xxx).';
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Phương thức Phone Auth chưa được bật trong Firebase Console (Authentication -> Sign-in method -> Phone).';
   }
   if (code === 'auth/too-many-requests') {
     return 'Bạn yêu cầu gửi mã OTP quá nhiều lần. Vui lòng thử lại sau ít phút.';
@@ -92,8 +102,11 @@ export function translateFirebasePhoneError(error) {
   if (code === 'auth/unauthorized-domain') {
     return 'Tên miền hiện tại chưa được thêm vào Authorized Domains trong Firebase Authentication Settings.';
   }
-  if (code === 'auth/captcha-check-failed') {
-    return 'Xác minh reCAPTCHA không thành công. Vui lòng tải lại trang và thử lại.';
+  if (code === 'auth/captcha-check-failed' || code === 'auth/invalid-app-credential') {
+    return 'Xác minh reCAPTCHA thất bại hoặc tên miền chưa được cấp phép trên Firebase Console. Vui lòng thử lại.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Lỗi kết nối tới Firebase (có thể bị AdBlock/Brave Shield chặn). Vui lòng kiểm tra mạng và thử lại.';
   }
   if (code === 'auth/invalid-verification-code') {
     return 'Mã OTP SMS không chính xác. Vui lòng kiểm tra lại 6 chữ số.';
@@ -101,7 +114,7 @@ export function translateFirebasePhoneError(error) {
   if (code === 'auth/code-expired') {
     return 'Mã OTP SMS đã hết hạn. Vui lòng bấm Gửi lại mã mới.';
   }
-  return error?.message || 'Lỗi gửi/xác thực mã OTP qua Firebase.';
+  return msg || 'Lỗi gửi/xác thực mã OTP qua Firebase.';
 }
 
 /**
@@ -119,7 +132,19 @@ export async function sendFirebasePhoneOTP(rawPhone, recaptchaContainerId) {
   }
 
   resetRecaptchaVerifier(recaptchaContainerId);
-  const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+
+  const host = typeof document !== 'undefined' ? document.getElementById(recaptchaContainerId) : null;
+  if (!host) {
+    throw new Error('Không tìm thấy vùng neo reCAPTCHA trên trang. Vui lòng tải lại trang.');
+  }
+
+  // Cấp phát một thẻ div con hoàn toàn mới cho mỗi lần gửi OTP để tránh lỗi
+  // Google reCAPTCHA "reCAPTCHA has already been rendered in this element".
+  const slot = document.createElement('div');
+  slot.dataset.recaptchaSlot = String(++recaptchaSlotSeq);
+  host.appendChild(slot);
+
+  const verifier = new RecaptchaVerifier(auth, slot, {
     size: 'invisible'
   });
   verifierRegistry.set(recaptchaContainerId, verifier);
