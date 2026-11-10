@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 import UserProfileModal from '../components/UserProfileModal';
+import UserAvatar from '../components/UserAvatar';
 import Pagination from '../components/Pagination';
 
 const DAY_LABELS = {
@@ -825,9 +826,12 @@ export default function AdminDashboard() {
               className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-orange-500/50 text-right transition cursor-pointer group shadow-xs"
               title="Xem và quản lý thông tin tài khoản & Đổi mật khẩu"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0">
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-              </div>
+              <UserAvatar
+                src={user?.avatar}
+                name={user?.name}
+                fallbackChar="A"
+                className="w-8 h-8 rounded-full text-xs shadow-xs"
+              />
               <div className="hidden sm:flex flex-col text-left">
                 <span className="text-xs font-bold text-slate-200 group-hover:text-orange-400 transition">
                   {user?.name || 'Quản trị viên'}

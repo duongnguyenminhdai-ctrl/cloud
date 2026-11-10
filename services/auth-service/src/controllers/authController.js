@@ -904,7 +904,44 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Cập nhật thông tin liên hệ (tên, năm sinh, địa chỉ, sđt) (PUT /api/v1/auth/profile)
+/**
+ * Kiểm tra định dạng và dung lượng ảnh đại diện (URL http(s), base64 image, hoặc rỗng để gỡ ảnh)
+ */
+function validateAvatarInput(avatar) {
+  if (avatar === null || avatar === '') {
+    return { valid: true, value: '' };
+  }
+  if (typeof avatar !== 'string') {
+    return { valid: false, message: 'Định dạng ảnh đại diện không hợp lệ.' };
+  }
+
+  const trimmed = avatar.trim();
+  if (!trimmed) {
+    return { valid: true, value: '' };
+  }
+
+  if (/^https?:\/\/.+/i.test(trimmed)) {
+    if (trimmed.length > 2000) {
+      return { valid: false, message: 'Đường dẫn ảnh đại diện quá dài (tối đa 2000 ký tự).' };
+    }
+    return { valid: true, value: trimmed };
+  }
+
+  const compactDataUrl = trimmed.replace(/\s+/g, '');
+  if (/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(compactDataUrl)) {
+    if (compactDataUrl.length > 2_500_000) {
+      return { valid: false, message: 'Ảnh đại diện quá lớn. Vui lòng chọn ảnh nhẹ hơn (dưới 2MB).' };
+    }
+    return { valid: true, value: compactDataUrl };
+  }
+
+  return {
+    valid: false,
+    message: 'Ảnh đại diện phải là tệp ảnh (JPG, PNG, WebP, GIF) hoặc đường dẫn http(s) hợp lệ.'
+  };
+}
+
+// Cập nhật thông tin liên hệ (tên, năm sinh, địa chỉ, sđt, ảnh đại diện) (PUT /api/v1/auth/profile)
 exports.updateProfile = async (req, res) => {
   try {
     const { name, phone, birthYear, address, avatar } = req.body;
@@ -950,7 +987,13 @@ exports.updateProfile = async (req, res) => {
       user.birthYear = !isNaN(parsedYear) && parsedYear >= 1920 && parsedYear <= new Date().getFullYear() ? parsedYear : null;
     }
     if (address !== undefined) user.address = address.trim();
-    if (avatar !== undefined) user.avatar = avatar;
+    if (avatar !== undefined) {
+      const avatarCheck = validateAvatarInput(avatar);
+      if (!avatarCheck.valid) {
+        return res.status(400).json({ success: false, message: avatarCheck.message });
+      }
+      user.avatar = avatarCheck.value;
+    }
 
     await user.save();
 

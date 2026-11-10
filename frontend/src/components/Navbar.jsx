@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { storeApi } from '../api/client';
 import CitySelector from './CitySelector';
 import UserProfileModal from './UserProfileModal';
+import UserAvatar from './UserAvatar';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -133,9 +134,12 @@ export default function Navbar() {
                 className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-orange-50/80 transition-all text-right group cursor-pointer"
                 title="Xem và cập nhật thông tin tài khoản & Đổi mật khẩu"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                </div>
+                <UserAvatar
+                  src={user?.avatar}
+                  name={user?.name}
+                  fallbackChar="U"
+                  className="w-8 h-8 rounded-full text-xs shadow-xs"
+                />
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-sm font-semibold text-gray-800 group-hover:text-orange-600 leading-tight transition">
                     {user?.name || 'Khách hàng'}

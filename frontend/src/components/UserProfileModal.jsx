@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, User, Phone, MapPin, Calendar, Mail, Key, Lock,
-  ShieldCheck, Eye, EyeOff, Save, CheckCircle2, AlertCircle, Sparkles
+  ShieldCheck, Eye, EyeOff, Save, CheckCircle2, AlertCircle, Sparkles, Camera, Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/client';
+import UserAvatar from './UserAvatar';
+import { compressAvatarFile } from '../utils/imageHelpers';
 
 export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
   const { user, updateUserProfile } = useAuth();
@@ -18,7 +20,9 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
     phone: '',
     address: '',
     email: '',
+    avatar: '',
   });
+  const avatarInputRef = useRef(null);
 
   // Form Đổi mật khẩu
   const [passwordForm, setPasswordForm] = useState({
@@ -47,6 +51,7 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
         phone: user?.phone || '',
         address: user?.address || '',
         email: user?.email || '',
+        avatar: user?.avatar || '',
       });
 
       // Tải dữ liệu mới nhất từ backend API
@@ -61,6 +66,7 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
               phone: d.phone || '',
               address: d.address || '',
               email: d.email || '',
+              avatar: d.avatar || '',
             });
             updateUserProfile(d);
           }
@@ -97,6 +103,7 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
         phone: profileForm.phone.trim(),
         birthYear: profileForm.birthYear ? Number(profileForm.birthYear) : null,
         address: profileForm.address.trim(),
+        avatar: profileForm.avatar,
       };
 
       const res = await authApi.updateProfile(payload);
@@ -156,6 +163,23 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
     }
   };
 
+  const handleModalAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const compressed = await compressAvatarFile(file, { maxSize: 400, quality: 0.85 });
+      setProfileForm((prev) => ({ ...prev, avatar: compressed }));
+      const res = await authApi.updateProfile({ avatar: compressed });
+      if (res.data?.success) {
+        updateUserProfile(res.data?.data || { avatar: compressed });
+        showMsg('success', 'Đã cập nhật ảnh đại diện thành công!');
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.message || err.message || 'Không thể tải ảnh đại diện.');
+    }
+  };
+
   // Styling theo chế độ isDark (Admin) hoặc Light (Khách hàng)
   const bgModal = isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-white text-gray-800 border-gray-100';
   const bgHeader = isDark ? 'bg-slate-900/60 border-slate-700/80' : 'bg-gray-50/80 border-gray-100';
@@ -170,8 +194,28 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
         {/* Modal Header */}
         <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${bgHeader}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-base flex items-center justify-center shadow-md flex-shrink-0">
-              {profileForm.name ? profileForm.name.charAt(0).toUpperCase() : 'U'}
+            <div className="relative">
+              <UserAvatar
+                src={profileForm.avatar}
+                name={profileForm.name}
+                fallbackChar="U"
+                className="w-11 h-11 rounded-full text-base shadow-md"
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                title="Đổi ảnh đại diện"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center border border-white shadow-xs cursor-pointer"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleModalAvatarChange}
+                className="hidden"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -255,6 +299,48 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
           {/* TAB 1: THÔNG TIN LIÊN HỆ */}
           {activeTab === 'profile' && (
             <form onSubmit={handleUpdateProfile} className="space-y-3.5">
+              <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-dashed border-orange-500/30 bg-orange-500/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <UserAvatar
+                    src={profileForm.avatar}
+                    name={profileForm.name}
+                    fallbackChar="U"
+                    className="w-10 h-10 rounded-xl text-sm"
+                  />
+                  <div className="min-w-0">
+                    <p className={`font-bold text-xs ${textLabel}`}>Ảnh đại diện</p>
+                    <p className={`text-[11px] truncate ${textMuted}`}>JPG, PNG, WebP (tối đa 5MB)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-[11px] transition cursor-pointer"
+                  >
+                    Đổi ảnh
+                  </button>
+                  {profileForm.avatar && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setProfileForm((prev) => ({ ...prev, avatar: '' }));
+                        try {
+                          const res = await authApi.updateProfile({ avatar: '' });
+                          if (res.data?.success) {
+                            updateUserProfile(res.data?.data || { avatar: '' });
+                            showMsg('success', 'Đã gỡ ảnh đại diện.');
+                          }
+                        } catch {}
+                      }}
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer"
+                      title="Xóa ảnh đại diện"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Họ và tên */}
                 <div className="sm:col-span-2">

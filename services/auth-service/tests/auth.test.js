@@ -189,4 +189,83 @@ describe('Auth Service - Unit Tests (Jest + Supertest)', () => {
       global.fetch = originalFetch;
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // d. Test PUT /api/v1/auth/profile (Cập nhật ảnh đại diện)
+  // ---------------------------------------------------------------------------
+  describe('PUT /api/v1/auth/profile - Avatar Update', () => {
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_123';
+
+    it('Cập nhật ảnh đại diện dạng base64 JPEG thành công', async () => {
+      const mockUser = {
+        _id: 'user_avatar_123',
+        name: 'Dương Nguyễn',
+        email: 'avatar@foodfast.vn',
+        role: 'USER',
+        avatar: '',
+        phone: '0969535231',
+        phoneVerified: true,
+        save: jest.fn().mockResolvedValue(true)
+      };
+      User.findById.mockResolvedValue(mockUser);
+
+      const token = jwt.sign({ userId: 'user_avatar_123', role: 'USER' }, JWT_SECRET);
+      const sampleDataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBD';
+
+      const res = await request(app)
+        .put('/api/v1/auth/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ avatar: sampleDataUrl });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.avatar).toBe(sampleDataUrl);
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('Xóa ảnh đại diện (gửi chuỗi rỗng) thành công', async () => {
+      const mockUser = {
+        _id: 'user_avatar_123',
+        name: 'Dương Nguyễn',
+        email: 'avatar@foodfast.vn',
+        role: 'USER',
+        avatar: 'https://example.com/old.jpg',
+        save: jest.fn().mockResolvedValue(true)
+      };
+      User.findById.mockResolvedValue(mockUser);
+
+      const token = jwt.sign({ userId: 'user_avatar_123', role: 'USER' }, JWT_SECRET);
+      const res = await request(app)
+        .put('/api/v1/auth/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ avatar: '' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.avatar).toBe('');
+    });
+
+    it('Từ chối ảnh đại diện định dạng không hợp lệ (javascript: / text)', async () => {
+      const mockUser = {
+        _id: 'user_avatar_123',
+        name: 'Dương Nguyễn',
+        email: 'avatar@foodfast.vn',
+        role: 'USER',
+        avatar: '',
+        save: jest.fn().mockResolvedValue(true)
+      };
+      User.findById.mockResolvedValue(mockUser);
+
+      const token = jwt.sign({ userId: 'user_avatar_123', role: 'USER' }, JWT_SECRET);
+      const res = await request(app)
+        .put('/api/v1/auth/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ avatar: 'javascript:alert(1)' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(mockUser.save).not.toHaveBeenCalled();
+    });
+  });
 });
