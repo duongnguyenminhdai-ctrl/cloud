@@ -47,9 +47,10 @@ import {
   Percent,
   Calculator,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  Gift
 } from 'lucide-react';
-import { storeApi, orderApi } from '../api/client';
+import { storeApi, orderApi, reviewApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
 import {
@@ -233,13 +234,56 @@ export default function MerchantDashboard() {
     }
   };
 
-  // Tải danh sách đơn hàng của quán
+  // Tải danh sách đơn hàng thật của quán & tự động quyết toán đơn hoàn thành vào Ví thật
+  const [storeReviews, setStoreReviews] = useState([]);
+
+  const fetchReviews = async () => {
+    if (!store?._id) return;
+    try {
+      const res = await reviewApi.getByStore(store._id);
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setStoreReviews(res.data.data);
+      }
+    } catch {
+      // Giữ danh sách hiện tại
+    }
+  };
+
   const fetchOrders = async () => {
     if (!store?._id) return;
     try {
       const res = await orderApi.getAll({ restaurantId: store._id });
       if (res.data?.success && Array.isArray(res.data?.data)) {
-        setOrders(res.data.data);
+        const realOrders = res.data.data;
+        setOrders(realOrders);
+
+        const completedOrders = realOrders.filter((o) => ['COMPLETED', 'DELIVERED'].includes(o.status));
+        const pendingOrders = realOrders.filter((o) =>
+          ['PENDING', 'NEW', 'CONFIRMED', 'PREPARING', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(o.status)
+        );
+
+        const settledOrderIds = new Set(
+          (store.walletTransactions || [])
+            .filter((t) => t.type === 'ORDER_SETTLEMENT' && t.orderId)
+            .map((t) => String(t.orderId))
+        );
+        const hasUnsettledOrder = completedOrders.some((o) => !settledOrderIds.has(String(o._id)));
+        const hasLegacyFakeDefaults =
+          !(store.walletTransactions?.length) &&
+          !(store.payouts?.length) &&
+          (store.wallet?.availableBalance === 1368922 || store.completed_orders === 25);
+
+        if (hasUnsettledOrder || hasLegacyFakeDefaults) {
+          try {
+            const syncRes = await storeApi.syncSettlements({
+              completedOrders,
+              pendingOrders
+            });
+            if (syncRes.data?.success && syncRes.data?.data) {
+              setStore(syncRes.data.data);
+            }
+          } catch {}
+        }
       }
     } catch {
       // Giữ orders hiện tại
@@ -257,10 +301,84 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (store?._id) {
       fetchOrders();
-      const interval = setInterval(fetchOrders, 10000); // Tự động cập nhật đơn mỗi 10 giây
+      fetchReviews();
+      const interval = setInterval(() => {
+        fetchOrders();
+        fetchReviews();
+      }, 10000); // Tự động cập nhật đơn & đánh giá thật mỗi 10 giây
       return () => clearInterval(interval);
     }
   }, [store?._id]);
+
+  // Tính toán 100% SỐ LIỆU THẬT ("Tiền tươi thóc thật" - Tuyệt đối không dùng số ảo)
+  const realMetrics = useMemo(() => {
+    const allOrders = Array.isArray(orders) ? orders : [];
+    const completedList = allOrders.filter((o) => ['COMPLETED', 'DELIVERED'].includes(o.status));
+    const activePendingList = allOrders.filter((o) =>
+      ['PENDING', 'NEW', 'CONFIRMED', 'PREPARING', 'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(o.status)
+    );
+
+    const todayStr = new Date().toLocaleDateString('vi-VN');
+    const todayRevenue = completedList
+      .filter((o) => new Date(o.createdAt || o.updatedAt).toLocaleDateString('vi-VN') === todayStr)
+      .reduce((sum, ord) => sum + calculateMerchantSettlement(ord, store).netMerchant, 0);
+
+    const activePendingRevenue = activePendingList.reduce(
+      (sum, ord) => sum + calculateMerchantSettlement(ord, store).netMerchant,
+      0
+    );
+
+    const revCount = storeReviews.length;
+    const avgRating =
+      revCount > 0
+        ? Number((storeReviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / revCount).toFixed(1))
+        : 0;
+
+    const hasTxHistory = (store?.walletTransactions?.length || 0) > 0 || (store?.payouts?.length || 0) > 0;
+    const rawAvail = Number(store?.wallet?.availableBalance || 0);
+    const availableBalance =
+      !hasTxHistory && rawAvail === 1368922 && completedList.length === 0 ? 0 : rawAvail;
+
+    const rawPending = Number(store?.wallet?.pendingBalance || 0);
+    const pendingBalance =
+      activePendingRevenue > 0
+        ? activePendingRevenue
+        : !hasTxHistory && rawPending === 327850
+        ? 0
+        : rawPending;
+
+    return {
+      todayRevenue,
+      completedOrdersCount: completedList.length,
+      reviewCount: revCount,
+      avgRating,
+      availableBalance,
+      pendingBalance
+    };
+  }, [orders, storeReviews, store]);
+
+  // Tổng hợp Lịch sử giao dịch & Quyết toán thật từ Sổ cái ví (walletTransactions + payouts)
+  const realTransactions = useMemo(() => {
+    const txs = Array.isArray(store?.walletTransactions) ? [...store.walletTransactions] : [];
+    const existingCodes = new Set(txs.map((t) => t.code));
+    const payouts = Array.isArray(store?.payouts) ? store.payouts : [];
+
+    payouts.forEach((p) => {
+      if (!existingCodes.has(p.code)) {
+        txs.push({
+          id: p.id || p.code,
+          code: p.code,
+          type: 'WITHDRAWAL',
+          amount: -Math.abs(Number(p.amount) || 0),
+          desc: `Rút tiền thủ công về ${p.bankInfo?.bankName || 'Ngân hàng'} (${p.bankInfo?.accountNumber || 'N/A'})`,
+          status: p.status || 'PENDING',
+          createdAt: p.requestedAt || p.createdAt || new Date()
+        });
+      }
+    });
+
+    return txs.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }, [store?.walletTransactions, store?.payouts]);
 
   // =========================================================================
   // XỬ LÝ PHÂN HỆ ĐƠN HÀNG
@@ -720,7 +838,7 @@ export default function MerchantDashboard() {
   // Chuyển sang bước nhập PIN 6 số
   const handleProceedToPin = () => {
     const amount = Number(withdrawAmount);
-    const available = store?.wallet?.availableBalance || 0;
+    const available = realMetrics.availableBalance;
     if (!amount || amount < 100000) {
       alert('Số tiền rút tối thiểu là 100.000đ!');
       return;
@@ -1168,10 +1286,13 @@ export default function MerchantDashboard() {
             <div>
               <p className="text-xs text-slate-400 font-medium">Doanh thu hôm nay</p>
               <p className="text-lg sm:text-xl font-black text-white mt-0.5">
-                {formatVND(store.wallet?.pendingBalance || 327850)}
+                {formatVND(realMetrics.todayRevenue)}
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Tính từ đơn hoàn tất trong ngày
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
@@ -1180,10 +1301,13 @@ export default function MerchantDashboard() {
             <div>
               <p className="text-xs text-slate-400 font-medium">Đơn thành công</p>
               <p className="text-lg sm:text-xl font-black text-white mt-0.5">
-                {store.completed_orders || 25} đơn
+                {realMetrics.completedOrdersCount} đơn
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Đơn đã giao cho khách hàng
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
@@ -1192,11 +1316,14 @@ export default function MerchantDashboard() {
             <div>
               <p className="text-xs text-slate-400 font-medium">Đánh giá quán</p>
               <p className="text-lg sm:text-xl font-black text-white mt-0.5 flex items-center gap-1">
-                <span>{store.rating || 5.0}</span>
+                <span>{realMetrics.reviewCount > 0 ? realMetrics.avgRating.toFixed(1) : '0.0'}</span>
                 <span className="text-amber-400 text-sm">★</span>
               </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                {realMetrics.reviewCount > 0 ? `Từ ${realMetrics.reviewCount} lượt đánh giá` : 'Chưa có đánh giá nào'}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
           </div>
@@ -1207,10 +1334,13 @@ export default function MerchantDashboard() {
             <div>
               <p className="text-xs text-slate-400 font-medium">Số dư Ví đối tác</p>
               <p className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5">
-                {formatVND(store.wallet?.availableBalance || 1368922)}
+                {formatVND(realMetrics.availableBalance)}
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                {realTransactions.length} giao dịch ghi nhận
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5" />
             </div>
           </div>
@@ -2276,10 +2406,10 @@ export default function MerchantDashboard() {
                     </span>
                   </div>
                   <p className="text-3xl font-black text-white">
-                    {formatVND(store.wallet?.availableBalance || 1368922)}
+                    {formatVND(realMetrics.availableBalance)}
                   </p>
                   <p className="text-xs text-slate-400">
-                    Số dư khả dụng (Sẵn sàng rút về tài khoản ngân hàng)
+                    Số dư khả dụng thật (Sẵn sàng rút về tài khoản ngân hàng)
                   </p>
                 </div>
 
@@ -2295,22 +2425,25 @@ export default function MerchantDashboard() {
               {/* Thông tin số dư đang chờ xử lý & Tài khoản ngân hàng */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
                 <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-medium">Số dư đang chờ xử lý:</span>
+                  <span className="text-slate-400 font-medium">Số dư đang chờ xử lý (Đơn đang giao):</span>
                   <p className="text-base font-extrabold text-amber-400">
-                    {formatVND(store.wallet?.pendingBalance || 327850)}
+                    {formatVND(realMetrics.pendingBalance)}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Doanh thu đơn hôm nay, sẽ chuyển sang Số dư khả dụng vào ngày làm việc tiếp theo.
+                    Tiền dự kiến từ các đơn đang giao hoặc được cấp chờ quyết toán vào Số dư khả dụng.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
                   <span className="text-slate-400 font-medium">Tài khoản ngân hàng thụ hưởng:</span>
                   <p className="text-sm font-extrabold text-white">
-                    {store.wallet?.bankAccount?.bankName || store.bankName || 'Vietcombank'} • {store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber || '1033618225'}
+                    {store.wallet?.bankAccount?.bankName || store.bankName || 'Chưa cập nhật ngân hàng'}{' '}
+                    {(store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber) && (
+                      <>• {store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber}</>
+                    )}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Chủ tài khoản: {store.wallet?.bankAccount?.accountHolder || store.bankAccountHolder || 'Dương Nguyễn'}
+                    Chủ tài khoản: {store.wallet?.bankAccount?.accountHolder || store.bankAccountHolder || store.representativeName || 'Chưa cập nhật'}
                   </p>
                 </div>
               </div>
@@ -2381,33 +2514,88 @@ export default function MerchantDashboard() {
               </div>
             </div>
 
-            {/* Bảng kê lịch sử giao dịch & Rút tiền */}
+            {/* Bảng kê lịch sử giao dịch & Quyết toán THẬT (Không có dòng tiền ảo) */}
             <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-              <h3 className="font-bold text-white text-base">Lịch sử giao dịch &amp; Rút tiền</h3>
-              <div className="divide-y divide-slate-700/60">
-                {(store.payouts && store.payouts.length > 0 ? store.payouts : [
-                  { code: 'WD-889123', desc: 'Rút tiền thủ công về Vietcombank', amount: -500000, date: 'Hôm nay 14:08', status: 'Đang xử lý' },
-                  { code: 'ORD-771239', desc: 'Quyết toán đơn hàng #D061DCC2 (Đã trừ CK 25% & Thuế Hộ KD 1.5%)', amount: 58800, date: 'Hôm nay 11:20', status: 'Thành công' },
-                  { code: 'WD-881024', desc: 'Quyết toán tự động định kỳ', amount: -1000000, date: '08/11/2026', status: 'Thành công' }
-                ]).map((tr, idx) => (
-                  <div key={idx} className="py-3 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-white">{tr.desc || `Yêu cầu rút tiền về ${tr.bankInfo?.bankName || 'Ngân hàng'}`}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Mã: {tr.code} • {tr.requestedAt ? new Date(tr.requestedAt).toLocaleString('vi-VN') : tr.date}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-black text-sm ${tr.amount > 0 && !tr.requestedAt ? 'text-emerald-400' : 'text-slate-200'}`}>
-                        {tr.requestedAt ? `-${formatVND(tr.amount)}` : tr.amount > 0 ? `+${formatVND(tr.amount)}` : formatVND(tr.amount)}
-                      </p>
-                      <span className={`text-[10px] font-bold ${tr.status === 'Thành công' || tr.status === 'SUCCESS' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {tr.status === 'PENDING' ? 'Đang xử lý' : tr.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-bold text-white text-base">Lịch sử giao dịch &amp; Quyết toán ({realTransactions.length})</h3>
+                <span className="text-[11px] text-slate-400">
+                  Mọi biến động số dư từ Đơn hàng thật, Admin tặng tiền &amp; Rút tiền ngân hàng
+                </span>
               </div>
+
+              {realTransactions.length === 0 ? (
+                <div className="py-10 text-center rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+                  <Wallet className="w-10 h-10 text-slate-600 mx-auto" />
+                  <p className="text-sm font-bold text-slate-300">Chưa có giao dịch tài chính hoặc quyết toán nào</p>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Doanh thu thực nhận từ các đơn hàng hoàn tất hoặc tiền thưởng / quỹ kiểm thử do Admin FoodFast cấp sẽ hiển thị minh bạch tại đây.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-700/60">
+                  {realTransactions.map((tr, idx) => {
+                    const isPositive = Number(tr.amount) > 0;
+                    const isGrant = tr.type === 'ADMIN_GRANT';
+                    const isOrder = tr.type === 'ORDER_SETTLEMENT';
+                    return (
+                      <div key={tr.id || tr.code || idx} className="py-3.5 flex items-start justify-between gap-3 text-xs">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isGrant && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                <Gift className="w-3 h-3" /> Admin tặng tiền
+                              </span>
+                            )}
+                            {isOrder && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                Quyết toán đơn hàng
+                              </span>
+                            )}
+                            {!isGrant && !isOrder && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Rút tiền ngân hàng
+                              </span>
+                            )}
+                            <p className="font-bold text-white">{tr.desc}</p>
+                          </div>
+
+                          <p className="text-[11px] text-slate-400">
+                            Mã GD: <span className="font-mono text-slate-300">{tr.code}</span> •{' '}
+                            {tr.createdAt ? new Date(tr.createdAt).toLocaleString('vi-VN') : ''}
+                            {tr.createdBy && tr.createdBy !== 'SYSTEM' && ` • Bởi: ${tr.createdBy}`}
+                          </p>
+
+                          {isOrder && tr.grossAmount > 0 && (
+                            <p className="text-[10px] text-slate-400">
+                              Giá gốc: {formatVND(tr.grossAmount)}
+                              {tr.storeVoucherDiscount > 0 && ` • Voucher quán: -${formatVND(tr.storeVoucherDiscount)}`}
+                              {tr.commission > 0 && ` • Chiết khấu sàn: -${formatVND(tr.commission)}`}
+                              {tr.withholdingTax > 0 && ` • Thuế Hộ KD: -${formatVND(tr.withholdingTax)}`}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <p className={`font-black text-sm ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isPositive ? `+${formatVND(tr.amount)}` : formatVND(tr.amount)}
+                          </p>
+                          <span
+                            className={`text-[10px] font-bold ${
+                              tr.status === 'SUCCESS' || tr.status === 'Thành công'
+                                ? 'text-emerald-400'
+                                : tr.status === 'REJECTED'
+                                ? 'text-rose-400'
+                                : 'text-amber-400'
+                            }`}
+                          >
+                            {tr.status === 'SUCCESS' ? 'Thành công' : tr.status === 'PENDING' ? 'Đang xử lý' : tr.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2623,7 +2811,7 @@ export default function MerchantDashboard() {
                 <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1">
                   <span className="text-slate-400">Số dư khả dụng:</span>
                   <p className="text-xl font-black text-emerald-400">
-                    {formatVND(store.wallet?.availableBalance || 1368922)}
+                    {formatVND(realMetrics.availableBalance)}
                   </p>
                 </div>
 
@@ -2639,7 +2827,7 @@ export default function MerchantDashboard() {
                     />
                     <button
                       type="button"
-                      onClick={() => setWithdrawAmount(String(store.wallet?.availableBalance || 1368922))}
+                      onClick={() => setWithdrawAmount(String(realMetrics.availableBalance))}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-orange-600/20 text-orange-400 text-xs font-bold hover:bg-orange-600/30"
                     >
                       Rút toàn bộ
@@ -2649,8 +2837,8 @@ export default function MerchantDashboard() {
 
                 <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1 text-slate-400">
                   <p className="font-bold text-white">Ngân hàng nhận tiền:</p>
-                  <p>{store.wallet?.bankAccount?.bankName || store.bankName || 'Vietcombank'} • {store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber || '1033618225'}</p>
-                  <p>Chủ thụ hưởng: {store.wallet?.bankAccount?.accountHolder || store.bankAccountHolder || 'Dương Nguyễn'}</p>
+                  <p>{store.wallet?.bankAccount?.bankName || store.bankName || 'Chưa cập nhật'} • {store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber || 'Chưa có STK'}</p>
+                  <p>Chủ thụ hưởng: {store.wallet?.bankAccount?.accountHolder || store.bankAccountHolder || store.representativeName || 'Chưa cập nhật'}</p>
                 </div>
 
                 <button
@@ -2739,7 +2927,7 @@ export default function MerchantDashboard() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Mã giao dịch:</span>
-                    <span className="font-mono">{lastPayoutRecord?.code || 'WD-889123'}</span>
+                    <span className="font-mono">{lastPayoutRecord?.code || '---'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Thời gian nhận tiền:</span>

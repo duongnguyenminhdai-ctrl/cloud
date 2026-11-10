@@ -126,6 +126,13 @@ router.delete(
   voucherController.merchantDeleteVoucher
 );
 
+// 1.8 Đồng bộ quyết toán đơn thật & doanh thu ví thật (Real Cash & Order Sync)
+router.post(
+  ['/my-store/sync-settlements', '/stores/my-store/sync-settlements'],
+  verifyToken,
+  restaurantController.syncMyStoreSettlements
+);
+
 // -----------------------------------------------------------------------------
 // 2. Quản trị viên (Admin Store Management & Approval)
 // -----------------------------------------------------------------------------
@@ -172,6 +179,14 @@ router.post(
   verifyToken,
   requireAdmin,
   restaurantController.adminWarnRestaurant
+);
+
+// Tặng tiền / Cấp số dư Ví đối tác cho quán (Admin Wallet Grant)
+router.post(
+  ['/admin/:id/grant-wallet', '/restaurants/admin/:id/grant-wallet', '/api/v1/restaurants/admin/:id/grant-wallet'],
+  verifyToken,
+  requireAdmin,
+  restaurantController.adminGrantWallet
 );
 
 // Chủ quán nhận danh sách thông báo & cảnh báo

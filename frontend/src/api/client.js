@@ -509,6 +509,9 @@ export const storeApi = {
   },
   deleteVoucher: async (voucherId) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/vouchers/${voucherId}`));
+  },
+  syncSettlements: async (payload) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/sync-settlements'), payload);
   }
 };
 
@@ -595,6 +598,13 @@ export const adminApi = {
   },
   warnRestaurant: async (id, { title, content }) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/warn`), { title, content });
+  },
+  grantWallet: async (id, { amount, reason, targetBalance }) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/admin/${id}/grant-wallet`), {
+      amount,
+      reason,
+      targetBalance
+    });
   },
   createRestaurant: async (restaurantData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants'), restaurantData);

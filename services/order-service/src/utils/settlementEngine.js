@@ -107,3 +107,4 @@ module.exports = {
   HOUSEHOLD_PIT_RATE,
   calculateMerchantSettlement
 };
+

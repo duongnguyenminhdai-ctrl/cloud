@@ -1,5 +1,6 @@
 const Restaurant = require('../models/Restaurant');
 const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../redis');
+const { calculateMerchantSettlement } = require('../utils/settlementEngine');
 
 // 1. Lấy danh sách tất cả nhà hàng (kèm lọc theo Tỉnh/Thành phố & Cache Redis)
 exports.getAllRestaurants = async (req, res) => {
@@ -367,7 +368,25 @@ exports.registerStore = async (req, res) => {
       paymentStatus: (packagePrice > 0) ? 'PAID' : 'FREE',
       latitude: latitude !== undefined ? Number(latitude) : 10.7769,
       longitude: longitude !== undefined ? Number(longitude) : 106.7009,
-      prep_time: prep_time !== undefined ? Number(prep_time) : 15
+      prep_time: prep_time !== undefined ? Number(prep_time) : 15,
+      rating: 0,
+      completed_orders: 0,
+      review_count: 0,
+      wallet: {
+        availableBalance: 0,
+        pendingBalance: 0,
+        walletPinHash: '',
+        failedPinAttempts: 0,
+        pinLockedUntil: null,
+        bankAccount: {
+          bankName: bankName || '',
+          accountNumber: bankAccountNumber || '',
+          accountHolder: bankAccountHolder || representativeName || req.user.name || '',
+          branch: bankBranch || ''
+        }
+      },
+      walletTransactions: [],
+      payouts: []
     });
 
     const savedStore = await newStore.save();
@@ -1014,18 +1033,28 @@ exports.manageWallet = async (req, res) => {
 
     if (!store.wallet) {
       store.wallet = {
-        availableBalance: 1368922,
-        pendingBalance: 327850,
-        walletPinHash: '123456',
+        availableBalance: 0,
+        pendingBalance: 0,
+        walletPinHash: '',
         failedPinAttempts: 0,
         pinLockedUntil: null,
         bankAccount: {
-          bankName: store.bankName || 'Vietcombank',
-          accountNumber: store.bankAccountNumber || '1033618225',
-          accountHolder: store.bankAccountHolder || store.representativeName || 'Dương Nguyễn',
-          branch: store.bankBranch || 'TP. Thủ Đức'
+          bankName: store.bankName || '',
+          accountNumber: store.bankAccountNumber || '',
+          accountHolder: store.bankAccountHolder || store.representativeName || '',
+          branch: store.bankBranch || ''
         }
       };
+    } else if (
+      (!store.walletTransactions || store.walletTransactions.length === 0) &&
+      (!store.payouts || store.payouts.length === 0) &&
+      store.wallet.availableBalance === 1368922 &&
+      store.wallet.pendingBalance === 327850
+    ) {
+      // Dọn dẹp số dư giả lập cũ không có giao dịch thật
+      store.wallet.availableBalance = 0;
+      store.wallet.pendingBalance = 0;
+      await store.save();
     }
 
     const { action, amount, pin, newPin, bankAccount } = req.body;
@@ -1093,23 +1122,37 @@ exports.manageWallet = async (req, res) => {
       if (!store.payouts) store.payouts = [];
       store.payouts.unshift(payoutRecord);
 
+      if (!store.walletTransactions) store.walletTransactions = [];
+      store.walletTransactions.unshift({
+        id: payoutRecord.id,
+        code: payoutRecord.code,
+        type: 'WITHDRAWAL',
+        amount: -withdrawAmount,
+        desc: `Rút tiền thủ công về ${payoutRecord.bankInfo?.bankName || 'Ngân hàng'} (${payoutRecord.bankInfo?.accountNumber || 'N/A'})`,
+        status: 'PENDING',
+        createdBy: userId,
+        createdAt: new Date()
+      });
+
       await store.save();
       return res.status(200).json({
         success: true,
         message: 'Tạo yêu cầu rút tiền thành công! Tiền sẽ được chuyển về tài khoản ngân hàng từ 2 - 4 ngày làm việc.',
         data: {
           wallet: store.wallet,
-          payout: payoutRecord
+          payout: payoutRecord,
+          walletTransactions: store.walletTransactions
         }
       });
     }
 
-    // Default: Trả về thông tin ví
+    // Default: Trả về thông tin ví & sổ cái giao dịch thật
     return res.status(200).json({
       success: true,
       data: {
         wallet: store.wallet,
-        payouts: store.payouts || []
+        payouts: store.payouts || [],
+        walletTransactions: store.walletTransactions || []
       }
     });
   } catch (error) {
@@ -1189,5 +1232,189 @@ exports.getFavoriteRestaurants = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 22. Đồng bộ doanh thu thật & quyết toán đơn hàng hoàn tất vào Ví đối tác (Idempotent)
+exports.syncMyStoreSettlements = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    if (!store.wallet) {
+      store.wallet = { availableBalance: 0, pendingBalance: 0, walletPinHash: '', failedPinAttempts: 0 };
+    }
+    if (!store.walletTransactions) store.walletTransactions = [];
+    if (!store.payouts) store.payouts = [];
+
+    // Dọn dẹp số dư ảo mặc định cũ nếu chưa có giao dịch thật nào
+    if (
+      store.walletTransactions.length === 0 &&
+      store.payouts.length === 0 &&
+      store.wallet.availableBalance === 1368922
+    ) {
+      store.wallet.availableBalance = 0;
+      store.wallet.pendingBalance = 0;
+    }
+
+    const { completedOrders = [], pendingOrders = [], reviewStats } = req.body;
+    let settledNewCount = 0;
+
+    if (Array.isArray(completedOrders)) {
+      for (const ord of completedOrders) {
+        if (!ord || !ord._id) continue;
+        if (String(ord.restaurantId) !== String(store._id)) continue;
+
+        const alreadySettled = store.walletTransactions.some(
+          (tx) => tx.type === 'ORDER_SETTLEMENT' && String(tx.orderId) === String(ord._id)
+        );
+        if (!alreadySettled) {
+          const s = calculateMerchantSettlement(ord, store);
+          store.wallet.availableBalance = (store.wallet.availableBalance || 0) + s.netMerchant;
+          store.walletTransactions.unshift({
+            id: 'TX_ORD_' + String(ord._id).slice(-8),
+            code: 'ORD-' + String(ord._id).slice(-6).toUpperCase(),
+            type: 'ORDER_SETTLEMENT',
+            amount: s.netMerchant,
+            grossAmount: s.grossFoodTotal,
+            storeVoucherDiscount: s.storeVoucherDiscount,
+            platformVoucherDiscount: s.platformVoucherDiscount,
+            commission: s.platformCommission,
+            withholdingTax: s.withholdingTax,
+            orderId: String(ord._id),
+            desc: `Quyết toán đơn #${String(ord._id).slice(-6).toUpperCase()}${
+              s.storeVoucherDiscount > 0 ? ` (Đã trừ Voucher Quán ${s.voucherCode || ''})` : ''
+            }${s.isTaxWithheld ? ' • Đã khấu trừ thuế Hộ KD 1.5%' : ''}`,
+            status: 'SUCCESS',
+            createdBy: 'SYSTEM',
+            createdAt: ord.updatedAt ? new Date(ord.updatedAt) : new Date(ord.createdAt || Date.now())
+          });
+          settledNewCount += 1;
+        }
+      }
+      store.completed_orders = completedOrders.length;
+    }
+
+    if (Array.isArray(pendingOrders)) {
+      const realPending = pendingOrders.reduce((sum, ord) => {
+        if (String(ord.restaurantId) !== String(store._id)) return sum;
+        return sum + calculateMerchantSettlement(ord, store).netMerchant;
+      }, 0);
+      store.wallet.pendingBalance = realPending;
+    }
+
+    if (reviewStats && typeof reviewStats.count === 'number') {
+      store.review_count = reviewStats.count;
+      store.rating = reviewStats.count > 0 ? Number(reviewStats.avgRating || 0) : 0;
+    }
+
+    await store.save();
+    await invalidateRestaurantCache(store._id.toString());
+
+    return res.status(200).json({
+      success: true,
+      settledNewCount,
+      data: store
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi đồng bộ quyết toán ví: ' + error.message });
+  }
+};
+
+// 23. Admin Tặng tiền / Cấp số dư Ví đối tác cho Quán (Để thưởng hoặc cấp quỹ test Voucher / Rút tiền)
+exports.adminGrantWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, reason, targetBalance = 'available' } = req.body;
+
+    const grantAmount = Number(amount);
+    if (isNaN(grantAmount) || grantAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số tiền tặng cho quán phải lớn hơn 0 đ.'
+      });
+    }
+
+    const store = await Restaurant.findById(id);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy quán ăn.' });
+    }
+
+    if (!store.wallet) {
+      store.wallet = {
+        availableBalance: 0,
+        pendingBalance: 0,
+        walletPinHash: '',
+        failedPinAttempts: 0,
+        pinLockedUntil: null,
+        bankAccount: {
+          bankName: store.bankName || '',
+          accountNumber: store.bankAccountNumber || '',
+          accountHolder: store.bankAccountHolder || store.representativeName || '',
+          branch: store.bankBranch || ''
+        }
+      };
+    }
+    if (!store.walletTransactions) store.walletTransactions = [];
+    if (!store.payouts) store.payouts = [];
+    if (!store.notifications) store.notifications = [];
+
+    // Dọn số dư ảo cũ nếu trước đó là số mặc định chưa từng có giao dịch
+    if (
+      store.walletTransactions.length === 0 &&
+      store.payouts.length === 0 &&
+      store.wallet.availableBalance === 1368922
+    ) {
+      store.wallet.availableBalance = 0;
+      store.wallet.pendingBalance = 0;
+    }
+
+    const isPendingTarget = targetBalance === 'pending';
+    if (isPendingTarget) {
+      store.wallet.pendingBalance = (store.wallet.pendingBalance || 0) + grantAmount;
+    } else {
+      store.wallet.availableBalance = (store.wallet.availableBalance || 0) + grantAmount;
+    }
+
+    const adminEmail = req.user?.email || 'Admin';
+    const txReason = (reason && reason.trim()) || 'Admin FoodFast tặng tiền / cấp ngân sách kiểm thử cho quán';
+    const txCode = 'GRANT-' + Math.floor(100000 + Math.random() * 900000);
+
+    store.walletTransactions.unshift({
+      id: 'TX_GRANT_' + Date.now(),
+      code: txCode,
+      type: 'ADMIN_GRANT',
+      amount: grantAmount,
+      desc: txReason,
+      status: 'SUCCESS',
+      createdBy: adminEmail,
+      createdAt: new Date()
+    });
+
+    store.notifications.unshift({
+      id: 'NTF_GRANT_' + Date.now(),
+      type: 'WALLET',
+      title: `Quán nhận +${grantAmount.toLocaleString('vi-VN')} đ vào Ví đối tác từ Admin`,
+      content: `Quản trị viên FoodFast (${adminEmail}) đã chuyển +${grantAmount.toLocaleString('vi-VN')} đ vào ${
+        isPendingTarget ? 'Số dư chờ xử lý' : 'Số dư khả dụng'
+      } của quán.\nLý do: ${txReason}\nMã giao dịch: ${txCode}`,
+      createdAt: new Date(),
+      isRead: false,
+      meta: { code: txCode, amount: grantAmount, targetBalance }
+    });
+
+    await store.save();
+    await invalidateRestaurantCache(store._id.toString());
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã tặng +${grantAmount.toLocaleString('vi-VN')} đ vào Ví của quán [${store.name}] thành công!`,
+      data: store
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tặng tiền cho quán: ' + error.message });
   }
 };

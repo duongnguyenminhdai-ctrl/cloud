@@ -132,18 +132,18 @@ const restaurantSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      default: 5.0,
-      min: 1.0,
+      default: 0,
+      min: 0,
       max: 5.0
     },
     completed_orders: {
       type: Number,
-      default: 25,
+      default: 0,
       min: 0
     },
     review_count: {
       type: Number,
-      default: 5,
+      default: 0,
       min: 0
     },
     // Vị trí địa lý và thời gian chuẩn bị món (OSRM Routing)
@@ -349,10 +349,10 @@ const restaurantSchema = new mongoose.Schema(
       }
     ],
 
-    // 13. Ví đối tác & Quản lý Tài chính (Module 5)
+    // 13. Ví đối tác & Quản lý Tài chính (Module 5 - Tiền tươi thóc thật, mặc định 0đ)
     wallet: {
-      availableBalance: { type: Number, default: 1368922 },
-      pendingBalance: { type: Number, default: 327850 },
+      availableBalance: { type: Number, default: 0 },
+      pendingBalance: { type: Number, default: 0 },
       walletPinHash: { type: String, default: '' },
       failedPinAttempts: { type: Number, default: 0 },
       pinLockedUntil: { type: Date, default: null },
@@ -363,6 +363,30 @@ const restaurantSchema = new mongoose.Schema(
         branch: { type: String, default: '' }
       }
     },
+
+    // 13b. Sổ cái giao dịch & Quyết toán thật của Ví đối tác (Single Source of Truth)
+    walletTransactions: [
+      {
+        id: { type: String, default: '' },
+        code: { type: String, default: '' },
+        type: {
+          type: String,
+          enum: ['ORDER_SETTLEMENT', 'ADMIN_GRANT', 'WITHDRAWAL', 'ADJUSTMENT'],
+          required: true
+        },
+        amount: { type: Number, required: true },
+        grossAmount: { type: Number, default: 0 },
+        storeVoucherDiscount: { type: Number, default: 0 },
+        platformVoucherDiscount: { type: Number, default: 0 },
+        commission: { type: Number, default: 0 },
+        withholdingTax: { type: Number, default: 0 },
+        orderId: { type: String, default: null },
+        desc: { type: String, default: '' },
+        status: { type: String, enum: ['SUCCESS', 'PENDING', 'REJECTED'], default: 'SUCCESS' },
+        createdBy: { type: String, default: 'SYSTEM' },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
 
     // 14. Lịch sử Rút tiền thủ công (Module 5)
     payouts: [
@@ -402,7 +426,7 @@ const restaurantSchema = new mongoose.Schema(
     notifications: [
       {
         id: { type: String, default: '' },
-        type: { type: String, enum: ['WARNING', 'BAN', 'UNBAN', 'SYSTEM', 'INFO'], default: 'INFO' },
+        type: { type: String, enum: ['WARNING', 'BAN', 'UNBAN', 'SYSTEM', 'INFO', 'WALLET'], default: 'INFO' },
         title: { type: String, required: true },
         content: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },

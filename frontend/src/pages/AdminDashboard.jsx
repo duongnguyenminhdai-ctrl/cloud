@@ -6,7 +6,8 @@ import {
   ChevronRight, RefreshCw, AlertCircle, Save, X, Eye, EyeOff, Lock,
   Building, User, CreditCard, Sparkles, FileText, Check, ExternalLink,
   ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
-  Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight
+  Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight,
+  Gift, Wallet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../api/client';
@@ -97,6 +98,14 @@ export default function AdminDashboard() {
   const [warnTitle, setWarnTitle] = useState('Cảnh báo vi phạm từ Quản trị viên FoodFast');
   const [warnContent, setWarnContent] = useState('');
   const [warningStore, setWarningStore] = useState(false);
+
+  // Modal Tặng tiền / Cấp số dư Ví cho Quán (Admin Grant Wallet)
+  const [showGrantModal, setShowGrantModal] = useState(false);
+  const [grantStore, setGrantStore] = useState(null);
+  const [grantAmount, setGrantAmount] = useState(500000);
+  const [grantTarget, setGrantTarget] = useState('available'); // 'available' | 'pending'
+  const [grantReason, setGrantReason] = useState('Admin FoodFast tặng ngân sách kiểm thử tính năng Ví, Rút tiền & Voucher Hộ KD');
+  const [grantingWallet, setGrantingWallet] = useState(false);
 
   // Modal Thêm / Sửa Quán (Admin CRUD)
   const [showStoreEditModal, setShowStoreEditModal] = useState(false);
@@ -280,6 +289,45 @@ export default function AdminDashboard() {
       showNotif('error', err.response?.data?.message || err.message || 'Lỗi gửi cảnh báo');
     } finally {
       setWarningStore(false);
+    }
+  };
+
+  // Mở Modal Tặng tiền / Cấp số dư Ví đối tác cho Quán
+  const handleOpenGrantModal = (store) => {
+    const target = store || selectedStore;
+    if (!target) return;
+    setGrantStore(target);
+    setGrantAmount(500000);
+    setGrantTarget('available');
+    setGrantReason('Admin FoodFast tặng ngân sách kiểm thử tính năng Ví, Rút tiền & Voucher Hộ KD');
+    setShowGrantModal(true);
+  };
+
+  const handleConfirmGrantWallet = async (e) => {
+    e.preventDefault();
+    if (!grantStore) return;
+    const amountNum = Number(grantAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      showNotif('error', 'Số tiền tặng phải lớn hơn 0 đ!');
+      return;
+    }
+    setGrantingWallet(true);
+    try {
+      const res = await adminApi.grantWallet(grantStore._id, {
+        amount: amountNum,
+        reason: grantReason.trim(),
+        targetBalance: grantTarget
+      });
+      showNotif('success', res.data?.message || `Đã tặng +${formatVND(amountNum)} cho quán [${grantStore.name}]!`);
+      if (selectedStore && selectedStore._id === grantStore._id && res.data?.data) {
+        setSelectedStore(res.data.data);
+      }
+      setShowGrantModal(false);
+      fetchStores();
+    } catch (err) {
+      showNotif('error', err.response?.data?.message || err.message || 'Lỗi tặng tiền vào ví quán');
+    } finally {
+      setGrantingWallet(false);
     }
   };
 
@@ -1046,9 +1094,32 @@ export default function AdminDashboard() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-amber-400 font-bold">★ {st.rating || 5.0}</td>
+                        <td className="py-3 px-4">
+                          <div className="text-amber-400 font-bold">
+                            {st.review_count > 0 || st.rating > 0 ? `★ ${Number(st.rating).toFixed(1)}` : 'Chưa có ĐG'}
+                          </div>
+                          <div className="text-[11px] text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+                            <Wallet className="w-3 h-3" />
+                            <span>
+                              {formatVND(
+                                !(st.walletTransactions?.length) &&
+                                !(st.payouts?.length) &&
+                                st.wallet?.availableBalance === 1368922
+                                  ? 0
+                                  : st.wallet?.availableBalance || 0
+                              )}
+                            </span>
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenGrantModal(st)}
+                              className="p-1.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-slate-700 transition-colors"
+                              title="Tặng tiền / Cấp số dư Ví đối tác cho quán"
+                            >
+                              <Gift className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedStore(st);
@@ -2374,9 +2445,16 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      {/* NẾU QUÁN ĐANG ACTIVE: Thay nút duyệt/từ chối bằng: Gửi cảnh báo & Khóa quán */}
+                      {/* NẾU QUÁN ĐANG ACTIVE: Tặng tiền Ví, Gửi cảnh báo & Khóa quán */}
                       {selectedStore.status === 'ACTIVE' && !selectedStore.banInfo?.isBanned && (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGrantModal(selectedStore)}
+                            className="px-4 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-bold border border-emerald-500/40 transition shadow-sm flex items-center gap-1.5"
+                          >
+                            <Gift className="w-4 h-4 text-emerald-400" /> Tặng tiền Ví
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleOpenWarnModal(selectedStore)}
@@ -3488,6 +3566,161 @@ export default function AdminDashboard() {
                   ) : (
                     <>
                       <Check className="w-4 h-4" /> {editingVoucherId ? 'Cập nhật Voucher' : 'Tạo Voucher Ngay'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tặng tiền / Cấp số dư Ví đối tác cho Quán (Admin Grant Wallet) */}
+      {showGrantModal && grantStore && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-emerald-500/40 text-slate-200 shadow-2xl relative animate-fadeIn">
+            <button
+              onClick={() => setShowGrantModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-700">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Tặng tiền / Cấp số dư Ví đối tác</h3>
+                <p className="text-xs text-slate-400">
+                  Quán: <strong className="text-emerald-300">{grantStore.name}</strong> (
+                  {grantStore.merchantType === 'ENTERPRISE'
+                    ? 'Doanh nghiệp'
+                    : grantStore.merchantType === 'INDIVIDUAL'
+                    ? 'Cá nhân'
+                    : 'Hộ kinh doanh'}
+                  )
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmGrantWallet} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700">
+                <div>
+                  <span className="text-slate-400 block">Số dư khả dụng hiện tại:</span>
+                  <strong className="text-emerald-400 text-sm">
+                    {formatVND(
+                      !(grantStore.walletTransactions?.length) &&
+                      !(grantStore.payouts?.length) &&
+                      grantStore.wallet?.availableBalance === 1368922
+                        ? 0
+                        : grantStore.wallet?.availableBalance || 0
+                    )}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Số dư chờ xử lý:</span>
+                  <strong className="text-amber-400 text-sm">
+                    {formatVND(
+                      !(grantStore.walletTransactions?.length) &&
+                      !(grantStore.payouts?.length) &&
+                      grantStore.wallet?.pendingBalance === 327850
+                        ? 0
+                        : grantStore.wallet?.pendingBalance || 0
+                    )}
+                  </strong>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">Chọn ví nhận tiền:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGrantTarget('available')}
+                    className={`py-2 px-3 rounded-xl border font-bold transition ${
+                      grantTarget === 'available'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                        : 'bg-slate-900 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    Số dư khả dụng (Rút ngay)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGrantTarget('pending')}
+                    className={`py-2 px-3 rounded-xl border font-bold transition ${
+                      grantTarget === 'pending'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                        : 'bg-slate-900 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    Số dư chờ xử lý
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">Số tiền tặng (VNĐ) *:</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {[100000, 200000, 500000, 1000000, 2000000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setGrantAmount(preset)}
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
+                        Number(grantAmount) === preset
+                          ? 'bg-emerald-600 text-white border-emerald-500'
+                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                      }`}
+                    >
+                      +{formatVND(preset)}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  required
+                  min={1000}
+                  step={1000}
+                  value={grantAmount}
+                  onChange={(e) => setGrantAmount(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-black text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">Lý do tặng tiền / Nội dung quyết toán:</label>
+                <textarea
+                  rows={2}
+                  value={grantReason}
+                  onChange={(e) => setGrantReason(e.target.value)}
+                  placeholder="VD: Cấp ngân sách test chức năng Ví đối tác & Voucher..."
+                  className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700">
+                <button
+                  type="button"
+                  disabled={grantingWallet}
+                  onClick={() => setShowGrantModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={grantingWallet}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {grantingWallet ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang cộng tiền...
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="w-4 h-4" /> Xác nhận tặng +{formatVND(grantAmount)}
                     </>
                   )}
                 </button>
