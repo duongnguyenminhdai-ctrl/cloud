@@ -33,7 +33,8 @@ export default function PhoneVerificationBox({
   label = 'Số điện thoại di động (Việt Nam)',
   placeholder = 'VD: 0969535231',
   disabled = false,
-  compact = false
+  compact = false,
+  stacked = false
 }) {
   const reactId = useId().replace(/:/g, '_');
   const recaptchaId = `foodfast_recaptcha_${purpose.toLowerCase()}_${reactId}`;
@@ -170,16 +171,17 @@ export default function PhoneVerificationBox({
         )}
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className={stacked ? 'flex flex-col gap-2.5' : 'flex flex-col sm:flex-row gap-2'}>
+        <div className="relative flex-1 min-w-0 w-full">
           <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="tel"
+            inputMode="numeric"
             disabled={disabled || confirmingOtp}
             value={phone}
             onChange={(e) => handlePhoneInput(e.target.value)}
             placeholder={placeholder}
-            className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
+            className="w-full min-w-0 pl-10 pr-3 py-2.5 text-base sm:text-sm font-semibold tracking-wide rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
           />
         </div>
 
@@ -187,7 +189,7 @@ export default function PhoneVerificationBox({
           type="button"
           onClick={handleSendSmsOtp}
           disabled={disabled || sendingOtp || countdown > 0 || !phone || !isFirebasePhoneConfigured}
-          className="px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer"
+          className={`${stacked ? 'w-full justify-center' : 'w-full sm:w-auto justify-center'} px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer`}
         >
           {sendingOtp ? (
             <>
@@ -213,23 +215,24 @@ export default function PhoneVerificationBox({
           <p className="text-[11px] font-semibold text-gray-600">
             Nhập mã OTP 6 chữ số từ tin nhắn SMS Firebase:
           </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+          <div className={stacked ? 'flex flex-col gap-2' : 'flex flex-col sm:flex-row gap-2'}>
+            <div className="relative flex-1 min-w-0 w-full">
               <KeyRound className="w-4 h-4 text-orange-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
+                inputMode="numeric"
                 maxLength={6}
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                 placeholder="123456"
-                className="w-full pl-9 pr-3 py-2 text-sm tracking-widest font-mono font-bold rounded-xl border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-gray-900"
+                className="w-full min-w-0 pl-9 pr-3 py-2 text-base tracking-[0.25em] font-mono font-bold rounded-xl border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-gray-900"
               />
             </div>
             <button
               type="button"
               onClick={handleConfirmSmsOtp}
               disabled={confirmingOtp || otpCode.length !== 6}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0"
+              className={`${stacked ? 'w-full justify-center' : 'w-full sm:w-auto justify-center'} px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0`}
             >
               {confirmingOtp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
               <span>Xác nhận OTP</span>
@@ -248,15 +251,15 @@ export default function PhoneVerificationBox({
       )}
 
       {localError && (
-        <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[11px] font-medium flex items-center gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[11px] font-medium flex items-start gap-1.5 leading-relaxed">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{localError}</span>
         </div>
       )}
 
       {localSuccess && (
-        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-start gap-1.5 leading-relaxed">
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
           <span>{localSuccess}</span>
         </div>
       )}

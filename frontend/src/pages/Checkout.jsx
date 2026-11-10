@@ -808,9 +808,9 @@ export default function Checkout() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
+              <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline gap-2">
                 <span className="font-bold text-gray-900">Tổng thanh toán</span>
-                <span className="text-2xl font-extrabold text-orange-600">
+                <span className="text-xl sm:text-2xl font-extrabold text-orange-600 whitespace-nowrap">
                   {payableTotal.toLocaleString('vi-VN')} đ
                 </span>
               </div>
@@ -829,6 +829,7 @@ export default function Checkout() {
                   purpose="CHECKOUT"
                   syncWithBackend={true}
                   compact={true}
+                  stacked={true}
                   label="Số điện thoại nhận hàng"
                   onVerified={({ phone, token, user: updatedUser }) => {
                     setCheckoutPhone(phone);

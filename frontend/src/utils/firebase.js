@@ -81,14 +81,15 @@ export function resetRecaptchaVerifier(containerId) {
   }
 }
 
-export function translateFirebasePhoneError(error) {
+export function translateFirebasePhoneError(error, e164Phone = '') {
   const code = error?.code || '';
   const msg = error?.message || '';
+  const phoneHint = e164Phone ? ` (${e164Phone})` : '';
   if (msg.includes('already been rendered')) {
     return 'Phiên reCAPTCHA cũ đang được làm mới. Vui lòng bấm Gửi OTP SMS lại lần nữa.';
   }
   if (code === 'auth/invalid-phone-number') {
-    return 'Số điện thoại không đúng định dạng Việt Nam (+84 / 0xxx).';
+    return `Số điện thoại${phoneHint} không đúng định dạng Việt Nam (+84 / 0xxx).`;
   }
   if (code === 'auth/operation-not-allowed') {
     return 'Phương thức Phone Auth chưa được bật trong Firebase Console (Authentication -> Sign-in method -> Phone).';
@@ -96,8 +97,11 @@ export function translateFirebasePhoneError(error) {
   if (code === 'auth/too-many-requests') {
     return 'Bạn yêu cầu gửi mã OTP quá nhiều lần. Vui lòng thử lại sau ít phút.';
   }
-  if (code === 'auth/quota-exceeded' || code === 'auth/billing-not-enabled') {
-    return 'Dự án Firebase chưa bật gói Blaze hoặc đã hết hạn mức SMS miễn phí. Với gói Spark miễn phí, hãy dùng Test Phone Numbers trong Firebase Console.';
+  if (code === 'auth/billing-not-enabled') {
+    return `Firebase yêu cầu gói Blaze để gửi SMS thật tới số${phoneHint} [${code}]. Nếu bạn đang dùng số Test, hãy vào Firebase Console -> Authentication -> Sign-in method -> Phone -> Phone numbers for testing, nhập đúng định dạng "${e164Phone || '+84xxxxxxxxx'}" (KHÔNG có số 0 sau +84) và nhớ bấm Save ở cuối mục Phone.`;
+  }
+  if (code === 'auth/quota-exceeded') {
+    return `Đã hết hạn mức SMS của dự án Firebase [${code}]. Với gói miễn phí, vui lòng kiểm tra đúng số "${e164Phone || '+84xxxxxxxxx'}" trong mục Phone numbers for testing hoặc thử lại sau.`;
   }
   if (code === 'auth/unauthorized-domain') {
     return 'Tên miền hiện tại chưa được thêm vào Authorized Domains trong Firebase Authentication Settings.';
@@ -154,7 +158,7 @@ export async function sendFirebasePhoneOTP(rawPhone, recaptchaContainerId) {
     return confirmationResult;
   } catch (err) {
     resetRecaptchaVerifier(recaptchaContainerId);
-    throw new Error(translateFirebasePhoneError(err));
+    throw new Error(translateFirebasePhoneError(err, e164Phone));
   }
 }
 
