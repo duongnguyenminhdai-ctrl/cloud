@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Voucher = require('../models/Voucher');
 const Restaurant = require('../models/Restaurant');
 const { client, decrQuota, incrQuota, setQuota } = require('../../redis');
@@ -183,6 +184,7 @@ exports.applyVoucher = async (req, res) => {
         voucher_code: voucher.code,
         title: voucher.title,
         issuer_type: voucher.issuer_type,
+        store_id: voucher.store_id || null,
         discount_type: voucher.discount_type,
         discount_value: voucher.discount_value,
         discount_amount: discountAmount,
@@ -201,20 +203,25 @@ exports.applyVoucher = async (req, res) => {
 
 /**
  * 3. GET /api/v1/vouchers
- * Lấy danh sách voucher khả dụng (FoodFast Style)
+ * Lấy danh sách voucher khả dụng (Gồm Voucher Sàn PLATFORM & Voucher Quán STORE nếu truyền store_id)
  */
 exports.getVouchers = async (req, res) => {
   try {
     const { store_id } = req.query;
-    const query = { is_active: true };
+    const now = new Date();
+    const validStoreObjectId = store_id && mongoose.Types.ObjectId.isValid(store_id) ? store_id : null;
 
-    if (store_id) {
-      query.$or = [{ issuer_type: 'PLATFORM' }, { store_id }];
-    } else {
-      query.issuer_type = 'PLATFORM';
-    }
+    const query = {
+      is_active: true,
+      $and: [
+        { $or: [{ end_date: null }, { end_date: { $gte: now } }] },
+        validStoreObjectId
+          ? { $or: [{ issuer_type: 'PLATFORM' }, { issuer_type: 'STORE', store_id: validStoreObjectId }] }
+          : { issuer_type: 'PLATFORM' }
+      ]
+    };
 
-    const vouchers = await Voucher.find(query).sort({ discount_value: -1 });
+    const vouchers = await Voucher.find(query).sort({ issuer_type: -1, discount_value: -1 });
 
     return res.status(200).json({
       success: true,
@@ -581,6 +588,279 @@ exports.adminDeleteVoucher = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `Đã xóa mã voucher [${code}] và dọn sạch Redis Cache thành công!`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa voucher: ' + error.message });
+  }
+};
+
+/**
+ * =============================================================================
+ * MERCHANT SELF-SERVICE VOUCHER MANAGEMENT CONTROLLERS (CHO HỘ KINH DOANH / QUÁN)
+ * Quy tắc FoodFast Partner:
+ * - Không thu phí khởi tạo, không giam tiền trước khi khách chưa đặt đơn thành công.
+ * - Mã tạo mặc định issuer_type = 'STORE', gắn với store_id của quán.
+ * - Khi có đơn thành công áp mã, tiền giảm sẽ trừ trực tiếp vào doanh thu tính thuế & chiết khấu của đơn đó.
+ * =============================================================================
+ */
+
+// 10. GET /api/v1/stores/my-store/vouchers - Lấy danh sách voucher riêng của Quán
+exports.merchantGetVouchers = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
+    }
+
+    const vouchers = await Voucher.find({
+      store_id: store._id,
+      issuer_type: 'STORE'
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: vouchers.length,
+      data: vouchers,
+      storeMeta: {
+        storeId: store._id,
+        storeName: store.name,
+        merchantType: store.merchantType || 'HOUSEHOLD',
+        commissionRate: store.commissionRate ?? 0.25
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi tải danh sách voucher của quán: ' + error.message
+    });
+  }
+};
+
+// 11. POST /api/v1/stores/my-store/vouchers - Chủ quán tự tạo Voucher khuyến mãi (0đ phí khởi tạo)
+exports.merchantCreateVoucher = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
+    }
+
+    const {
+      code,
+      title,
+      discount_type,
+      discount_value,
+      max_discount_amount,
+      min_order_value = 0,
+      usage_limit = 100,
+      start_date,
+      end_date,
+      is_active = true
+    } = req.body;
+
+    if (!code || !code.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập mã voucher!' });
+    }
+    if (!discount_type || !['PERCENTAGE', 'FIXED_AMOUNT'].includes(discount_type)) {
+      return res.status(400).json({ success: false, message: 'Loại giảm giá phải là PERCENTAGE hoặc FIXED_AMOUNT.' });
+    }
+
+    const numValue = Number(discount_value);
+    if (isNaN(numValue) || numValue <= 0) {
+      return res.status(400).json({ success: false, message: 'Giá trị giảm phải lớn hơn 0.' });
+    }
+    if (discount_type === 'PERCENTAGE' && numValue > 100) {
+      return res.status(400).json({ success: false, message: 'Phần trăm giảm không được vượt quá 100%.' });
+    }
+
+    const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!cleanCode) {
+      return res.status(400).json({ success: false, message: 'Mã voucher chỉ được chứa chữ cái không dấu, số, _ hoặc -.' });
+    }
+
+    const existing = await Voucher.findOne({ code: cleanCode });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Mã voucher [${cleanCode}] đã tồn tại trên hệ thống. Vui lòng chọn mã khác.`
+      });
+    }
+
+    const numLimit = Math.max(1, parseInt(usage_limit) || 100);
+
+    const newVoucher = new Voucher({
+      code: cleanCode,
+      title:
+        title && title.trim()
+          ? title.trim()
+          : `Ưu đãi quán ${store.name}: Giảm ${numValue}${discount_type === 'PERCENTAGE' ? '%' : 'đ'}`,
+      issuer_type: 'STORE',
+      store_id: store._id,
+      city_code: store.city_code || 'all',
+      discount_type,
+      discount_value: numValue,
+      max_discount_amount:
+        discount_type === 'PERCENTAGE' && max_discount_amount ? Number(max_discount_amount) : null,
+      min_order_value: Math.max(0, Number(min_order_value) || 0),
+      usage_limit: numLimit,
+      used_count: 0,
+      start_date: start_date ? new Date(start_date) : new Date(),
+      end_date: end_date ? new Date(end_date) : null,
+      is_active: is_active !== false
+    });
+
+    const saved = await newVoucher.save();
+    await setQuota(`voucher:quota:${cleanCode}`, numLimit);
+
+    return res.status(201).json({
+      success: true,
+      message: `Tạo voucher quán [${cleanCode}] thành công! Không thu phí khởi tạo – chỉ trừ doanh thu khi có đơn đặt thành công.`,
+      data: saved
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi tạo voucher quán: ' + error.message
+    });
+  }
+};
+
+// 12. PUT /api/v1/stores/my-store/vouchers/:voucherId - Chủ quán cập nhật Voucher của mình
+exports.merchantUpdateVoucher = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { voucherId } = req.params;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    const voucher = await Voucher.findOne({
+      _id: voucherId,
+      store_id: store._id,
+      issuer_type: 'STORE'
+    });
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher thuộc quyền sở hữu của quán.' });
+    }
+
+    const {
+      title,
+      discount_type,
+      discount_value,
+      max_discount_amount,
+      min_order_value,
+      usage_limit,
+      start_date,
+      end_date,
+      is_active
+    } = req.body;
+
+    if (title !== undefined) voucher.title = title.trim();
+    if (discount_type && ['PERCENTAGE', 'FIXED_AMOUNT'].includes(discount_type)) {
+      voucher.discount_type = discount_type;
+    }
+    if (discount_value !== undefined && Number(discount_value) > 0) {
+      voucher.discount_value = Number(discount_value);
+    }
+    if (max_discount_amount !== undefined) {
+      voucher.max_discount_amount = max_discount_amount ? Number(max_discount_amount) : null;
+    }
+    if (min_order_value !== undefined) {
+      voucher.min_order_value = Math.max(0, Number(min_order_value));
+    }
+    if (usage_limit !== undefined) {
+      const newLimit = Math.max(1, parseInt(usage_limit) || 100);
+      voucher.usage_limit = newLimit;
+      const remaining = Math.max(0, newLimit - voucher.used_count);
+      await setQuota(`voucher:quota:${voucher.code}`, remaining);
+    }
+    if (start_date !== undefined) {
+      voucher.start_date = start_date ? new Date(start_date) : new Date();
+    }
+    if (end_date !== undefined) {
+      voucher.end_date = end_date ? new Date(end_date) : null;
+    }
+    if (is_active !== undefined) {
+      voucher.is_active = Boolean(is_active);
+    }
+
+    await voucher.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã cập nhật voucher [${voucher.code}] thành công!`,
+      data: voucher
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật voucher: ' + error.message });
+  }
+};
+
+// 13. PATCH /api/v1/stores/my-store/vouchers/:voucherId/toggle - Bật/tắt voucher của quán
+exports.merchantToggleVoucher = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { voucherId } = req.params;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    const voucher = await Voucher.findOne({
+      _id: voucherId,
+      store_id: store._id,
+      issuer_type: 'STORE'
+    });
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher thuộc quyền sở hữu của quán.' });
+    }
+
+    voucher.is_active = !voucher.is_active;
+    await voucher.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã ${voucher.is_active ? 'kích hoạt' : 'tạm ngưng'} voucher [${voucher.code}]!`,
+      data: voucher
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi chuyển trạng thái voucher: ' + error.message });
+  }
+};
+
+// 14. DELETE /api/v1/stores/my-store/vouchers/:voucherId - Xóa voucher của quán
+exports.merchantDeleteVoucher = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { voucherId } = req.params;
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    const voucher = await Voucher.findOne({
+      _id: voucherId,
+      store_id: store._id,
+      issuer_type: 'STORE'
+    });
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy voucher thuộc quyền sở hữu của quán.' });
+    }
+
+    const code = voucher.code;
+    await Voucher.findByIdAndDelete(voucher._id);
+
+    if (client && client.isOpen) {
+      try {
+        await client.del(`voucher:quota:${code}`);
+      } catch {}
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa mã voucher [${code}] thành công!`
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi xóa voucher: ' + error.message });

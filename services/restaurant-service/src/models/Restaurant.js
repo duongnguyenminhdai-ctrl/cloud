@@ -214,9 +214,11 @@ const restaurantSchema = new mongoose.Schema(
     citizenIdBack: { type: String, default: '' },
     // Hộ kinh doanh cá thể
     householdName: { type: String, default: '' },
+    householdTaxCode: { type: String, default: '' },
     householdBusinessLicense: { type: String, default: '' }, // Giấy đăng ký Hộ kinh doanh cá thể (bản gốc)
     // Doanh nghiệp
     companyName: { type: String, default: '' },
+    companyTaxCode: { type: String, default: '' },
     companyBusinessLicense: { type: String, default: '' }, // Giấy phép đăng ký kinh doanh công ty / chi nhánh
     powerOfAttorney: { type: String, default: '' }, // Giấy ủy quyền (nếu người ký không phải đại diện pháp luật)
     isLegalRepresentative: { type: Boolean, default: true },
@@ -250,12 +252,13 @@ const restaurantSchema = new mongoose.Schema(
     parkingFee: { type: String, default: 'Miễn phí' },
     menuImages: { type: [String], default: [] },
 
-    // 5. Gói tăng trưởng
+    // 5. Gói tăng trưởng & Cấu hình quyết toán (Chiết khấu sàn + Khấu trừ thuế Hộ KD)
     growthPackage: {
       type: String,
       enum: ['FREE', 'GROWTH_1', 'GROWTH_3'],
       default: 'FREE'
     },
+    commissionRate: { type: Number, default: 0.25 }, // Chiết khấu sàn mặc định 25% trên doanh thu sau voucher quán
     packagePrice: { type: Number, default: 0 },
     paymentStatus: {
       type: String,

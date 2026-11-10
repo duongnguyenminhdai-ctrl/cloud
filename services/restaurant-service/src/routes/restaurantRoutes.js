@@ -99,6 +99,33 @@ router.get(
   restaurantController.manageWallet
 );
 
+// 1.7 Quản lý Voucher khuyến mãi riêng của Quán (Module 6 - Tự tạo & giảm trừ thuế Hộ KD)
+router.get(
+  ['/my-store/vouchers', '/stores/my-store/vouchers'],
+  verifyToken,
+  voucherController.merchantGetVouchers
+);
+router.post(
+  ['/my-store/vouchers', '/stores/my-store/vouchers'],
+  verifyToken,
+  voucherController.merchantCreateVoucher
+);
+router.put(
+  ['/my-store/vouchers/:voucherId', '/stores/my-store/vouchers/:voucherId'],
+  verifyToken,
+  voucherController.merchantUpdateVoucher
+);
+router.patch(
+  ['/my-store/vouchers/:voucherId/toggle', '/stores/my-store/vouchers/:voucherId/toggle'],
+  verifyToken,
+  voucherController.merchantToggleVoucher
+);
+router.delete(
+  ['/my-store/vouchers/:voucherId', '/stores/my-store/vouchers/:voucherId'],
+  verifyToken,
+  voucherController.merchantDeleteVoucher
+);
+
 // -----------------------------------------------------------------------------
 // 2. Quản trị viên (Admin Store Management & Approval)
 // -----------------------------------------------------------------------------

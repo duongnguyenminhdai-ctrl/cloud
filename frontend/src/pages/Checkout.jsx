@@ -54,20 +54,38 @@ export default function Checkout() {
   const [demoHour, setDemoHour] = useState(null); // null: Giờ thực | 23: Đêm | 12: Trưa | 19: Tối
   const [demoRain, setDemoRain] = useState(false); // false: Open-Meteo thật | true: Mô phỏng mưa
 
-  // Tải danh sách voucher khả dụng từ backend
+  // Tải danh sách voucher khả dụng từ backend (bao gồm cả Voucher Sàn & Voucher riêng của Quán)
   useEffect(() => {
     const fetchAvailableVouchers = async () => {
       try {
-        const res = await voucherApi.getAvailable();
+        const res = await voucherApi.getAvailable({ store_id: currentRestaurant?._id });
         if (res.data?.success && Array.isArray(res.data.data)) {
           setVouchersList(res.data.data);
         }
       } catch (e) {
-        // Fallback danh sách voucher mặc định
+        // Fallback danh sách voucher mặc định nếu không gọi được API
+        setVouchersList([
+          {
+            code: 'FREESHIP50',
+            title: 'Freeship 15.000đ cho đơn từ 50.000đ',
+            issuer_type: 'PLATFORM',
+            discount_type: 'FIXED_AMOUNT',
+            discount_value: 15000,
+            min_order_value: 50000
+          },
+          {
+            code: 'FOODFAST10',
+            title: 'Giảm 10.000đ cho mọi đơn hàng',
+            issuer_type: 'PLATFORM',
+            discount_type: 'FIXED_AMOUNT',
+            discount_value: 10000,
+            min_order_value: 0
+          }
+        ]);
       }
     };
     fetchAvailableVouchers();
-  }, []);
+  }, [currentRestaurant?._id]);
 
   // Tính khoảng cách giữa khách hàng và quán ăn
   const estimatedDistance = useMemo(() => {
@@ -102,8 +120,9 @@ export default function Checkout() {
     }
   }, [userCoord?.address]);
 
-  const handleApplyVoucher = async (codeToApply) => {
-    const code = (typeof codeToApply === 'string' ? codeToApply : voucherCode).trim().toUpperCase();
+  const handleApplyVoucher = async (codeOrVoucher) => {
+    const rawCode = typeof codeOrVoucher === 'string' ? codeOrVoucher : (codeOrVoucher?.code || voucherCode);
+    const code = (rawCode || '').trim().toUpperCase();
     if (!code) return;
     setApplyingVoucher(true);
     setVoucherError(null);
@@ -120,27 +139,47 @@ export default function Checkout() {
         setVoucherError(res.data?.message || 'Mã giảm giá không hợp lệ.');
       }
     } catch (err) {
-      // Cho phép áp dụng mã demo linh hoạt nếu backend chưa có mã
-      let discountAmount = 15000;
-      if (code.includes('FREESHIP') || code.includes('50')) {
-        discountAmount = Math.min(currentShippingFee, 25000);
-      } else if (code.includes('20')) {
-        discountAmount = Math.round(totalPrice * 0.2);
+      // Nếu server trả lỗi logic (chưa đủ min order, hết hạn, sai quán...), hiển thị lỗi rõ ràng cho khách
+      if (err.response?.data?.message) {
+        setVoucherError(err.response.data.message);
+      } else {
+        // Chỉ fallback khi mất kết nối mạng hoàn toàn
+        const matched = vouchersList.find((v) => (v.code || '').toUpperCase() === code);
+        if (matched && matched.min_order_value && totalPrice < matched.min_order_value) {
+          setVoucherError(`Đơn hàng tối thiểu phải từ ${Number(matched.min_order_value).toLocaleString('vi-VN')} đ để áp dụng mã này.`);
+        } else {
+          let discountAmount = 15000;
+          if (matched) {
+            discountAmount =
+              matched.discount_type === 'PERCENTAGE'
+                ? Math.round((totalPrice * matched.discount_value) / 100)
+                : matched.discount_value;
+            if (matched.max_discount_amount && discountAmount > matched.max_discount_amount) {
+              discountAmount = matched.max_discount_amount;
+            }
+          } else if (code.includes('20')) {
+            discountAmount = Math.round(totalPrice * 0.2);
+          }
+          discountAmount = Math.min(totalPrice, discountAmount);
+          setAppliedVoucher({
+            voucher_code: code,
+            issuer_type: matched?.issuer_type || 'PLATFORM',
+            discount_amount: discountAmount,
+            final_total: Math.max(0, totalPrice - discountAmount)
+          });
+          setVoucherCode('');
+        }
       }
-      setAppliedVoucher({
-        voucher_code: code,
-        discount_amount: discountAmount,
-        final_total: Math.max(0, totalPrice - discountAmount)
-      });
-      setVoucherCode('');
     } finally {
       setApplyingVoucher(false);
     }
   };
 
   const handleSelectVoucherFromModal = (selectedVoucher) => {
-    if (!selectedVoucher?.code) return;
-    handleApplyVoucher(selectedVoucher.code);
+    if (!selectedVoucher) return;
+    const code = typeof selectedVoucher === 'string' ? selectedVoucher : selectedVoucher.code;
+    if (!code) return;
+    handleApplyVoucher(code);
   };
 
   const handleRemoveVoucher = () => {
@@ -181,6 +220,11 @@ export default function Checkout() {
         note: item.note
       }));
 
+      const issuerType = appliedVoucher?.issuer_type || (appliedVoucher ? 'PLATFORM' : null);
+      const voucherDisc = appliedVoucher?.discount_amount || 0;
+      const storeVoucherDiscount = issuerType === 'STORE' ? voucherDisc : 0;
+      const platformVoucherDiscount = issuerType === 'PLATFORM' ? voucherDisc : 0;
+
       const orderPayload = {
         customerId: user?.id || user?.userId || 'guest_user',
         restaurantId: currentRestaurant?._id || 'default_restaurant',
@@ -189,10 +233,13 @@ export default function Checkout() {
         items: formattedItems,
         totalPrice: payableTotal,
         originalTotal: totalPrice,
-        discountAmount: (appliedVoucher?.discount_amount || 0) + coinDiscountAmount,
-        voucherDiscount: appliedVoucher?.discount_amount || 0,
+        discountAmount: voucherDisc + coinDiscountAmount,
+        voucherDiscount: voucherDisc,
         coinDiscount: coinDiscountAmount,
         voucherCode: appliedVoucher?.voucher_code || null,
+        voucherIssuerType: issuerType,
+        storeVoucherDiscount,
+        platformVoucherDiscount,
         driverNote: driverNote.trim() || undefined,
         shippingFee: currentShippingFee,
         shippingFeeDetails: shippingFeeData,
@@ -218,8 +265,13 @@ export default function Checkout() {
             restaurantImage: currentRestaurant?.image,
             items: formattedItems,
             totalPrice: payableTotal,
-            discountAmount: (appliedVoucher?.discount_amount || 0) + coinDiscountAmount,
-            voucherDiscount: appliedVoucher?.discount_amount || 0,
+            originalTotal: totalPrice,
+            discountAmount: voucherDisc + coinDiscountAmount,
+            voucherDiscount: voucherDisc,
+            voucherCode: appliedVoucher?.voucher_code || null,
+            voucherIssuerType: issuerType,
+            storeVoucherDiscount,
+            platformVoucherDiscount,
             coinDiscount: coinDiscountAmount,
             driverNote: driverNote.trim() || undefined,
             shippingFee: currentShippingFee,
@@ -522,7 +574,11 @@ export default function Checkout() {
                       - {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
-                  <p className="text-[11px] text-emerald-600">Đã áp dụng mã thành công</p>
+                  <p className="text-[11px] text-emerald-700">
+                    {appliedVoucher.issuer_type === 'STORE'
+                      ? 'Ưu đãi riêng của Quán — Đã áp dụng thành công'
+                      : 'Ưu đãi tài trợ bởi FoodFast — Đã áp dụng thành công'}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -780,6 +836,8 @@ export default function Checkout() {
       <VoucherPickerModal
         isOpen={isVoucherModalOpen}
         onClose={() => setIsVoucherModalOpen(false)}
+        vouchers={vouchersList}
+        currentAppliedCode={appliedVoucher?.voucher_code}
         onSelectVoucher={handleSelectVoucherFromModal}
         currentTotal={totalPrice}
       />

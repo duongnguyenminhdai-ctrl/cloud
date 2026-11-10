@@ -4,21 +4,53 @@ import { X, Ticket, Truck, Store, BadgePercent, CheckCircle2 } from 'lucide-reac
 export default function VoucherPickerModal({
   isOpen,
   onClose,
-  vouchers,
+  vouchers = [],
   currentAppliedCode,
+  currentTotal = 0,
   onSelectVoucher
 }) {
-  if (!isOpen) return null;
-
   const [activeCategory, setActiveCategory] = useState('ALL');
 
-  const filteredVouchers = vouchers.filter((v) => {
+  if (!isOpen) return null;
+
+  const normalizedVouchers = (Array.isArray(vouchers) ? vouchers : []).map((v) => {
+    const isStore = v.issuer_type === 'STORE' || v.type === 'STORE';
+    const isFreeship = v.type === 'FREESHIP' || (!isStore && (v.code || '').toUpperCase().includes('FREESHIP'));
+    const categoryKey = isStore ? 'STORE' : isFreeship ? 'FREESHIP' : 'DISCOUNT';
+    const badge = v.badge || (isStore ? 'Quán Tài Trợ' : isFreeship ? 'Freeship' : 'Voucher Sàn');
+    const minOrder = Number(v.min_order_value || 0);
+    const condition =
+      v.condition ||
+      (minOrder > 0
+        ? `Áp dụng đơn từ ${minOrder.toLocaleString('vi-VN')}đ`
+        : 'Áp dụng cho mọi đơn hàng');
+    const expiry =
+      v.expiry ||
+      (v.end_date ? `HSD: ${new Date(v.end_date).toLocaleDateString('vi-VN')}` : 'Hiệu lực dài hạn');
+
+    return {
+      ...v,
+      _categoryKey: categoryKey,
+      _isStore: isStore,
+      _isFreeship: isFreeship,
+      _badge: badge,
+      _condition: condition,
+      _expiry: expiry,
+      _minOrder: minOrder,
+      _eligible: currentTotal >= minOrder
+    };
+  });
+
+  const filteredVouchers = normalizedVouchers.filter((v) => {
     if (activeCategory === 'ALL') return true;
-    return v.type === activeCategory;
+    return v._categoryKey === activeCategory;
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-fadeIn">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-fadeIn"
+      onClick={onClose}
+    >
       <div
         className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp"
         onClick={(e) => e.stopPropagation()}
@@ -34,7 +66,7 @@ export default function VoucherPickerModal({
                 Chọn Voucher FoodFast
               </h3>
               <p className="text-xs text-gray-500">
-                Áp dụng mã ưu đãi để nhận giảm giá món & freeship
+                Áp dụng mã ưu đãi của Sàn hoặc mã riêng của Quán
               </p>
             </div>
           </div>
@@ -49,10 +81,10 @@ export default function VoucherPickerModal({
         {/* Filter Category Pills */}
         <div className="flex items-center gap-2 p-3 border-b border-gray-100 overflow-x-auto no-scrollbar text-xs font-bold">
           {[
-            { id: 'ALL', label: 'Tất cả' },
+            { id: 'ALL', label: `Tất cả (${normalizedVouchers.length})` },
+            { id: 'STORE', label: 'Voucher Quán' },
             { id: 'FREESHIP', label: 'Freeship' },
-            { id: 'DISCOUNT', label: 'Giảm giá món' },
-            { id: 'STORE', label: 'Quán đối tác' }
+            { id: 'DISCOUNT', label: 'Voucher Sàn' }
           ].map((cat) => (
             <button
               key={cat.id}
@@ -76,38 +108,38 @@ export default function VoucherPickerModal({
             </div>
           ) : (
             filteredVouchers.map((voucher) => {
-              const isFreeship = voucher.type === 'FREESHIP';
-              const isStore = voucher.type === 'STORE';
               const isSelected = (currentAppliedCode || '').toUpperCase() === (voucher.code || '').toUpperCase();
 
               return (
                 <div
-                  key={voucher.code}
+                  key={voucher._id || voucher.code}
                   className={`relative bg-white rounded-2xl border transition-all flex items-stretch overflow-hidden group shadow-xs ${
                     isSelected
                       ? 'border-[#EE4D2D] ring-2 ring-orange-500/20 bg-orange-50/20'
+                      : !voucher._eligible
+                      ? 'border-gray-200 opacity-70'
                       : 'border-gray-200 hover:border-orange-300'
                   }`}
                 >
                   {/* Left Badge */}
                   <div
                     className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-200 ${
-                      isFreeship
+                      voucher._isFreeship
                         ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
-                        : isStore
-                        ? 'bg-gradient-to-br from-red-500 to-rose-600'
+                        : voucher._isStore
+                        ? 'bg-gradient-to-br from-amber-500 to-orange-600'
                         : 'bg-gradient-to-br from-[#EE4D2D] to-orange-500'
                     }`}
                   >
-                    {isFreeship ? (
+                    {voucher._isFreeship ? (
                       <Truck className="w-6 h-6 mb-1" />
-                    ) : isStore ? (
+                    ) : voucher._isStore ? (
                       <Store className="w-6 h-6 mb-1" />
                     ) : (
                       <BadgePercent className="w-6 h-6 mb-1" />
                     )}
                     <span className="text-[10px] font-black tracking-wide uppercase leading-tight">
-                      {voucher.badge || 'Ưu đãi'}
+                      {voucher._badge}
                     </span>
 
                     {/* Vết cắt tròn */}
@@ -118,30 +150,49 @@ export default function VoucherPickerModal({
                   {/* Right Content */}
                   <div className="flex-1 p-3.5 flex items-center justify-between gap-3 min-w-0">
                     <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-xs font-black text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">
                           {voucher.code}
                         </span>
+                        {voucher._isStore ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                            Ưu đãi của Quán
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            Tài trợ FoodFast
+                          </span>
+                        )}
                       </div>
                       <p className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-1">
                         {voucher.title}
                       </p>
                       <p className="text-[11px] text-gray-500 line-clamp-1">
-                        {voucher.condition}
+                        {voucher._condition}
                       </p>
                       <p className="text-[10px] text-gray-400">
-                        {voucher.expiry || 'HSD: 30 ngày'}
+                        {voucher._expiry}
+                        {!voucher._eligible && (
+                          <span className="text-red-500 font-semibold ml-2">
+                            (Mua thêm {(voucher._minOrder - currentTotal).toLocaleString('vi-VN')}đ)
+                          </span>
+                        )}
                       </p>
                     </div>
 
                     {/* Button Áp dụng */}
                     <button
                       type="button"
-                      onClick={() => onSelectVoucher(voucher.code)}
-                      disabled={isSelected}
+                      onClick={() => {
+                        onSelectVoucher(voucher);
+                        onClose();
+                      }}
+                      disabled={isSelected || !voucher._eligible}
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                         isSelected
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'
+                          : !voucher._eligible
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-[#EE4D2D] hover:bg-[#d73211] text-white shadow-xs active:scale-95'
                       }`}
                     >
@@ -164,4 +215,3 @@ export default function VoucherPickerModal({
     </div>
   );
 }
-

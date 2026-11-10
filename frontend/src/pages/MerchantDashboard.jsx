@@ -42,11 +42,21 @@ import {
   UserPlus,
   BadgeAlert,
   Bell,
-  Unlock
+  Unlock,
+  Ticket,
+  Percent,
+  Calculator,
+  Info,
+  ShieldCheck
 } from 'lucide-react';
 import { storeApi, orderApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
+import {
+  calculateMerchantSettlement,
+  simulateMerchantVoucher,
+  MERCHANT_TYPE_LABELS
+} from '../utils/merchantSettlement';
 
 // Định dạng tiền tệ VNĐ
 const formatVND = (amount) => {
@@ -760,6 +770,199 @@ export default function MerchantDashboard() {
   };
 
   // =========================================================================
+  // 6. PHÂN HỆ VOUCHER TỰ TẠO CỦA QUÁN & TÍNH THUẾ HỘ KINH DOANH (MODULE 6)
+  // =========================================================================
+  const [merchantVouchers, setMerchantVouchers] = useState([]);
+  const [vouchersLoading, setVouchersLoading] = useState(false);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [editingVoucherId, setEditingVoucherId] = useState(null);
+  const [submittingVoucher, setSubmittingVoucher] = useState(false);
+  const [simOrderAmount, setSimOrderAmount] = useState(100000);
+  const [voucherForm, setVoucherForm] = useState({
+    code: '',
+    title: '',
+    discount_type: 'FIXED_AMOUNT',
+    discount_value: 20000,
+    max_discount_amount: '',
+    min_order_value: 100000,
+    usage_limit: 100,
+    start_date: '',
+    end_date: '',
+    is_active: true
+  });
+
+  const fetchMerchantVouchers = async () => {
+    if (!store?._id) return;
+    setVouchersLoading(true);
+    try {
+      const res = await storeApi.getVouchers();
+      if (res.data?.success) {
+        setMerchantVouchers(res.data.data || []);
+      }
+    } catch {
+      // Giữ nguyên danh sách hiện tại nếu offline
+    } finally {
+      setVouchersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (store?._id) {
+      fetchMerchantVouchers();
+    }
+  }, [store?._id]);
+
+  const handleOpenCreateVoucher = () => {
+    setEditingVoucherId(null);
+    const now = new Date();
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    setVoucherForm({
+      code: '',
+      title: '',
+      discount_type: 'FIXED_AMOUNT',
+      discount_value: 20000,
+      max_discount_amount: '',
+      min_order_value: 100000,
+      usage_limit: 100,
+      start_date: now.toISOString().slice(0, 16),
+      end_date: nextMonth.toISOString().slice(0, 16),
+      is_active: true
+    });
+    setSimOrderAmount(100000);
+    setShowVoucherModal(true);
+  };
+
+  const handleOpenEditVoucher = (v) => {
+    setEditingVoucherId(v._id);
+    const minVal = v.min_order_value || 0;
+    setVoucherForm({
+      code: v.code,
+      title: v.title || '',
+      discount_type: v.discount_type || 'FIXED_AMOUNT',
+      discount_value: v.discount_value || 0,
+      max_discount_amount: v.max_discount_amount || '',
+      min_order_value: minVal,
+      usage_limit: v.usage_limit || 100,
+      start_date: v.start_date ? new Date(v.start_date).toISOString().slice(0, 16) : '',
+      end_date: v.end_date ? new Date(v.end_date).toISOString().slice(0, 16) : '',
+      is_active: v.is_active !== false
+    });
+    setSimOrderAmount(Math.max(100000, minVal));
+    setShowVoucherModal(true);
+  };
+
+  const handleSaveVoucher = async (e) => {
+    e.preventDefault();
+    if (!voucherForm.code.trim()) {
+      alert('Vui lòng nhập mã Voucher!');
+      return;
+    }
+    if (!voucherForm.discount_value || Number(voucherForm.discount_value) <= 0) {
+      alert('Vui lòng nhập giá trị giảm hợp lệ (> 0)!');
+      return;
+    }
+    setSubmittingVoucher(true);
+    try {
+      const payload = {
+        ...voucherForm,
+        code: voucherForm.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, ''),
+        discount_value: Number(voucherForm.discount_value),
+        max_discount_amount:
+          voucherForm.discount_type === 'PERCENTAGE' && voucherForm.max_discount_amount
+            ? Number(voucherForm.max_discount_amount)
+            : null,
+        min_order_value: Math.max(0, Number(voucherForm.min_order_value) || 0),
+        usage_limit: Math.max(1, Number(voucherForm.usage_limit) || 100),
+        start_date: voucherForm.start_date ? new Date(voucherForm.start_date).toISOString() : new Date().toISOString(),
+        end_date: voucherForm.end_date ? new Date(voucherForm.end_date).toISOString() : null
+      };
+
+      if (editingVoucherId) {
+        const res = await storeApi.updateVoucher(editingVoucherId, payload);
+        showToast(res.data?.message || `Đã cập nhật voucher [${payload.code}]!`);
+      } else {
+        const res = await storeApi.createVoucher(payload);
+        showToast(res.data?.message || `Đã tạo voucher [${payload.code}] miễn phí khởi tạo thành công!`);
+      }
+      setShowVoucherModal(false);
+      fetchMerchantVouchers();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Lỗi lưu voucher quán');
+    } finally {
+      setSubmittingVoucher(false);
+    }
+  };
+
+  const handleToggleVoucher = async (voucherId) => {
+    try {
+      const res = await storeApi.toggleVoucher(voucherId);
+      showToast(res.data?.message || 'Đã chuyển trạng thái voucher!');
+      fetchMerchantVouchers();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Lỗi chuyển trạng thái');
+    }
+  };
+
+  const handleDeleteVoucher = async (voucherId, code) => {
+    if (!window.confirm(`Xóa mã voucher [${code}] của quán? Mã sẽ ngừng hiệu lực ngay với khách hàng.`)) return;
+    try {
+      const res = await storeApi.deleteVoucher(voucherId);
+      showToast(res.data?.message || `Đã xóa voucher [${code}]!`);
+      fetchMerchantVouchers();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Lỗi xóa voucher');
+    }
+  };
+
+  // Bộ mô phỏng trực tiếp khi Chủ quán nhập thông số Voucher
+  const liveVoucherSimulation = useMemo(() => {
+    return simulateMerchantVoucher({
+      orderAmount: simOrderAmount,
+      discountType: voucherForm.discount_type,
+      discountValue: voucherForm.discount_value,
+      maxDiscountAmount: voucherForm.max_discount_amount,
+      minOrderValue: voucherForm.min_order_value,
+      commissionRate: store?.commissionRate ?? 0.25,
+      merchantType: store?.merchantType || 'HOUSEHOLD'
+    });
+  }, [simOrderAmount, voucherForm, store?.commissionRate, store?.merchantType]);
+
+  // Tổng hợp quyết toán tài chính & Thuế Hộ Kinh Doanh trên các đơn hàng thành công của quán
+  const walletSummary = useMemo(() => {
+    const settledOrders = (orders || []).filter((o) =>
+      ['COMPLETED', 'DELIVERED'].includes(o.status)
+    );
+    return settledOrders.reduce(
+      (acc, ord) => {
+        const s = calculateMerchantSettlement(ord, store);
+        acc.orderCount += 1;
+        acc.grossFoodTotal += s.grossFoodTotal;
+        acc.storeVoucherDiscount += s.storeVoucherDiscount;
+        acc.platformVoucherDiscount += s.platformVoucherDiscount;
+        acc.taxableRevenue += s.taxableRevenue;
+        acc.platformCommission += s.platformCommission;
+        acc.withholdingTax += s.withholdingTax;
+        acc.taxSavedByStoreVoucher += s.taxSavedByStoreVoucher;
+        acc.commissionSavedByStoreVoucher += s.commissionSavedByStoreVoucher;
+        acc.netMerchant += s.netMerchant;
+        return acc;
+      },
+      {
+        orderCount: 0,
+        grossFoodTotal: 0,
+        storeVoucherDiscount: 0,
+        platformVoucherDiscount: 0,
+        taxableRevenue: 0,
+        platformCommission: 0,
+        withholdingTax: 0,
+        taxSavedByStoreVoucher: 0,
+        commissionSavedByStoreVoucher: 0,
+        netMerchant: 0
+      }
+    );
+  }, [orders, store]);
+
+  // =========================================================================
   // RENDER TRẠNG THÁI LOADING / ERROR
   // =========================================================================
   if (loading) {
@@ -1014,7 +1217,7 @@ export default function MerchantDashboard() {
         </div>
 
         {/* ===================================================================== */}
-        {/* 3. THANH ĐIỀU HƯỚNG 5 TABS CHUẨN FOODFAST PARTNER */}
+        {/* 3. THANH ĐIỀU HƯỚNG 6 TABS CHUẨN FOODFAST PARTNER */}
         {/* ===================================================================== */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
           {[
@@ -1022,7 +1225,8 @@ export default function MerchantDashboard() {
             { id: 'menu', label: '2. Thực đơn & Topping', icon: UtensilsCrossed, badge: store.menuItems?.length || 0 },
             { id: 'operations', label: '3. Giờ mở cửa & Quán bận', icon: Clock },
             { id: 'staff', label: '4. Quản lý Nhân viên', icon: Users, badge: store.staff?.length || 0 },
-            { id: 'wallet', label: '5. Tài chính & Ví đối tác', icon: Wallet }
+            { id: 'vouchers', label: '5. Voucher của Quán', icon: Ticket, badge: merchantVouchers.filter((v) => v.is_active).length },
+            { id: 'wallet', label: '6. Tài chính & Ví đối tác', icon: Wallet }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeMainTab === tab.id;
@@ -1101,11 +1305,8 @@ export default function MerchantDashboard() {
                   const isDelivering = ['FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(ord.status);
                   const isDelivered = ['COMPLETED', 'DELIVERED'].includes(ord.status);
 
-                  // Tính tài chính đơn hàng theo công thức FoodFast Partner
-                  const grossTotal = ord.items?.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0) || ord.totalPrice || 0;
-                  const commission = Math.round(grossTotal * 0.2); // Chiết khấu nền tảng 20%
-                  const packagingFee = 6000; // Phí đóng gói
-                  const netMerchant = grossTotal - commission + packagingFee;
+                  // Tính tài chính đơn hàng theo công thức FoodFast Partner & Thuế Hộ Kinh Doanh
+                  const settlement = calculateMerchantSettlement(ord, store);
 
                   return (
                     <div
@@ -1208,23 +1409,77 @@ export default function MerchantDashboard() {
                         )}
                       </div>
 
-                      {/* Bảng kê tài chính đơn (FoodFast Partner Formula) */}
-                      <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
-                        <div className="flex justify-between text-slate-400">
-                          <span>Tổng tiền món (giá gốc):</span>
-                          <span>{formatVND(grossTotal)}</span>
+                      {/* Bảng kê tài chính đơn (Công thức FoodFast Partner & Thuế Hộ Kinh Doanh) */}
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Giá gốc món ăn:</span>
+                          <span className="font-semibold">{formatVND(settlement.grossFoodTotal)}</span>
                         </div>
+
+                        {settlement.storeVoucherDiscount > 0 && (
+                          <>
+                            <div className="flex justify-between items-center text-amber-300">
+                              <span className="flex items-center gap-1">
+                                <span>(-) Voucher Quán [{settlement.voucherCode}]:</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                                  Giảm trừ thuế
+                                </span>
+                              </span>
+                              <span className="font-semibold">-{formatVND(settlement.storeVoucherDiscount)}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-200 border-t border-dashed border-slate-800 pt-1">
+                              <span>Doanh thu sau giảm (Tính CK & Thuế):</span>
+                              <span className="font-bold text-white">{formatVND(settlement.taxableRevenue)}</span>
+                            </div>
+                          </>
+                        )}
+
+                        {settlement.platformVoucherDiscount > 0 && (
+                          <div className="flex justify-between items-center text-sky-300 bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-500/20">
+                            <span className="text-[11px]">
+                              Voucher Sàn [{settlement.voucherCode}]: FoodFast bù {formatVND(settlement.platformVoucherDiscount)}
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-400 shrink-0 ml-2">Không trừ quán</span>
+                          </div>
+                        )}
+
                         <div className="flex justify-between text-slate-400">
-                          <span>Chiết khấu nền tảng (20%):</span>
-                          <span className="text-rose-400">-{formatVND(commission)}</span>
+                          <span>
+                            (-) Phí chiết khấu sàn ({Math.round(settlement.commissionRate * 100)}%):
+                          </span>
+                          <span className="text-rose-400">-{formatVND(settlement.platformCommission)}</span>
                         </div>
-                        <div className="flex justify-between text-slate-400">
-                          <span>Phí đóng gói:</span>
-                          <span className="text-emerald-400">+{formatVND(packagingFee)}</span>
-                        </div>
-                        <div className="border-t border-slate-800 pt-1 flex justify-between font-bold text-sm text-emerald-400">
-                          <span>Tổng tiền quán nhận:</span>
-                          <span>{formatVND(netMerchant)}</span>
+
+                        {settlement.isTaxWithheld ? (
+                          <div className="flex justify-between text-slate-400">
+                            <span>
+                              (-) Thuế khấu trừ hộ (Hộ KD 1.5%: 1% GTGT + 0.5% TNCN):
+                            </span>
+                            <span className="text-rose-400">-{formatVND(settlement.withholdingTax)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-slate-500 text-[11px]">
+                            <span>Thuế khấu trừ hộ (Doanh nghiệp tự kê khai):</span>
+                            <span>0 đ</span>
+                          </div>
+                        )}
+
+                        {settlement.taxSavedByStoreVoucher > 0 && (
+                          <div className="text-[10px] text-emerald-400/90 italic text-right">
+                            * Đã tiết kiệm {formatVND(settlement.taxSavedByStoreVoucher)} tiền thuế & {formatVND(settlement.commissionSavedByStoreVoucher)} chiết khấu nhờ giảm trừ Voucher Quán
+                          </div>
+                        )}
+
+                        <div className="border-t border-slate-800 pt-1.5 flex justify-between items-baseline font-bold text-sm text-emerald-400">
+                          <div>
+                            <span>Tiền Quán thực nhận về Ví:</span>
+                            {settlement.isTaxWithheld && (
+                              <span className="block text-[10px] font-normal text-slate-400">
+                                (Chưa tính thuế: {formatVND(settlement.beforeTaxAmount)})
+                              </span>
+                            )}
+                          </div>
+                          <span>{formatVND(settlement.netMerchant)}</span>
                         </div>
                       </div>
 
@@ -1804,7 +2059,206 @@ export default function MerchantDashboard() {
         )}
 
         {/* ===================================================================== */}
-        {/* PHÂN HỆ 5: TÀI CHÍNH & VÍ ĐỐI TÁC (Images 17, 18) */}
+        {/* PHÂN HỆ 5: VOUCHER KHUYẾN MÃI CỦA QUÁN & TÍNH THUẾ HỘ KINH DOANH */}
+        {/* ===================================================================== */}
+        {activeMainTab === 'vouchers' && (
+          <div className="space-y-6">
+            {/* Header & Nút tạo Voucher */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="font-bold text-white text-base sm:text-lg flex items-center gap-2">
+                  <Ticket className="w-5 h-5 text-orange-400" />
+                  <span>Quản lý Voucher khuyến mãi riêng của Quán</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tự tạo mã giảm giá thu hút khách hàng — 0đ phí khởi tạo, chỉ trừ khi có đơn giao thành công.
+                </p>
+              </div>
+              <button
+                onClick={handleOpenCreateVoucher}
+                className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/25 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tạo Voucher Quán Mới</span>
+              </button>
+            </div>
+
+            {/* Banner Chính sách Tài chính & Giảm trừ thuế Hộ Kinh Doanh */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border border-orange-500/30 space-y-3 text-xs">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 font-bold text-orange-400 text-sm">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Cơ chế quyết toán Voucher & Khấu trừ thuế dành cho {store.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : store.merchantType === 'INDIVIDUAL' ? 'Cá nhân' : 'Hộ Kinh Doanh'}</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {MERCHANT_TYPE_LABELS[store.merchantType || 'HOUSEHOLD']}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] text-slate-300">
+                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
+                  <p className="font-bold text-emerald-400">1. Chỉ trừ khi có đơn thành công</p>
+                  <p className="text-slate-400 leading-relaxed">
+                    Thoải mái cài đặt ngân sách voucher. FoodFast không thu phí khởi tạo và không giam tiền ví trước.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
+                  <p className="font-bold text-amber-400">2. Công thức trừ trực tiếp</p>
+                  <p className="text-slate-400 leading-relaxed">
+                    Tiền Quán Nhận = (Giá gốc - Voucher Quán) - Chiết khấu sàn ({Math.round((store.commissionRate ?? 0.25) * 100)}%) - Thuế hộ ({store.merchantType === 'ENTERPRISE' ? '0%' : '1.5%'}).
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
+                  <p className="font-bold text-blue-400">3. Giảm trừ doanh thu tính thuế</p>
+                  <p className="text-slate-400 leading-relaxed">
+                    Voucher Quán tự tài trợ được trừ thẳng khỏi doanh thu chịu thuế GTGT (1%) &amp; TNCN (0.5%) và chiết khấu sàn!
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
+                  <p className="font-bold text-purple-400">4. Phân biệt Voucher Sàn</p>
+                  <p className="text-slate-400 leading-relaxed">
+                    Khi khách dùng mã của sàn FoodFast (Freeship, Đại tiệc...), Quán vẫn nhận đủ tiền món, FoodFast tự bù tiền giảm.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Danh sách Voucher Quán tự tạo */}
+            {vouchersLoading ? (
+              <div className="py-12 text-center text-slate-400">
+                <RotateCw className="w-7 h-7 animate-spin text-orange-500 mx-auto mb-2" />
+                <p className="text-xs">Đang tải danh sách mã khuyến mãi của quán...</p>
+              </div>
+            ) : merchantVouchers.length === 0 ? (
+              <div className="bg-slate-800/40 rounded-3xl p-10 text-center border border-slate-800 space-y-3">
+                <Ticket className="w-12 h-12 text-slate-600 mx-auto" />
+                <p className="text-base font-bold text-slate-200">Quán chưa phát hành mã Voucher nào</p>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Hãy tạo mã giảm giá đầu tiên (VD: Giảm 15.000đ cho đơn từ 120.000đ) để tăng tỷ lệ chuyển đổi đơn hàng và được giảm trừ doanh thu tính thuế!
+                </p>
+                <button
+                  onClick={handleOpenCreateVoucher}
+                  className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Tạo Voucher Đầu Tiên
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {merchantVouchers.map((v) => {
+                  const usagePct = v.usage_limit > 0 ? Math.min(100, Math.round(((v.used_count || 0) / v.usage_limit) * 100)) : 0;
+                  const isExpired = v.end_date && new Date(v.end_date) < new Date();
+                  const sampleSim = simulateMerchantVoucher({
+                    orderAmount: Math.max(100000, v.min_order_value || 100000),
+                    discountType: v.discount_type,
+                    discountValue: v.discount_value,
+                    maxDiscountAmount: v.max_discount_amount,
+                    minOrderValue: v.min_order_value,
+                    commissionRate: store.commissionRate ?? 0.25,
+                    merchantType: store.merchantType || 'HOUSEHOLD'
+                  });
+
+                  return (
+                    <div
+                      key={v._id}
+                      className={`p-4 rounded-2xl bg-slate-800/80 border transition-all space-y-3 ${
+                        v.is_active ? 'border-slate-700 hover:border-orange-500/40' : 'border-slate-800 opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-sm text-orange-400 tracking-wider bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">
+                              {v.code}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              Voucher Quán
+                            </span>
+                            {isExpired && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                                Hết hạn
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-white font-bold text-sm mt-1.5">{v.title}</p>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleVoucher(v._id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition cursor-pointer shrink-0 ${
+                            v.is_active
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              : 'bg-slate-700 text-slate-400 border-slate-600'
+                          }`}
+                        >
+                          {v.is_active ? 'Đang bật' : 'Tạm tắt'}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Mức giảm:</span>
+                          <strong className="text-emerald-400">
+                            {v.discount_type === 'PERCENTAGE'
+                              ? `Giảm ${v.discount_value}%${v.max_discount_amount ? ` (tối đa ${formatVND(v.max_discount_amount)})` : ''}`
+                              : `Giảm ${formatVND(v.discount_value)}`}
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Đơn tối thiểu:</span>
+                          <strong className="text-white">{formatVND(v.min_order_value || 0)}</strong>
+                        </div>
+                      </div>
+
+                      {/* Tiến độ lượt dùng */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] text-slate-400">
+                          <span>Đã dùng: <strong className="text-white">{v.used_count || 0}</strong> / {v.usage_limit} lượt</span>
+                          <span className="text-orange-400 font-bold">{usagePct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                            style={{ width: `${usagePct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Ước tính thực nhận trên đơn mẫu */}
+                      <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-[11px] flex items-center justify-between text-emerald-300">
+                        <span>Đơn {formatVND(sampleSim.grossFoodTotal)} sau trừ CK &amp; thuế:</span>
+                        <strong className="text-emerald-400">Ví nhận {formatVND(sampleSim.netMerchant)}</strong>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-400">
+                          HSD: {v.end_date ? new Date(v.end_date).toLocaleDateString('vi-VN') : 'Vô thời hạn'}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditVoucher(v)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3 h-3" /> Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVoucher(v._id, v.code)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" /> Xóa
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* PHÂN HỆ 6: TÀI CHÍNH, THUẾ HỘ KINH DOANH & VÍ ĐỐI TÁC */}
         {/* ===================================================================== */}
         {activeMainTab === 'wallet' && (
           <div className="space-y-6">
@@ -1812,10 +2266,15 @@ export default function MerchantDashboard() {
             <div className="bg-gradient-to-br from-orange-950/60 to-slate-900 rounded-3xl p-6 border border-orange-500/30 shadow-xl space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Wallet className="w-4 h-4" />
-                    <span>Ví Đối Tác FoodFast Partner</span>
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4" />
+                      <span>Ví Đối Tác FoodFast Partner</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {MERCHANT_TYPE_LABELS[store.merchantType || 'HOUSEHOLD']}
+                    </span>
+                  </div>
                   <p className="text-3xl font-black text-white">
                     {formatVND(store.wallet?.availableBalance || 1368922)}
                   </p>
@@ -1857,27 +2316,93 @@ export default function MerchantDashboard() {
               </div>
             </div>
 
+            {/* Bảng Quyết toán Tổng hợp Thuế & Voucher Hộ Kinh Doanh từ các đơn hoàn tất */}
+            <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-3">
+                <div>
+                  <h3 className="font-bold text-white text-base flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-orange-400" />
+                    <span>Tổng hợp Quyết toán Voucher &amp; Thuế Hộ Kinh Doanh ({walletSummary.orderCount} đơn thành công)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Áp dụng giảm trừ doanh thu tính thuế &amp; chiết khấu cho các mã khuyến mãi do Quán tự tài trợ.
+                  </p>
+                </div>
+                <span className="text-xs px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  Chiết khấu sàn: {Math.round((store.commissionRate ?? 0.25) * 100)}%
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                  <span className="text-slate-400">Tổng giá gốc món ăn</span>
+                  <p className="text-base font-black text-white">{formatVND(walletSummary.grossFoodTotal)}</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30 space-y-1">
+                  <span className="text-amber-300">(-) Voucher Quán tài trợ</span>
+                  <p className="text-base font-black text-amber-400">-{formatVND(walletSummary.storeVoucherDiscount)}</p>
+                  <span className="text-[10px] text-slate-400 block">Đã trừ vào DT tính thuế</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-sky-500/30 space-y-1">
+                  <span className="text-sky-300">Voucher Sàn FoodFast bù</span>
+                  <p className="text-base font-black text-sky-400">+{formatVND(walletSummary.platformVoucherDiscount)}</p>
+                  <span className="text-[10px] text-slate-400 block">Không trừ tiền Quán</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-1">
+                  <span className="text-emerald-300">Tổng thực nhận sau thuế</span>
+                  <p className="text-base font-black text-emerald-400">{formatVND(walletSummary.netMerchant)}</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+                <div className="flex justify-between text-slate-300">
+                  <span>Doanh thu chịu thuế &amp; chiết khấu (= Giá gốc - Voucher Quán):</span>
+                  <strong className="text-white">{formatVND(walletSummary.taxableRevenue)}</strong>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>(-) Phí chiết khấu sàn FoodFast ({Math.round((store.commissionRate ?? 0.25) * 100)}%):</span>
+                  <span className="text-rose-400 font-semibold">-{formatVND(walletSummary.platformCommission)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>
+                    (-) Thuế khấu trừ hộ TMĐT ({store.merchantType === 'ENTERPRISE' ? '0% - DN tự kê khai' : '1.5% = 1% GTGT + 0.5% TNCN'}):
+                  </span>
+                  <span className="text-rose-400 font-semibold">-{formatVND(walletSummary.withholdingTax)}</span>
+                </div>
+                {(walletSummary.taxSavedByStoreVoucher > 0 || walletSummary.commissionSavedByStoreVoucher > 0) && (
+                  <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-emerald-400">
+                    <span>Quyền lợi giảm trừ từ Voucher Quán tự tạo:</span>
+                    <span>
+                      Tiết kiệm <strong>{formatVND(walletSummary.taxSavedByStoreVoucher)}</strong> tiền thuế &amp;{' '}
+                      <strong>{formatVND(walletSummary.commissionSavedByStoreVoucher)}</strong> phí chiết khấu!
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Bảng kê lịch sử giao dịch & Rút tiền */}
             <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-              <h3 className="font-bold text-white text-base">Lịch sử giao dịch & Quyết toán</h3>
+              <h3 className="font-bold text-white text-base">Lịch sử giao dịch &amp; Rút tiền</h3>
               <div className="divide-y divide-slate-700/60">
-                {[
+                {(store.payouts && store.payouts.length > 0 ? store.payouts : [
                   { code: 'WD-889123', desc: 'Rút tiền thủ công về Vietcombank', amount: -500000, date: 'Hôm nay 14:08', status: 'Đang xử lý' },
-                  { code: 'ORD-771239', desc: 'Thanh toán đơn hàng #D061DCC2', amount: 58500, date: 'Hôm nay 11:20', status: 'Thành công' },
-                  { code: 'ORD-771238', desc: 'Thanh toán đơn hàng #AD689148', amount: 58500, date: 'Hôm nay 10:15', status: 'Thành công' },
+                  { code: 'ORD-771239', desc: 'Quyết toán đơn hàng #D061DCC2 (Đã trừ CK 25% & Thuế Hộ KD 1.5%)', amount: 58800, date: 'Hôm nay 11:20', status: 'Thành công' },
                   { code: 'WD-881024', desc: 'Quyết toán tự động định kỳ', amount: -1000000, date: '08/11/2026', status: 'Thành công' }
-                ].map((tr, idx) => (
+                ]).map((tr, idx) => (
                   <div key={idx} className="py-3 flex items-center justify-between text-xs">
                     <div>
-                      <p className="font-bold text-white">{tr.desc}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Mã: {tr.code} • {tr.date}</p>
+                      <p className="font-bold text-white">{tr.desc || `Yêu cầu rút tiền về ${tr.bankInfo?.bankName || 'Ngân hàng'}`}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Mã: {tr.code} • {tr.requestedAt ? new Date(tr.requestedAt).toLocaleString('vi-VN') : tr.date}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className={`font-black text-sm ${tr.amount > 0 ? 'text-emerald-400' : 'text-slate-200'}`}>
-                        {tr.amount > 0 ? `+${formatVND(tr.amount)}` : formatVND(tr.amount)}
+                      <p className={`font-black text-sm ${tr.amount > 0 && !tr.requestedAt ? 'text-emerald-400' : 'text-slate-200'}`}>
+                        {tr.requestedAt ? `-${formatVND(tr.amount)}` : tr.amount > 0 ? `+${formatVND(tr.amount)}` : formatVND(tr.amount)}
                       </p>
-                      <span className={`text-[10px] font-bold ${tr.status === 'Thành công' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {tr.status}
+                      <span className={`text-[10px] font-bold ${tr.status === 'Thành công' || tr.status === 'SUCCESS' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {tr.status === 'PENDING' ? 'Đang xử lý' : tr.status}
                       </span>
                     </div>
                   </div>
@@ -2940,6 +3465,337 @@ export default function MerchantDashboard() {
                 Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL 9: TẠO / SỬA VOUCHER QUÁN TỰ TÀI TRỢ (TÍCH HỢP MÔ PHỎNG HỘ KD) */}
+      {/* ===================================================================== */}
+      {showVoucherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-400 flex items-center justify-center shrink-0">
+                  <Ticket className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    {editingVoucherId ? 'Chỉnh sửa Voucher của Quán' : 'Tạo Voucher Khuyến Mãi Riêng của Quán'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Miễn phí khởi tạo (0đ) — Chỉ trừ trực tiếp vào doanh thu đơn khi khách đặt thành công.
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowVoucherModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVoucher} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">
+                    Mã Voucher * <span className="text-slate-400 font-normal">(Chữ hoa không dấu)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={!!editingVoucherId}
+                    value={voucherForm.code}
+                    onChange={(e) =>
+                      setVoucherForm({
+                        ...voucherForm,
+                        code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+                      })
+                    }
+                    placeholder="VD: QUANGIAM20, DFOOD15K..."
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-orange-400 font-mono font-bold tracking-wider focus:outline-none focus:border-orange-500 disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">Tiêu đề hiển thị cho khách *</label>
+                  <input
+                    type="text"
+                    required
+                    value={voucherForm.title}
+                    onChange={(e) => setVoucherForm({ ...voucherForm, title: e.target.value })}
+                    placeholder="VD: Giảm 20.000đ cho đơn từ 100.000đ"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVoucherForm({ ...voucherForm, discount_type: 'FIXED_AMOUNT' })}
+                  className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${
+                    voucherForm.discount_type === 'FIXED_AMOUNT'
+                      ? 'bg-orange-500/20 border-orange-500 text-orange-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <DollarSign className="w-4 h-4" /> Giảm số tiền cố định (đ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoucherForm({ ...voucherForm, discount_type: 'PERCENTAGE' })}
+                  className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${
+                    voucherForm.discount_type === 'PERCENTAGE'
+                      ? 'bg-orange-500/20 border-orange-500 text-orange-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <Percent className="w-4 h-4" /> Giảm theo phần trăm (%)
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">
+                    Giá trị giảm * {voucherForm.discount_type === 'PERCENTAGE' ? '(%)' : '(VNĐ)'}
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={voucherForm.discount_type === 'PERCENTAGE' ? 100 : 10000000}
+                    value={voucherForm.discount_value}
+                    onChange={(e) => setVoucherForm({ ...voucherForm, discount_value: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                {voucherForm.discount_type === 'PERCENTAGE' ? (
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Giảm tối đa (VNĐ)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={voucherForm.max_discount_amount}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, max_discount_amount: e.target.value })}
+                      placeholder="VD: 30000"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Số lượt phát hành (Quota) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={voucherForm.usage_limit}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, usage_limit: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">
+                    Giá trị đơn hàng tối thiểu (Min Order VNĐ) *
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={voucherForm.min_order_value}
+                    onChange={(e) => {
+                      const val = Number(e.target.value) || 0;
+                      setVoucherForm({ ...voucherForm, min_order_value: val });
+                      if (val > 0) setSimOrderAmount(val);
+                    }}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-orange-500"
+                  />
+                  {/* Nút chọn nhanh Mẹo cài Min Order */}
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {[60000, 100000, 120000, 150000, 200000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setVoucherForm({ ...voucherForm, min_order_value: preset });
+                          setSimOrderAmount(preset);
+                        }}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                          Number(voucherForm.min_order_value) === preset
+                            ? 'bg-orange-600 text-white border-orange-500'
+                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                        }`}
+                      >
+                        Từ {preset / 1000}k
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {voucherForm.discount_type === 'PERCENTAGE' ? (
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Số lượt phát hành (Quota) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={voucherForm.usage_limit}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, usage_limit: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Ngày bắt đầu</label>
+                      <input
+                        type="datetime-local"
+                        value={voucherForm.start_date}
+                        onChange={(e) => setVoucherForm({ ...voucherForm, start_date: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-[11px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Ngày hết hạn</label>
+                      <input
+                        type="datetime-local"
+                        value={voucherForm.end_date}
+                        onChange={(e) => setVoucherForm({ ...voucherForm, end_date: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-[11px]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {voucherForm.discount_type === 'PERCENTAGE' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Ngày bắt đầu</label>
+                    <input
+                      type="datetime-local"
+                      value={voucherForm.start_date}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, start_date: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Ngày hết hạn</label>
+                    <input
+                      type="datetime-local"
+                      value={voucherForm.end_date}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, end_date: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* BỘ MÔ PHỎNG LỢI NHUẬN THỰC NHẬN & THUẾ HỘ KINH DOANH */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-emerald-400 flex items-center gap-1.5 text-xs">
+                    <Calculator className="w-4 h-4" />
+                    Mô phỏng Tiền Quán Nhận &amp; Thuế ({store.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : 'Hộ Kinh Doanh'})
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-400">Giả lập đơn hàng:</span>
+                    <input
+                      type="number"
+                      min={10000}
+                      step={10000}
+                      value={simOrderAmount}
+                      onChange={(e) => setSimOrderAmount(Number(e.target.value) || 0)}
+                      className="w-24 px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold text-right"
+                    />
+                    <span className="text-slate-400">đ</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 text-[11px] border-t border-slate-800 pt-2">
+                  <div className="flex justify-between text-slate-300">
+                    <span>Giá gốc món ăn:</span>
+                    <span className="font-semibold">{formatVND(liveVoucherSimulation.grossFoodTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-amber-300">
+                    <span>(-) Voucher Quán tài trợ (Trừ vào doanh thu tính thuế):</span>
+                    <span className="font-semibold">-{formatVND(liveVoucherSimulation.storeVoucherDiscount)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-200">
+                    <span>(=) Giá sau giảm (Doanh thu tính chiết khấu &amp; thuế):</span>
+                    <span className="font-bold">{formatVND(liveVoucherSimulation.taxableRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-300">
+                    <span>(-) Phí chiết khấu sàn ({Math.round(liveVoucherSimulation.commissionRate * 100)}%):</span>
+                    <span>-{formatVND(liveVoucherSimulation.platformCommission)}</span>
+                  </div>
+                  {liveVoucherSimulation.isTaxWithheld && (
+                    <div className="flex justify-between text-rose-300">
+                      <span>(-) Thuế khấu trừ hộ Hộ KD (1% GTGT + 0.5% TNCN = 1.5%):</span>
+                      <span>-{formatVND(liveVoucherSimulation.withholdingTax)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-baseline pt-1.5 border-t border-slate-800 text-emerald-400 font-black text-sm">
+                    <span>
+                      (=) Số tiền đổ về Ví FoodFast của Quán:
+                      {liveVoucherSimulation.isTaxWithheld && (
+                        <span className="block text-[10px] font-normal text-slate-400">
+                          (Chưa tính thuế: {formatVND(liveVoucherSimulation.beforeTaxAmount)})
+                        </span>
+                      )}
+                    </span>
+                    <span>{formatVND(liveVoucherSimulation.netMerchant)}</span>
+                  </div>
+                </div>
+
+                {liveVoucherSimulation.taxSavedByStoreVoucher > 0 && (
+                  <p className="text-[10px] text-emerald-400/90 flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Nhờ giảm trừ doanh thu tính thuế, bạn không bị đóng {formatVND(liveVoucherSimulation.taxSavedByStoreVoucher)} tiền thuế &amp; giảm {formatVND(liveVoucherSimulation.commissionSavedByStoreVoucher)} phí chiết khấu trên phần đã tặng khách!
+                    </span>
+                  </p>
+                )}
+
+                {/* Cảnh báo mẹo cài Giá trị đơn hàng tối thiểu */}
+                {(Number(voucherForm.min_order_value) === 0 ||
+                  liveVoucherSimulation.netMerchant < liveVoucherSimulation.grossFoodTotal * 0.4) && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Mẹo cho quán:</strong> Bạn nên cài đặt kèm <em>"Giá trị đơn hàng tối thiểu"</em> (VD: Giảm 15k cho đơn từ 120k) để đảm bảo sau khi trừ Voucher, Chiết khấu sàn và Thuế Hộ KD, quán vẫn giữ được mức biên lợi nhuận tối ưu.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  disabled={submittingVoucher}
+                  onClick={() => setShowVoucherModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingVoucher}
+                  className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-600/25 flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {submittingVoucher ? (
+                    <>
+                      <RotateCw className="w-3.5 h-3.5 animate-spin" /> Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" /> {editingVoucherId ? 'Lưu Thay Đổi' : 'Phát Hành Voucher (0đ phí)'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

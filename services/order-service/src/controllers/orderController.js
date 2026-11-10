@@ -9,12 +9,17 @@ exports.createOrder = async (req, res) => {
       customerId,
       items,
       totalPrice,
+      originalTotal,
       paymentMethod,
       restaurantName,
       restaurantImage,
       driverNote,
       coinDiscount,
       voucherDiscount,
+      voucherCode,
+      voucherIssuerType,
+      storeVoucherDiscount,
+      platformVoucherDiscount,
       shippingFee
     } = req.body;
 
@@ -25,10 +30,30 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    const grossItemsTotal = items.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+      0
+    );
+
     // Tự động tính toán tổng tiền nếu client không gửi
-    const calculatedTotal =
-      totalPrice ||
-      items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+    const calculatedTotal = totalPrice !== undefined ? Number(totalPrice) : grossItemsTotal;
+    const resolvedOriginalTotal = originalTotal !== undefined ? Number(originalTotal) : grossItemsTotal;
+    const totalVoucherDisc = Number(voucherDiscount) || 0;
+    const resolvedIssuerType =
+      voucherIssuerType === 'STORE' || voucherIssuerType === 'PLATFORM'
+        ? voucherIssuerType
+        : totalVoucherDisc > 0
+        ? 'PLATFORM'
+        : null;
+
+    const resolvedStoreDiscount =
+      resolvedIssuerType === 'STORE'
+        ? Math.min(resolvedOriginalTotal, Number(storeVoucherDiscount ?? totalVoucherDisc) || 0)
+        : 0;
+    const resolvedPlatformDiscount =
+      resolvedIssuerType === 'PLATFORM'
+        ? Math.max(0, Number(platformVoucherDiscount ?? totalVoucherDisc) || 0)
+        : 0;
 
     // Tạo đơn hàng trạng thái PENDING
     const newOrder = new Order({
@@ -38,11 +63,16 @@ exports.createOrder = async (req, res) => {
       restaurantImage: restaurantImage || null,
       items,
       totalPrice: calculatedTotal,
+      originalTotal: resolvedOriginalTotal,
       status: 'PENDING',
       paymentMethod: paymentMethod || 'VNPAY',
       driverNote: driverNote || '',
       coinDiscount: Number(coinDiscount) || 0,
-      voucherDiscount: Number(voucherDiscount) || 0,
+      voucherDiscount: totalVoucherDisc,
+      voucherCode: voucherCode || null,
+      voucherIssuerType: resolvedIssuerType,
+      storeVoucherDiscount: resolvedStoreDiscount,
+      platformVoucherDiscount: resolvedPlatformDiscount,
       shippingFee: Number(shippingFee) || 16000
     });
 
@@ -56,6 +86,11 @@ exports.createOrder = async (req, res) => {
       customerId: savedOrder.customerId,
       items: savedOrder.items,
       totalPrice: savedOrder.totalPrice,
+      originalTotal: savedOrder.originalTotal,
+      voucherCode: savedOrder.voucherCode,
+      voucherIssuerType: savedOrder.voucherIssuerType,
+      storeVoucherDiscount: savedOrder.storeVoucherDiscount,
+      platformVoucherDiscount: savedOrder.platformVoucherDiscount,
       status: savedOrder.status,
       paymentMethod: savedOrder.paymentMethod,
       createdAt: savedOrder.createdAt

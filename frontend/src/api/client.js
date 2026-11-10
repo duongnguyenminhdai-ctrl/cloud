@@ -493,6 +493,22 @@ export const storeApi = {
   },
   getNotifications: async () => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/notifications'));
+  },
+  // Quản lý Voucher riêng của Quán (Merchant Self-Service)
+  getVouchers: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/vouchers'));
+  },
+  createVoucher: async (data) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/vouchers'), data);
+  },
+  updateVoucher: async (voucherId, data) => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/vouchers/${voucherId}`), data);
+  },
+  toggleVoucher: async (voucherId) => {
+    return await apiClient.patch(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/vouchers/${voucherId}/toggle`));
+  },
+  deleteVoucher: async (voucherId) => {
+    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/vouchers/${voucherId}`));
   }
 };
 

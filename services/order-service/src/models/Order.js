@@ -30,6 +30,10 @@ const orderSchema = new mongoose.Schema(
       required: [true, 'totalPrice không được để trống'],
       min: [0, 'Tổng tiền phải lớn hơn hoặc bằng 0']
     },
+    originalTotal: {
+      type: Number,
+      default: 0
+    },
     status: {
       type: String,
       default: 'PENDING'
@@ -52,6 +56,23 @@ const orderSchema = new mongoose.Schema(
       default: 0
     },
     voucherDiscount: {
+      type: Number,
+      default: 0
+    },
+    voucherCode: {
+      type: String,
+      default: null
+    },
+    voucherIssuerType: {
+      type: String,
+      enum: ['PLATFORM', 'STORE', null],
+      default: null
+    },
+    storeVoucherDiscount: {
+      type: Number,
+      default: 0
+    },
+    platformVoucherDiscount: {
       type: Number,
       default: 0
     },
