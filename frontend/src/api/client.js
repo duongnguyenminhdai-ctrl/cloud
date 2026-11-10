@@ -199,6 +199,48 @@ export const authApi = {
       throw err;
     }
   },
+  getPhoneConfigStatus: async () => {
+    try {
+      return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/phone/config-status'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3005/api/v1/auth/phone/config-status');
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  checkPhoneAvailable: async ({ phone, purpose }) => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/phone/check-available'), { phone, purpose });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/phone/check-available', { phone, purpose }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  verifyFirebasePhone: async ({ idToken, purpose = 'PROFILE' }) => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/phone/verify-firebase'), { idToken, purpose });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/phone/verify-firebase', { idToken, purpose }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
 };
 
 // -----------------------------------------------------------------------------

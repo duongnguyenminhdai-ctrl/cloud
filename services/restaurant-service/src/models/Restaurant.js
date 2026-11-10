@@ -130,6 +130,10 @@ const restaurantSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    phoneVerified: {
+      type: Boolean,
+      default: false
+    },
     rating: {
       type: Number,
       default: 0,

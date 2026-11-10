@@ -1388,9 +1388,14 @@ export default function AdminDashboard() {
                             <div className="font-bold text-white">{u.name}</div>
                             <div className="text-[11px] text-slate-400">{u.email}</div>
                             {displayPhone ? (
-                              <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5 font-mono">
+                              <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5 font-mono flex-wrap">
                                 <Phone className="w-3 h-3 text-orange-400 shrink-0" />
                                 <span className="font-semibold">{displayPhone}</span>
+                                {u.phoneVerified && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-sans font-bold">
+                                    ✓ SMS
+                                  </span>
+                                )}
                                 {!u.phone && storePhone && (
                                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-sans">
                                     SĐT Quán liên kết

@@ -28,11 +28,13 @@ import { useAuth } from '../context/AuthContext';
 import { useLocationCity } from '../context/LocationContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { authApi, storeApi } from '../api/client';
+import PhoneVerificationBox from '../components/PhoneVerificationBox';
+import { normalizeVNPhone } from '../utils/firebase';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAuthenticated, updateUserProfile, logout } = useAuth();
+  const { user, isAuthenticated, updateUserProfile, loginWithToken, logout } = useAuth();
   const { selectedCity } = useLocationCity();
   const { location: userCoord } = useUserLocation();
 
@@ -138,7 +140,7 @@ export default function ProfilePage() {
 
       fetchProfile();
     }
-  }, [user, isAuthenticated]);
+  }, [user?.id, isAuthenticated]);
 
   const showMsg = (type, msg) => {
     setFeedback({ type, msg });
@@ -461,22 +463,35 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Số điện thoại */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right">
+                {/* Số điện thoại (Xác thực SMS OTP chống SĐT rác) */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right pt-2.5">
                     Số điện thoại:
                   </label>
-                  <div className="sm:col-span-3">
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type="tel"
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        placeholder={linkedStoreInfo?.phone || "VD: 0987654321"}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
-                      />
-                    </div>
+                  <div className="sm:col-span-3 space-y-2">
+                    <PhoneVerificationBox
+                      phone={profileForm.phone}
+                      onPhoneChange={(val) => setProfileForm({ ...profileForm, phone: val })}
+                      isVerified={Boolean(
+                        user?.phoneVerified &&
+                        normalizeVNPhone(profileForm.phone) &&
+                        normalizeVNPhone(profileForm.phone) === normalizeVNPhone(user?.phone)
+                      )}
+                      purpose="PROFILE"
+                      syncWithBackend={true}
+                      label="Số điện thoại liên hệ (Xác thực SMS Firebase)"
+                      placeholder={linkedStoreInfo?.phone || 'VD: 0987654321'}
+                      compact={true}
+                      onVerified={({ phone, token: newToken, user: updatedUser }) => {
+                        setProfileForm((prev) => ({ ...prev, phone }));
+                        if (newToken && updatedUser) {
+                          loginWithToken(newToken, updatedUser);
+                        } else if (updatedUser) {
+                          updateUserProfile(updatedUser);
+                        }
+                        showMsg('success', `Đã xác thực SMS thành công cho số ${phone}!`);
+                      }}
+                    />
                     {linkedStoreInfo?.phone && (
                       <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500">
                         <Phone className="w-3.5 h-3.5 text-orange-500 shrink-0" />

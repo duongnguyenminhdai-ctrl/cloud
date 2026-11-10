@@ -2,9 +2,32 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { generateOTP, sendOTPEmail } = require('../utils/mailer');
 const { checkAndSetRateLimit, saveOTP, getOTP, deleteOTP } = require('../utils/redis');
+const {
+  isFirebaseAdminConfigured,
+  normalizeVietnamPhone,
+  verifyFirebasePhoneToken
+} = require('../utils/firebaseAdmin');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_123';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+
+// Chuẩn hóa thông tin user trả về cho Client
+const formatAuthUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  avatar: user.avatar || '',
+  authProvider: user.authProvider || 'LOCAL',
+  has_store: user.has_store || false,
+  store_id: user.store_id || null,
+  phone: user.phone || '',
+  phoneVerified: Boolean(user.phoneVerified),
+  phoneVerifiedAt: user.phoneVerifiedAt || null,
+  birthYear: user.birthYear || null,
+  address: user.address || '',
+  createdAt: user.createdAt
+});
 
 // Hàm sinh JWT Token
 const generateToken = (user) => {
@@ -13,7 +36,9 @@ const generateToken = (user) => {
       userId: user._id.toString(),
       role: user.role,
       email: user.email,
-      name: user.name
+      name: user.name,
+      phone: user.phone || '',
+      phoneVerified: Boolean(user.phoneVerified)
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
@@ -134,10 +159,10 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// 3. Đăng ký tài khoản mới kèm xác thực OTP (POST /api/v1/auth/register)
+// 3. Đăng ký tài khoản mới kèm xác thực OTP Gmail & (tùy chọn/bắt buộc) SMS Firebase (POST /api/v1/auth/register)
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, otp } = req.body;
+    const { name, email, password, role, otp, phone, firebaseIdToken } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -180,13 +205,64 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Xác thực SĐT qua Firebase Phone Auth Token nếu có hoặc khi hệ thống yêu cầu
+    let verifiedPhoneData = {
+      phone: '',
+      phoneVerified: false,
+      phoneVerifiedAt: null,
+      firebasePhoneUid: null
+    };
+
+    if (firebaseIdToken) {
+      try {
+        const fbResult = await verifyFirebasePhoneToken(firebaseIdToken);
+        const dupPhoneUser = await User.findOne({ phone: fbResult.localPhone, phoneVerified: true });
+        if (dupPhoneUser) {
+          return res.status(409).json({
+            success: false,
+            message: `Số điện thoại ${fbResult.localPhone} đã được xác thực và liên kết với tài khoản khác.`
+          });
+        }
+        verifiedPhoneData = {
+          phone: fbResult.localPhone,
+          phoneVerified: true,
+          phoneVerifiedAt: new Date(),
+          firebasePhoneUid: fbResult.uid
+        };
+      } catch (fbErr) {
+        return res.status(fbErr.code === 'FIREBASE_NOT_CONFIGURED' ? 503 : 400).json({
+          success: false,
+          message: fbErr.message || 'Xác thực số điện thoại Firebase thất bại.'
+        });
+      }
+    } else if (process.env.REQUIRE_PHONE_VERIFICATION === 'true') {
+      return res.status(400).json({
+        success: false,
+        message: 'Hệ thống yêu cầu xác thực số điện thoại qua mã OTP SMS trước khi đăng ký để tránh SĐT rác.'
+      });
+    } else if (phone && String(phone).trim()) {
+      const norm = normalizeVietnamPhone(String(phone));
+      if (!norm.valid) {
+        return res.status(400).json({ success: false, message: norm.reason });
+      }
+      const dupPhoneUser = await User.findOne({ phone: norm.local, phoneVerified: true });
+      if (dupPhoneUser) {
+        return res.status(409).json({
+          success: false,
+          message: `Số điện thoại ${norm.local} đã được tài khoản khác xác thực.`
+        });
+      }
+      verifiedPhoneData.phone = norm.local;
+    }
+
     // Tạo người dùng mới
     const userRole = role && ['CUSTOMER', 'RESTAURANT_OWNER', 'USER', 'ADMIN'].includes(role) ? role : 'USER';
     const newUser = await User.create({
       name,
       email: cleanEmail,
       password,
-      role: userRole
+      role: userRole,
+      ...verifiedPhoneData
     });
 
     // Xóa OTP sau khi đăng ký thành công
@@ -198,14 +274,7 @@ exports.register = async (req, res) => {
       success: true,
       message: 'Đăng ký tài khoản thành công!',
       token,
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        has_store: newUser.has_store || false,
-        store_id: newUser.store_id || null
-      }
+      user: formatAuthUser(newUser)
     });
   } catch (error) {
     console.error('[authController] ❌ Lỗi đăng ký:', error.message);
@@ -329,18 +398,7 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Đăng nhập thành công!',
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar || '',
-        has_store: user.has_store || false,
-        store_id: user.store_id || null,
-        phone: user.phone || '',
-        birthYear: user.birthYear || null,
-        address: user.address || ''
-      }
+      user: formatAuthUser(user)
     });
   } catch (error) {
     console.error('[authController] ❌ Lỗi đăng nhập:', error.message);
@@ -365,18 +423,7 @@ exports.verify = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Token hợp lệ',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar || '',
-        has_store: user.has_store || false,
-        store_id: user.store_id || null,
-        phone: user.phone || '',
-        birthYear: user.birthYear || null,
-        address: user.address || ''
-      }
+      user: formatAuthUser(user)
     });
   } catch (error) {
     console.error('[authController] ❌ Lỗi kiểm tra token:', error.message);
@@ -580,13 +627,7 @@ exports.googleCredentialLogin = async (req, res) => {
       success: true,
       message: 'Đăng nhập Google thành công!',
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar || ''
-      }
+      user: formatAuthUser(user)
     });
   } catch (error) {
     console.error('[authController] ❌ Lỗi googleCredentialLogin:', error.message);
@@ -856,20 +897,7 @@ exports.getProfile = async (req, res) => {
     }
     return res.status(200).json({
       success: true,
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        birthYear: user.birthYear || null,
-        address: user.address || '',
-        role: user.role,
-        avatar: user.avatar || '',
-        authProvider: user.authProvider || 'LOCAL',
-        has_store: user.has_store || false,
-        store_id: user.store_id || null,
-        createdAt: user.createdAt
-      }
+      data: formatAuthUser(user)
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi lấy thông tin tài khoản: ' + error.message });
@@ -886,7 +914,37 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (name && name.trim()) user.name = name.trim();
-    if (phone !== undefined) user.phone = phone.trim();
+    if (phone !== undefined) {
+      const raw = String(phone || '').trim();
+      if (!raw) {
+        user.phone = '';
+        user.phoneVerified = false;
+        user.phoneVerifiedAt = null;
+        user.firebasePhoneUid = null;
+      } else {
+        const norm = normalizeVietnamPhone(raw);
+        if (!norm.valid) {
+          return res.status(400).json({ success: false, message: norm.reason });
+        }
+        if (norm.local !== user.phone) {
+          const dupPhoneUser = await User.findOne({
+            phone: norm.local,
+            phoneVerified: true,
+            _id: { $ne: user._id }
+          });
+          if (dupPhoneUser) {
+            return res.status(409).json({
+              success: false,
+              message: `Số điện thoại ${norm.local} đã được xác thực ở tài khoản khác.`
+            });
+          }
+          user.phone = norm.local;
+          user.phoneVerified = false;
+          user.phoneVerifiedAt = null;
+          user.firebasePhoneUid = null;
+        }
+      }
+    }
     if (birthYear !== undefined) {
       const parsedYear = Number(birthYear);
       user.birthYear = !isNaN(parsedYear) && parsedYear >= 1920 && parsedYear <= new Date().getFullYear() ? parsedYear : null;
@@ -899,23 +957,149 @@ exports.updateProfile = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Cập nhật thông tin tài khoản thành công!',
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        birthYear: user.birthYear || null,
-        address: user.address || '',
-        role: user.role,
-        avatar: user.avatar || '',
-        authProvider: user.authProvider || 'LOCAL',
-        has_store: user.has_store || false,
-        store_id: user.store_id || null
-      }
+      data: formatAuthUser(user)
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi cập nhật tài khoản: ' + error.message });
   }
+};
+
+// Kiểm tra SĐT hợp lệ & chưa bị tài khoản khác xác thực (POST /api/v1/auth/phone/check-available)
+exports.checkPhoneAvailable = async (req, res) => {
+  try {
+    const { phone } = req.body || {};
+    const norm = normalizeVietnamPhone(String(phone || ''));
+    if (!norm.valid) {
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message: norm.reason
+      });
+    }
+
+    let currentUserId = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(req.headers.authorization.split(' ')[1], JWT_SECRET);
+        currentUserId = decoded?.userId || decoded?.id || null;
+      } catch {}
+    }
+
+    const query = { phone: norm.local, phoneVerified: true };
+    if (currentUserId) {
+      query._id = { $ne: currentUserId };
+    }
+    const existing = await User.findOne(query).select('_id');
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        available: false,
+        normalizedPhone: norm.local,
+        e164Phone: norm.e164,
+        message: `Số điện thoại ${norm.local} đã được xác thực ở một tài khoản khác.`
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      available: true,
+      normalizedPhone: norm.local,
+      e164Phone: norm.e164,
+      message: 'Số điện thoại hợp lệ và có thể xác thực SMS.'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, available: false, message: 'Lỗi kiểm tra SĐT: ' + error.message });
+  }
+};
+
+// Xác thực số điện thoại bằng Firebase ID Token từ SMS OTP (POST /api/v1/auth/phone/verify-firebase)
+exports.verifyFirebasePhone = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    const { idToken, purpose = 'PROFILE' } = req.body || {};
+
+    const rateCheck = await checkAndSetRateLimit('PHONE_VERIFY', String(userId), 10);
+    if (rateCheck && rateCheck.allowed === false) {
+      return res.status(429).json({
+        success: false,
+        remaining: rateCheck.remaining,
+        message: `Thao tác quá nhanh. Vui lòng thử lại sau ${rateCheck.remaining} giây.`
+      });
+    }
+
+    const verified = await verifyFirebasePhoneToken(idToken);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người dùng.' });
+    }
+
+    const dupPhoneUser = await User.findOne({
+      phone: verified.localPhone,
+      phoneVerified: true,
+      _id: { $ne: user._id }
+    });
+    if (dupPhoneUser) {
+      return res.status(409).json({
+        success: false,
+        message: `Số điện thoại ${verified.localPhone} đã được xác thực trên một tài khoản khác.`
+      });
+    }
+
+    let storePhoneProofToken = null;
+    if (purpose === 'STORE_REGISTER') {
+      storePhoneProofToken = jwt.sign(
+        {
+          type: 'STORE_PHONE_PROOF',
+          userId: user._id.toString(),
+          phone: verified.localPhone,
+          uid: verified.uid
+        },
+        JWT_SECRET,
+        { expiresIn: '2h' }
+      );
+      if (!user.phone || !user.phoneVerified || user.phone === verified.localPhone) {
+        user.phone = verified.localPhone;
+        user.phoneVerified = true;
+        user.phoneVerifiedAt = new Date();
+        user.firebasePhoneUid = verified.uid;
+        await user.save();
+      }
+    } else {
+      user.phone = verified.localPhone;
+      user.phoneVerified = true;
+      user.phoneVerifiedAt = new Date();
+      user.firebasePhoneUid = verified.uid;
+      await user.save();
+    }
+
+    const refreshedToken = generateToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xác thực SMS thành công cho số ${verified.localPhone}!`,
+      phone: verified.localPhone,
+      phoneVerified: true,
+      storePhoneProofToken,
+      token: refreshedToken,
+      user: formatAuthUser(user)
+    });
+  } catch (error) {
+    const status = error.code === 'FIREBASE_NOT_CONFIGURED' ? 503 : error.code === 'MISSING_TOKEN' || error.code === 'INVALID_VN_PHONE' || error.code === 'PHONE_CLAIM_MISSING' ? 400 : 401;
+    return res.status(status).json({
+      success: false,
+      message: error.message || 'Xác thực số điện thoại qua Firebase thất bại.'
+    });
+  }
+};
+
+// Kiểm tra trạng thái cấu hình Firebase Phone Auth trên Backend
+exports.getPhoneAuthStatus = (req, res) => {
+  return res.status(200).json({
+    success: true,
+    firebaseConfigured: isFirebaseAdminConfigured(),
+    required: process.env.REQUIRE_PHONE_VERIFICATION === 'true'
+  });
 };
 
 // Đổi mật khẩu tài khoản hiện tại (PUT /api/v1/auth/change-password)

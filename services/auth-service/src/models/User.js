@@ -44,6 +44,18 @@ const userSchema = new mongoose.Schema(
       default: '',
       trim: true
     },
+    phoneVerified: {
+      type: Boolean,
+      default: false
+    },
+    phoneVerifiedAt: {
+      type: Date,
+      default: null
+    },
+    firebasePhoneUid: {
+      type: String,
+      default: null
+    },
     birthYear: {
       type: Number,
       default: null

@@ -133,4 +133,23 @@ router.put(
   authController.changeUserPassword
 );
 
+// -----------------------------------------------------------------------------
+// XÁC THỰC SỐ ĐIỆN THOẠI QUA FIREBASE PHONE AUTH (CHỐNG SĐT RÁC & TRÙNG LẶP)
+// -----------------------------------------------------------------------------
+router.get(
+  ['/phone/config-status', '/auth/phone/config-status', '/api/v1/auth/phone/config-status'],
+  authController.getPhoneAuthStatus
+);
+
+router.post(
+  ['/phone/check-available', '/auth/phone/check-available', '/api/v1/auth/phone/check-available'],
+  authController.checkPhoneAvailable
+);
+
+router.post(
+  ['/phone/verify-firebase', '/auth/phone/verify-firebase', '/api/v1/auth/phone/verify-firebase'],
+  verifyToken,
+  authController.verifyFirebasePhone
+);
+
 module.exports = router;

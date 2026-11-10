@@ -11,12 +11,15 @@ import { calculateShippingFee } from '../utils/pricingEngine';
 import { calculateHaversineDistance } from '../utils/deliveryEstimate';
 import { getDishImageByName } from '../utils/menuImageSync';
 import { publishRealtimeSignal } from '../utils/realtimeSync';
+import PhoneVerificationBox from '../components/PhoneVerificationBox';
+import { isFirebasePhoneConfigured } from '../utils/firebase';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loginWithToken } = useAuth();
   const navigate = useNavigate();
   const { location: userCoord, setManualLocation } = useUserLocation();
+  const [checkoutPhone, setCheckoutPhone] = useState(user?.phone || '');
 
   const [address, setAddress] = useState(
     userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'
@@ -202,6 +205,11 @@ export default function Checkout() {
 
     if (cartItems.length === 0) {
       setError('Giỏ hàng của bạn đang trống!');
+      return;
+    }
+
+    if (isFirebasePhoneConfigured && !user?.phoneVerified) {
+      setError('Vui lòng xác thực số điện thoại qua mã OTP SMS bên phải (chỉ cần thực hiện 1 lần) trước khi đặt hàng để chống đơn ảo.');
       return;
     }
 
@@ -808,9 +816,34 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* Xác thực SMS SĐT 1 lần trước khi đặt đơn (khi đã cấu hình Firebase) */}
+            {isAuthenticated && isFirebasePhoneConfigured && !user?.phoneVerified && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 space-y-2.5">
+                <p className="text-xs font-bold text-amber-900">
+                  Xác thực SĐT 1 lần để bảo vệ đơn hàng &amp; chống spam
+                </p>
+                <PhoneVerificationBox
+                  phone={checkoutPhone}
+                  onPhoneChange={setCheckoutPhone}
+                  isVerified={false}
+                  purpose="CHECKOUT"
+                  syncWithBackend={true}
+                  compact={true}
+                  label="Số điện thoại nhận hàng"
+                  onVerified={({ phone, token, user: updatedUser }) => {
+                    setCheckoutPhone(phone);
+                    if (token && updatedUser) {
+                      loginWithToken(token, updatedUser);
+                    }
+                    setError(null);
+                  }}
+                />
+              </div>
+            )}
+
             <button
               onClick={handlePlaceOrder}
-              disabled={loading}
+              disabled={loading || (isFirebasePhoneConfigured && isAuthenticated && !user?.phoneVerified)}
               className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading ? (

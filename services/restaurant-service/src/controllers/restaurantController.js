@@ -1,7 +1,9 @@
 const Restaurant = require('../models/Restaurant');
+const jwt = require('jsonwebtoken');
 const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../redis');
 const { calculateMerchantSettlement } = require('../utils/settlementEngine');
 const { subscribe, emitStoreUpdate, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
+const { JWT_SECRET } = require('../middlewares/authMiddleware');
 
 function getAuthenticatedUserId(req) {
   return String(req.user?.userId || req.user?.id || req.user?._id || '').trim();
@@ -338,8 +340,45 @@ exports.registerStore = async (req, res) => {
       coverImage,
       latitude,
       longitude,
-      prep_time
+      prep_time,
+      storePhoneProofToken
     } = req.body;
+
+    // Xác thực bằng chứng SĐT SMS nếu quán gửi storePhoneProofToken từ auth-service
+    let verifiedStorePhone = '';
+    let isStorePhoneVerified = false;
+    if (storePhoneProofToken) {
+      try {
+        const decodedProof = jwt.verify(storePhoneProofToken, JWT_SECRET);
+        if (
+          decodedProof &&
+          decodedProof.type === 'STORE_PHONE_PROOF' &&
+          String(decodedProof.userId) === String(userId)
+        ) {
+          verifiedStorePhone = decodedProof.phone || '';
+          isStorePhoneVerified = true;
+        }
+      } catch (proofErr) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã xác thực số điện thoại quán đã hết hạn hoặc không hợp lệ. Vui lòng xác thực SMS lại.'
+        });
+      }
+    } else if (req.user?.phoneVerified && req.user?.phone) {
+      const requestedPhone = String(phone || repPhone || '').replace(/[\s().-]/g, '').replace(/^\+84/, '0');
+      const userVerifiedPhone = String(req.user.phone).replace(/[\s().-]/g, '').replace(/^\+84/, '0');
+      if (!requestedPhone || requestedPhone === userVerifiedPhone) {
+        verifiedStorePhone = userVerifiedPhone;
+        isStorePhoneVerified = true;
+      }
+    }
+
+    if (!isStorePhoneVerified && process.env.REQUIRE_PHONE_VERIFICATION === 'true') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng xác thực số điện thoại liên hệ của quán qua mã OTP SMS trước khi gửi hồ sơ.'
+      });
+    }
 
     // Tạo tên quán đầy đủ theo format chuẩn FoodFast
     let fullStoreName = name;
@@ -381,7 +420,8 @@ exports.registerStore = async (req, res) => {
       streetAddress: streetAddress || '',
       address_detail: req.body.address_detail || streetAddress || '',
       address: fullAddress,
-      phone: phone || repPhone || '',
+      phone: verifiedStorePhone || phone || repPhone || '',
+      phoneVerified: isStorePhoneVerified,
       status: 'PENDING',
       image: image || citizenIdFront || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
       coverImage: coverImage || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80',

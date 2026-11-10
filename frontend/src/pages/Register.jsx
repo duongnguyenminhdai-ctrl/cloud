@@ -3,11 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, ArrowRight, UtensilsCrossed, AlertCircle, ShieldCheck, CheckCircle, KeyRound, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/client';
+import PhoneVerificationBox from '../components/PhoneVerificationBox';
+import { isFirebasePhoneConfigured, normalizeVNPhone } from '../utils/firebase';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [phone, setPhone] = useState('');
+  const [firebaseIdToken, setFirebaseIdToken] = useState('');
+  const [verifiedPhone, setVerifiedPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('CUSTOMER');
 
@@ -68,9 +73,28 @@ export default function Register() {
       return;
     }
 
+    const isPhoneSmsVerified = Boolean(
+      firebaseIdToken &&
+      verifiedPhone &&
+      normalizeVNPhone(phone) === normalizeVNPhone(verifiedPhone)
+    );
+
+    if (isFirebasePhoneConfigured && !isPhoneSmsVerified) {
+      setError('Vui lòng xác thực số điện thoại qua mã OTP SMS để chống tài khoản SĐT rác.');
+      return;
+    }
+
     setLoading(true);
 
-    const result = await register({ name, email, password, role, otp: otp.trim() });
+    const result = await register({
+      name,
+      email,
+      password,
+      role,
+      otp: otp.trim(),
+      phone: normalizeVNPhone(phone) || undefined,
+      firebaseIdToken: isPhoneSmsVerified ? firebaseIdToken : undefined
+    });
     setLoading(false);
 
     if (result.success) {
@@ -216,6 +240,32 @@ export default function Register() {
               />
             </div>
           </div>
+
+          {/* Số điện thoại kèm xác thực SMS Firebase */}
+          <PhoneVerificationBox
+            phone={phone}
+            onPhoneChange={(val) => {
+              setPhone(val);
+              if (normalizeVNPhone(val) !== normalizeVNPhone(verifiedPhone)) {
+                setFirebaseIdToken('');
+                setVerifiedPhone('');
+              }
+            }}
+            isVerified={Boolean(
+              firebaseIdToken &&
+              verifiedPhone &&
+              normalizeVNPhone(phone) === normalizeVNPhone(verifiedPhone)
+            )}
+            purpose="REGISTER"
+            syncWithBackend={false}
+            label="Số điện thoại di động (Xác thực SMS chống SĐT rác)"
+            onVerified={({ phone: vPhone, idToken }) => {
+              setPhone(vPhone);
+              setVerifiedPhone(vPhone);
+              setFirebaseIdToken(idToken);
+              setError(null);
+            }}
+          />
 
           {/* Mật khẩu */}
           <div className="space-y-1">

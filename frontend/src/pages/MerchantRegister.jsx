@@ -9,6 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../api/client';
 import { VIETNAM_CITIES, TOP_CITIES, OTHER_CITIES } from '../constants/vietnamLocations';
+import PhoneVerificationBox from '../components/PhoneVerificationBox';
+import { isFirebasePhoneConfigured, normalizeVNPhone, isValidVNPhone } from '../utils/firebase';
 
 /**
  * Nén ảnh tự động trên Canvas phía trình duyệt:
@@ -212,12 +214,14 @@ function FileUploadBox({
 }
 
 export default function MerchantRegister() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [storePhoneProofToken, setStorePhoneProofToken] = useState('');
+  const [verifiedStorePhone, setVerifiedStorePhone] = useState('');
 
   // Form State đầy đủ theo quy trình của FoodFast
   // LƯU Ý: Tuyệt đối không để ảnh mặc định, tất cả các trường ảnh khởi tạo bằng chuỗi rỗng để người dùng tự tải lên
@@ -359,6 +363,14 @@ export default function MerchantRegister() {
     .filter(Boolean)
     .join(', ');
 
+  const isStorePhoneVerified = Boolean(
+    normalizeVNPhone(formData.phone) &&
+    (
+      (user?.phoneVerified && normalizeVNPhone(formData.phone) === normalizeVNPhone(user?.phone)) ||
+      (storePhoneProofToken && normalizeVNPhone(formData.phone) === normalizeVNPhone(verifiedStorePhone))
+    )
+  );
+
   const handleNext = () => {
     setErrorMsg('');
     if (currentStep === 1) {
@@ -368,6 +380,14 @@ export default function MerchantRegister() {
       }
       if (!formData.phone?.trim()) {
         setErrorMsg('Vui lòng nhập số điện thoại liên hệ của quán.');
+        return;
+      }
+      if (!isValidVNPhone(formData.phone)) {
+        setErrorMsg('Số điện thoại liên hệ của quán phải là số di động Việt Nam hợp lệ (10 số, đầu 03/05/07/08/09).');
+        return;
+      }
+      if (isFirebasePhoneConfigured && !isStorePhoneVerified) {
+        setErrorMsg('Vui lòng bấm Gửi OTP SMS để xác thực số điện thoại quán trước khi sang bước tiếp theo.');
         return;
       }
       if (!formData.streetAddress?.trim()) {
@@ -464,7 +484,8 @@ export default function MerchantRegister() {
         address_detail: formData.streetAddress || '',
         name: fullStoreName || formData.brandName,
         address: fullAddress || `${formData.streetAddress}, ${formData.city}`,
-        phone: formData.phone || formData.repPhone,
+        phone: normalizeVNPhone(formData.phone || formData.repPhone) || formData.phone || formData.repPhone,
+        storePhoneProofToken: storePhoneProofToken || undefined,
         // Đảm bảo có ảnh hợp lệ gửi lên backend
         image: formData.image || formData.citizenIdFront || '',
         coverImage: formData.coverImage || formData.image || ''
@@ -610,17 +631,34 @@ export default function MerchantRegister() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <span className="text-red-500">*</span> Số điện thoại liên hệ của quán
-                </label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
+              <div className="sm:w-2/3">
+                <PhoneVerificationBox
+                  phone={formData.phone}
+                  onPhoneChange={(val) => {
+                    setFormData((prev) => ({ ...prev, phone: val }));
+                    if (normalizeVNPhone(val) !== normalizeVNPhone(verifiedStorePhone)) {
+                      setStorePhoneProofToken('');
+                      setVerifiedStorePhone('');
+                    }
+                  }}
+                  isVerified={isStorePhoneVerified}
+                  purpose="STORE_REGISTER"
+                  syncWithBackend={true}
+                  label="* Số điện thoại liên hệ của quán (Xác thực SMS chống quán ảo)"
                   placeholder="0969535231"
-                  className="w-full sm:w-1/2 px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
+                  onVerified={({ phone: vPhone, storePhoneProofToken: proofToken, token: newToken, user: updatedUser }) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      phone: vPhone,
+                      repPhone: prev.repPhone || vPhone
+                    }));
+                    setVerifiedStorePhone(vPhone);
+                    if (proofToken) setStorePhoneProofToken(proofToken);
+                    if (newToken && updatedUser) {
+                      loginWithToken(newToken, updatedUser);
+                    }
+                    setErrorMsg('');
+                  }}
                 />
               </div>
 
