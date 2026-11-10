@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 
 /**
- * Modal cập nhật / giảm số lượng biến thể trong giỏ hàng phong cách ShopeeFood (UpdateModal)
+ * Modal cập nhật / giảm số lượng biến thể trong giỏ hàng chuẩn FoodFast
  * Khi một món ăn có nhiều biến thể trong giỏ hàng (ví dụ 1 Size M, 2 Size L),
  * bấm nút giảm (-) sẽ mở modal này để khách hàng chỉ định chính xác biến thể muốn giảm/xóa.
  */

@@ -424,7 +424,7 @@ export default function Checkout() {
               placeholder="Nhập địa chỉ nhận món..."
             />
 
-            {/* Ô Ghi chú cho tài xế giao hàng (ShopeeFood Style) */}
+            {/* Ô Ghi chú cho tài xế giao hàng (FoodFast Standard) */}
             <div className="pt-2 border-t border-gray-100">
               <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5 mb-1.5">
                 <Bike className="w-3.5 h-3.5 text-orange-600" />
@@ -776,7 +776,7 @@ export default function Checkout() {
         }}
       />
 
-      {/* Modal chọn Voucher từ ví chuẩn ShopeeFood */}
+      {/* Modal chọn Voucher từ ví FoodFast */}
       <VoucherPickerModal
         isOpen={isVoucherModalOpen}
         onClose={() => setIsVoucherModalOpen(false)}

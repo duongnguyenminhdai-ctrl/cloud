@@ -14,7 +14,7 @@ export function getClientVietnamHour() {
 }
 
 /**
- * Tính cước phí giao hàng linh hoạt chuẩn ShopeeFood / FoodFast
+ * Tính cước phí giao hàng linh hoạt chuẩn FoodFast
  *
  * @param {Object} params
  * @param {number} params.distanceKm Khoảng cách giao hàng (km)

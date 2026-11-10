@@ -14,7 +14,7 @@ function getVietnamHour() {
 }
 
 /**
- * Tính cước phí giao hàng linh hoạt theo chuẩn ShopeeFood / FoodFast
+ * Tính cước phí giao hàng linh hoạt theo chuẩn FoodFast
  * (Dynamic Surge Pricing theo khoảng cách, khung giờ & thời tiết)
  *
  * @param {Object} params

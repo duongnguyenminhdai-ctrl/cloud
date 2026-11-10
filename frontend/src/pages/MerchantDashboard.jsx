@@ -665,7 +665,7 @@ export default function MerchantDashboard() {
     currentStaff.push({
       id: `staff_${Date.now()}`,
       name: staffForm.name,
-      phone: staffForm.phone.replace(/^0+/, ''), // Bỏ số 0 đầu theo đúng Shopee Partner
+      phone: staffForm.phone.replace(/^0+/, ''), // Chuẩn hóa SĐT theo FoodFast Partner
       email: staffForm.email || '',
       role: staffForm.role,
       scope: staffForm.scope,
@@ -808,7 +808,7 @@ export default function MerchantDashboard() {
       )}
 
       {/* ===================================================================== */}
-      {/* 1. HEADER CHỦ QUÁN (SHOPEE PARTNER HERO BAR) */}
+      {/* 1. HEADER CHỦ QUÁN (FOODFAST PARTNER HERO BAR) */}
       {/* ===================================================================== */}
       <div className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
@@ -1014,7 +1014,7 @@ export default function MerchantDashboard() {
         </div>
 
         {/* ===================================================================== */}
-        {/* 3. THANH ĐIỀU HƯỚNG 5 TABS CHUẨN SHOPEE PARTNER */}
+        {/* 3. THANH ĐIỀU HƯỚNG 5 TABS CHUẨN FOODFAST PARTNER */}
         {/* ===================================================================== */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
           {[
@@ -1101,7 +1101,7 @@ export default function MerchantDashboard() {
                   const isDelivering = ['FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING'].includes(ord.status);
                   const isDelivered = ['COMPLETED', 'DELIVERED'].includes(ord.status);
 
-                  // Tính tài chính đơn hàng theo công thức Shopee Partner
+                  // Tính tài chính đơn hàng theo công thức FoodFast Partner
                   const grossTotal = ord.items?.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0) || ord.totalPrice || 0;
                   const commission = Math.round(grossTotal * 0.2); // Chiết khấu nền tảng 20%
                   const packagingFee = 6000; // Phí đóng gói
@@ -1208,7 +1208,7 @@ export default function MerchantDashboard() {
                         )}
                       </div>
 
-                      {/* Bảng kê tài chính đơn (Shopee Partner Formula) */}
+                      {/* Bảng kê tài chính đơn (FoodFast Partner Formula) */}
                       <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
                         <div className="flex justify-between text-slate-400">
                           <span>Tổng tiền món (giá gốc):</span>
@@ -1904,7 +1904,7 @@ export default function MerchantDashboard() {
               </button>
             </div>
 
-            {/* Cảnh báo nghiêm ngặt theo quy chuẩn Shopee Partner */}
+            {/* Cảnh báo nghiêm ngặt theo quy chuẩn FoodFast Partner */}
             <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
               <p className="font-bold flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -2261,7 +2261,7 @@ export default function MerchantDashboard() {
                 />
               </div>
 
-              {/* Mẫu gợi ý nhanh chuẩn ShopeeFood */}
+              {/* Mẫu gợi ý nhanh chuẩn FoodFast */}
               <div className="space-y-1">
                 <span className="text-[11px] font-semibold text-slate-400">Gợi ý tạo nhanh:</span>
                 <div className="flex flex-wrap gap-1.5">

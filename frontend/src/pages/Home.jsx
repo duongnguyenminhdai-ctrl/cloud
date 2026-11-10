@@ -386,8 +386,8 @@ const CATEGORY_KEYWORDS_MAP = {
   ]
 };
 
-// Bản đồ đồng bộ 2 chiều giữa FoodFast Category Pills và ShopeeFood 20 Icons Grid
-const FOODFAST_TO_SHOPEE_MAP = {
+// Bản đồ đồng bộ 2 chiều giữa FoodFast Category Pills và FoodFast 20 Icons Grid
+const FOODFAST_TO_TOP_CAT_MAP = {
   'All': 'all',
   'Đồ uống': 'milk_tea',
   'Đồ chay': 'veg',
@@ -401,7 +401,7 @@ const FOODFAST_TO_SHOPEE_MAP = {
   'Tráng miệng': 'all'
 };
 
-const SHOPEE_TO_FOODFAST_MAP = {
+const TOP_CAT_TO_FOODFAST_MAP = {
   'all': 'All',
   'milk_tea': 'Đồ uống',
   'veg': 'Đồ chay',
@@ -415,8 +415,8 @@ const SHOPEE_TO_FOODFAST_MAP = {
   'sandwich': 'Đồ ăn'
 };
 
-// 20 Danh mục đặc trưng chuẩn ShopeeFood (Kèm Icon 3D chính hãng từ shopeefood-app-main)
-const SHOPEEFOOD_TOP_CATEGORIES = [
+// 20 Danh mục đặc trưng chuẩn FoodFast (Kèm Icon 3D trực quan)
+const FOODFAST_TOP_CATEGORIES = [
   { id: 'all', name: 'Tất cả', icon: '/icons/nice-shop.png', keyword: '' },
   { id: 'deal', name: 'Hot Deal', icon: '/icons/flash-deals.png', keyword: 'giảm|deal|khuyến mãi' },
   { id: 'rice', name: 'Cơm Trưa', icon: '/icons/rice.png', keyword: 'cơm' },
@@ -634,10 +634,10 @@ export default function Home() {
     return keywords.some((kw) => textPool.includes(kw.toLowerCase()));
   };
 
-  // Helper kiểm tra xem quán ăn có phù hợp với danh mục ShopeeFood (20 Icon) hay không
+  // Helper kiểm tra xem quán ăn có phù hợp với danh mục FoodFast (20 Icon) hay không
   const matchTopCategory = (res, topCatId) => {
     if (!topCatId || topCatId === 'all') return true;
-    const topCat = SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === topCatId);
+    const topCat = FOODFAST_TOP_CATEGORIES.find((c) => c.id === topCatId);
     if (!topCat || !topCat.keyword) return true;
 
     const regex = new RegExp(topCat.keyword, 'i');
@@ -662,9 +662,9 @@ export default function Home() {
       setSelectedTopCatId('all');
     } else {
       setSelectedCategory(catId);
-      const mappedShopeeId = FOODFAST_TO_SHOPEE_MAP[catId];
-      if (mappedShopeeId && mappedShopeeId !== 'all') {
-        setSelectedTopCatId(mappedShopeeId);
+      const mappedTopCatId = FOODFAST_TO_TOP_CAT_MAP[catId];
+      if (mappedTopCatId && mappedTopCatId !== 'all') {
+        setSelectedTopCatId(mappedTopCatId);
       } else {
         setSelectedTopCatId('all');
       }
@@ -672,14 +672,14 @@ export default function Home() {
     if (activeTab === 'favorites') setActiveTab('near');
   };
 
-  // Hàm xử lý khi người dùng click vào Icon Danh mục ShopeeFood (20 Icon Grid)
-  const handleSelectShopeeCategory = (catId) => {
+  // Hàm xử lý khi người dùng click vào Icon Danh mục FoodFast (20 Icon Grid)
+  const handleSelectTopCategory = (catId) => {
     if (catId === 'all' || selectedTopCatId === catId) {
       setSelectedTopCatId('all');
       setSelectedCategory('All');
     } else {
       setSelectedTopCatId(catId);
-      const mappedFoodfastId = SHOPEE_TO_FOODFAST_MAP[catId];
+      const mappedFoodfastId = TOP_CAT_TO_FOODFAST_MAP[catId];
       if (mappedFoodfastId) {
         setSelectedCategory(mappedFoodfastId);
       } else {
@@ -921,14 +921,14 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 1.5. DANH MỤC ĐẶC TRƯNG SHOPEEFOOD (20 Icon Grid từ shopeefood-app-main) */}
+      {/* 1.5. DANH MỤC ĐẶC TRƯNG FOODFAST (20 Icon Grid) */}
       {/* ===================================================================== */}
       <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-600 animate-ping" />
             <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
-              Khám Phá Món Ngon ShopeeFood
+              Khám Phá Món Ngon FoodFast
             </h2>
           </div>
           {selectedTopCatId !== 'all' && (
@@ -944,14 +944,14 @@ export default function Home() {
           )}
         </div>
 
-        {/* 20 Icon danh mục ShopeeFood dạng grid 2 hàng lướt ngang mượt mà */}
+        {/* 20 Icon danh mục FoodFast dạng grid 2 hàng lướt ngang mượt mà */}
         <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {SHOPEEFOOD_TOP_CATEGORIES.map((cat) => {
+          {FOODFAST_TOP_CATEGORIES.map((cat) => {
             const isSelected = selectedTopCatId === cat.id;
             return (
               <button
                 key={cat.id}
-                onClick={() => handleSelectShopeeCategory(cat.id)}
+                onClick={() => handleSelectTopCategory(cat.id)}
                 className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
                   isSelected
                     ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
@@ -1138,12 +1138,12 @@ export default function Home() {
 
             {selectedTopCatId !== 'all' && selectedCategory === 'All' && (
               <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
-                <span>{SHOPEEFOOD_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId)?.name}</span>
+                <span>{FOODFAST_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId)?.name}</span>
                 <button
                   type="button"
-                  onClick={() => handleSelectShopeeCategory('all')}
+                  onClick={() => handleSelectTopCategory('all')}
                   className="hover:bg-orange-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
-                  title="Bỏ lọc ShopeeFood"
+                  title="Bỏ lọc danh mục FoodFast"
                 >
                   ×
                 </button>
@@ -1374,7 +1374,7 @@ export default function Home() {
         }
         onSelectLocation={setManualLocation}
       />
-      {/* Modal Popup Khuyến mãi Deal sốc đầu ứng dụng (ShopeeFood Flash Sale Popup) */}
+      {/* Modal Popup Khuyến mãi Deal sốc đầu ứng dụng (FoodFast Flash Sale Popup) */}
       <PromotionPopupModal />
     </div>
   );

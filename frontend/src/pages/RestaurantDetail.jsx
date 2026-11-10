@@ -64,7 +64,7 @@ export default function RestaurantDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  // Trạng thái modal cập nhật biến thể (ShopeeFood UpdateModal)
+  // Trạng thái modal cập nhật biến thể (FoodFast Variant Modal)
   const [updatingDishVariants, setUpdatingDishVariants] = useState(null);
 
   // Tab danh mục món ăn đang chọn
@@ -139,7 +139,7 @@ export default function RestaurantDetail() {
       // Chỉ có 1 biến thể duy nhất -> trừ trực tiếp
       updateVariantQuantity(variants[0].cartItemId, -1);
     } else {
-      // Có nhiều biến thể khác nhau (ví dụ 1 Size M, 2 Size L) -> mở UpdateVariantModal chuẩn ShopeeFood
+      // Có nhiều biến thể khác nhau (ví dụ 1 Size M, 2 Size L) -> mở UpdateVariantModal chuẩn FoodFast
       setUpdatingDishVariants({
         dish: item,
         variants
@@ -147,7 +147,7 @@ export default function RestaurantDetail() {
     }
   };
 
-  // Trích xuất danh sách danh mục thực đơn của quán (ShopeeFood Menu Categories)
+  // Trích xuất danh sách danh mục thực đơn của quán (FoodFast Menu Categories)
   const categoriesList = useMemo(() => {
     if (!restaurant) return [];
     if (restaurant.categories && restaurant.categories.length > 0) {
@@ -362,7 +362,7 @@ export default function RestaurantDetail() {
                 {restaurant.address}
               </p>
             </div>
-            {/* Nút Thả tim lưu quán yêu thích (ShopeeFood Wishlist) */}
+            {/* Nút Thả tim lưu quán yêu thích (FoodFast Wishlist) */}
             <button
               onClick={handleToggleFavorite}
               className={`absolute top-4 right-4 px-3 py-2 rounded-2xl backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
@@ -454,7 +454,7 @@ export default function RestaurantDetail() {
           <span className="text-xs font-medium text-gray-400">Chọn món yêu thích vào giỏ</span>
         </div>
 
-        {/* Thanh danh mục Sticky phong cách ShopeeFood */}
+        {/* Thanh danh mục Sticky phong cách FoodFast */}
         {categoriesList.length > 0 && (
           <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md py-2 px-1 border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl">
             <button
@@ -826,7 +826,7 @@ export default function RestaurantDetail() {
         onSelectLocation={setManualLocation}
       />
 
-      {/* Modal tùy biến món ăn chuẩn ShopeeFood (Size, Toppings, Mức ngọt/đá, Ghi chú quán) */}
+      {/* Modal tùy biến món ăn chuẩn FoodFast (Size, Toppings, Mức ngọt/đá, Ghi chú quán) */}
       <DishCustomizationModal
         dish={customizingDish}
         isOpen={!!customizingDish}
@@ -834,7 +834,7 @@ export default function RestaurantDetail() {
         onConfirm={handleConfirmCustomization}
       />
 
-      {/* Modal chỉnh sửa / giảm biến thể giỏ hàng phong cách ShopeeFood (UpdateModal) */}
+      {/* Modal chỉnh sửa / giảm biến thể giỏ hàng phong cách FoodFast */}
       <UpdateVariantModal
         isOpen={Boolean(updatingDishVariants)}
         dish={updatingDishVariants?.dish}

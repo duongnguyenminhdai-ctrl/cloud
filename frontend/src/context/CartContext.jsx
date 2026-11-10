@@ -126,7 +126,7 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  // Lấy tất cả biến thể của một món ăn cụ thể đang có trong giỏ hàng (Chuẩn ShopeeFood UpdateModal)
+  // Lấy tất cả biến thể của một món ăn cụ thể đang có trong giỏ hàng (Chuẩn FoodFast)
   const getDishVariants = (menuItemId, dishName) => {
     return cartItems.filter((i) => {
       const matchId = menuItemId && (i.menuItemId === menuItemId || i._id === menuItemId);

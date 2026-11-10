@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Sparkles, Tag, ArrowRight } from 'lucide-react';
 
 /**
- * Modal Popup Khuyến mãi Deal sốc đầu ứng dụng phong cách ShopeeFood (PopupSale)
- * Lấy cảm hứng từ popup.sale.tsx trong shopeefood-app-main
+ * Modal Popup Khuyến mãi Deal sốc đầu ứng dụng thương hiệu FoodFast (Flash Sale)
+ * Giao diện ưu đãi độc quyền dành cho khách hàng đặt món trên nền tảng FoodFast.
  */
 export default function PromotionPopupModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,12 +43,12 @@ export default function PromotionPopupModal() {
 
         {/* Nội dung Popup */}
         <div className="bg-white text-gray-900 rounded-[22px] overflow-hidden p-5 sm:p-6 space-y-4">
-          {/* Banner ảnh khuyến mãi */}
-          <div className="relative h-44 sm:h-48 rounded-2xl overflow-hidden bg-gradient-to-tr from-orange-600 to-amber-400 flex items-center justify-center shadow-inner">
+          {/* Banner ảnh khuyến mãi độc quyền FoodFast */}
+          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden bg-gradient-to-tr from-orange-600 to-amber-400 flex items-center justify-center shadow-inner">
             <img
-              src="/popups/2.png"
-              alt="ShopeeFood Flash Sale"
-              className="w-full h-full object-contain p-2"
+              src="/popups/foodfast-promo.jpg"
+              alt="FoodFast Flash Sale"
+              className="w-full h-full object-cover"
               onError={(e) => {
                 // Fallback nếu ảnh không load
                 e.currentTarget.style.display = 'none';

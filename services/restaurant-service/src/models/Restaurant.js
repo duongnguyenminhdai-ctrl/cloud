@@ -269,7 +269,7 @@ const restaurantSchema = new mongoose.Schema(
     reviewedBy: { type: String, default: '' },
 
     // -------------------------------------------------------------------------
-    // CÁC TRƯỜNG PHỤC VỤ VẬN HÀNH CHUẨN ĐỐI TÁC CHỦ QUÁN (SHOPEE PARTNER SPEC)
+    // CÁC TRƯỜNG PHỤC VỤ VẬN HÀNH CHUẨN ĐỐI TÁC CHỦ QUÁN (FOODFAST PARTNER SPEC)
     // -------------------------------------------------------------------------
     // 7. Trạng thái hoạt động thời gian thực (Module 3)
     operatingStatus: {
@@ -374,7 +374,7 @@ const restaurantSchema = new mongoose.Schema(
       }
     ],
 
-    // 15. Quán yêu thích (ShopeeFood Wishlist / Like system)
+    // 15. Quán yêu thích (FoodFast Wishlist / Like system)
     likes: {
       type: [String],
       default: []

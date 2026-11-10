@@ -1667,7 +1667,7 @@ export default function AdminDashboard() {
                         : 'PENDING'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">Xem xét và đối soát từng mục theo quy trình đăng ký ShopeeFood</p>
+                  <p className="text-xs text-slate-400">Xem xét và đối soát từng mục theo quy trình đăng ký Đối tác FoodFast</p>
                 </div>
               </div>
               <button

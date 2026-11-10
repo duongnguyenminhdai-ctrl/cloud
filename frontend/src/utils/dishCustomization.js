@@ -1,5 +1,5 @@
 /**
- * Bộ quy tắc cấu hình Tùy biến món ăn (Dish Customization) chuẩn ShopeeFood:
+ * Bộ quy tắc cấu hình Tùy biến món ăn (Dish Customization) chuẩn FoodFast:
  * DO CHÍNH NGƯỜI BÁN (MERCHANT / CHỦ CỬA HÀNG) THIẾT LẬP VÀ QUY ĐỊNH.
  *
  * Người bán có toàn quyền:
@@ -147,7 +147,7 @@ export const getDishCustomizationConfig = (dish) => {
     });
   }
 
-  // 4. Mẫu tùy biến chuẩn phong cách ShopeeFood cho các món đồ uống / nước giải khát (Image 1)
+  // 4. Mẫu tùy biến chuẩn phong cách FoodFast cho các món đồ uống / nước giải khát
   const nameLower = (dish.name || '').toLowerCase();
   const isBeverage =
     nameLower.includes('coca') ||

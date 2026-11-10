@@ -861,7 +861,7 @@ exports.adminDeleteRestaurant = async (req, res) => {
 };
 
 // -----------------------------------------------------------------------------
-// CÁC HÀM PHỤC VỤ VẬN HÀNH ĐỐI TÁC CHỦ QUÁN (SHOPEE PARTNER SPEC)
+// CÁC HÀM PHỤC VỤ VẬN HÀNH ĐỐI TÁC CHỦ QUÁN (FOODFAST PARTNER SPEC)
 // -----------------------------------------------------------------------------
 
 // 16. Bật/Tắt nhanh trạng thái Còn món / Hết món (1-Touch Availability Toggle)
@@ -1114,7 +1114,7 @@ exports.manageWallet = async (req, res) => {
 };
 
 // =============================================================================
-// QUÁN YÊU THÍCH (SHOPEEFOOD WISHLIST / LIKE SYSTEM)
+// QUÁN YÊU THÍCH (FOODFAST WISHLIST / LIKE SYSTEM)
 // =============================================================================
 
 // 20. Like / Dislike (Thả tim / Bỏ tim) quán ăn

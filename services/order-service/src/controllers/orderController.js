@@ -236,7 +236,7 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-// 6. Chỉnh sửa đơn hàng khi hết món hoặc sai giá (theo quy trình Shopee Partner Image 2)
+// 6. Chỉnh sửa đơn hàng khi hết món hoặc sai giá (theo quy trình FoodFast Partner)
 exports.modifyOrderItems = async (req, res) => {
   try {
     const { id } = req.params;
