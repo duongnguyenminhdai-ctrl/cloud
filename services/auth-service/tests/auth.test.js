@@ -12,6 +12,7 @@ const app = require('../app');
 describe('Auth Service - Unit Tests (Jest + Supertest)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.REQUIRE_PHONE_VERIFICATION = 'false';
   });
 
   // ---------------------------------------------------------------------------

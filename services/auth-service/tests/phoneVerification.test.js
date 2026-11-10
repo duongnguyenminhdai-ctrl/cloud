@@ -14,7 +14,7 @@ jest.mock('../src/utils/firebaseAdmin', () => {
 });
 
 const User = require('../src/models/User');
-const { checkAndSetRateLimit } = require('../src/utils/redis');
+const { checkAndSetRateLimit, getOTP, deleteOTP } = require('../src/utils/redis');
 const { normalizeVietnamPhone, verifyFirebasePhoneToken } = require('../src/utils/firebaseAdmin');
 const app = require('../app');
 
@@ -150,6 +150,24 @@ describe('Firebase Phone Auth & Anti-Spam Phone Tests', () => {
     expect(res.body.data.phone).toBe('0912345678');
     expect(res.body.data.phoneVerified).toBe(false);
     expect(mockUser.phoneVerified).toBe(false);
+  });
+
+  it('POST /api/v1/auth/register: Từ chối 400 nếu REQUIRE_PHONE_VERIFICATION=true mà không có firebaseIdToken', async () => {
+    process.env.REQUIRE_PHONE_VERIFICATION = 'true';
+    getOTP.mockResolvedValue('123456');
+    User.findOne.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        name: 'Nguyen Van B',
+        email: 'newuser@foodfast.vn',
+        password: 'password123',
+        otp: '123456'
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
   });
 });
 

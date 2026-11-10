@@ -1,17 +1,26 @@
-const admin = require('firebase-admin');
-
 let firebaseApp = null;
 let initAttempted = false;
 
 /**
- * Khởi tạo Firebase Admin SDK (singleton) từ biến môi trường:
+ * Khởi tạo Firebase Admin SDK (singleton, hỗ trợ modular firebase-admin v14+) từ biến môi trường:
  *  - FIREBASE_SERVICE_ACCOUNT_JSON: Chuỗi JSON Service Account từ Firebase Console
  *  - Hoặc cặp biến riêng: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
  */
 function ensureFirebaseAdminInitialized() {
   if (firebaseApp) return firebaseApp;
-  if (admin.apps && admin.apps.length > 0) {
-    firebaseApp = admin.apps[0];
+
+  let appMod;
+  try {
+    appMod = require('firebase-admin/app');
+  } catch (err) {
+    console.error('[Firebase Admin] ❌ Không thể nạp firebase-admin/app:', err.message);
+    return null;
+  }
+
+  const { initializeApp, getApps, getApp, cert } = appMod;
+  const existingApps = getApps();
+  if (existingApps && existingApps.length > 0) {
+    firebaseApp = existingApps[0] || getApp();
     return firebaseApp;
   }
   if (initAttempted) return null;
@@ -22,15 +31,18 @@ function ensureFirebaseAdminInitialized() {
 
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      if (serviceAccount && typeof serviceAccount.private_key === 'string') {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
     } else if (
       process.env.FIREBASE_PROJECT_ID &&
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY
     ) {
       serviceAccount = {
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        project_id: process.env.FIREBASE_PROJECT_ID.trim(),
+        client_email: process.env.FIREBASE_CLIENT_EMAIL.trim(),
+        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n')
       };
     }
 
@@ -38,8 +50,8 @@ function ensureFirebaseAdminInitialized() {
       return null;
     }
 
-    firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+    firebaseApp = initializeApp({
+      credential: cert(serviceAccount)
     });
     console.log('[Firebase Admin] ✅ Đã khởi tạo Firebase Admin SDK thành công!');
     return firebaseApp;
@@ -107,7 +119,8 @@ async function verifyFirebasePhoneToken(idToken) {
     throw err;
   }
 
-  const decoded = await admin.auth(app).verifyIdToken(idToken, true);
+  const { getAuth } = require('firebase-admin/auth');
+  const decoded = await getAuth(app).verifyIdToken(idToken, true);
   if (!decoded || !decoded.phone_number) {
     const err = new Error('Token Firebase không chứa số điện thoại đã xác thực SMS.');
     err.code = 'PHONE_CLAIM_MISSING';
