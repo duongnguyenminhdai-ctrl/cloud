@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const SystemConfig = require('../models/SystemConfig');
+const { getPhoneVerificationSetting, setPhoneVerificationSetting } = require('../utils/systemConfig');
 const jwt = require('jsonwebtoken');
 const { generateOTP, sendOTPEmail } = require('../utils/mailer');
 const { checkAndSetRateLimit, saveOTP, getOTP, deleteOTP } = require('../utils/redis');
@@ -215,6 +217,8 @@ exports.register = async (req, res) => {
       firebasePhoneUid: null
     };
 
+    const requirePhone = await getPhoneVerificationSetting();
+
     if (firebaseIdToken) {
       try {
         const fbResult = await verifyFirebasePhoneToken(firebaseIdToken);
@@ -237,7 +241,7 @@ exports.register = async (req, res) => {
           message: fbErr.message || 'Xác thực số điện thoại Firebase thất bại.'
         });
       }
-    } else if (process.env.REQUIRE_PHONE_VERIFICATION === 'true') {
+    } else if (requirePhone) {
       return res.status(400).json({
         success: false,
         message: 'Hệ thống yêu cầu xác thực số điện thoại qua mã OTP SMS trước khi đăng ký để tránh SĐT rác.'
@@ -254,7 +258,12 @@ exports.register = async (req, res) => {
           message: `Số điện thoại ${norm.local} đã được tài khoản khác xác thực.`
         });
       }
-      verifiedPhoneData.phone = norm.local;
+      verifiedPhoneData = {
+        phone: norm.local,
+        phoneVerified: true,
+        phoneVerifiedAt: new Date(),
+        firebasePhoneUid: null
+      };
     }
 
     // Tạo người dùng mới
@@ -1148,12 +1157,68 @@ exports.verifyFirebasePhone = async (req, res) => {
 };
 
 // Kiểm tra trạng thái cấu hình Firebase Phone Auth trên Backend
-exports.getPhoneAuthStatus = (req, res) => {
-  return res.status(200).json({
-    success: true,
-    firebaseConfigured: isFirebaseAdminConfigured(),
-    required: process.env.REQUIRE_PHONE_VERIFICATION === 'true'
-  });
+exports.getPhoneAuthStatus = async (req, res) => {
+  try {
+    const required = await getPhoneVerificationSetting();
+    return res.status(200).json({
+      success: true,
+      firebaseConfigured: isFirebaseAdminConfigured(),
+      required
+    });
+  } catch (err) {
+    return res.status(200).json({
+      success: true,
+      firebaseConfigured: isFirebaseAdminConfigured(),
+      required: process.env.REQUIRE_PHONE_VERIFICATION === 'true'
+    });
+  }
+};
+
+// Lấy cấu hình xác minh số điện thoại cho Quản trị viên (GET /api/v1/auth/admin/config/phone-verification)
+exports.getAdminPhoneVerificationConfig = async (req, res) => {
+  try {
+    const required = await getPhoneVerificationSetting();
+    const configDoc = await SystemConfig.findOne({ key: 'REQUIRE_PHONE_VERIFICATION' }).lean().catch(() => null);
+    return res.status(200).json({
+      success: true,
+      required,
+      firebaseConfigured: isFirebaseAdminConfigured(),
+      updatedAt: configDoc?.updatedAt || null,
+      updatedBy: configDoc?.updatedBy || null
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy cấu hình xác minh số điện thoại: ' + error.message
+    });
+  }
+};
+
+// Cập nhật cấu hình xác minh số điện thoại cho Quản trị viên (PUT /api/v1/auth/admin/config/phone-verification)
+exports.updateAdminPhoneVerificationConfig = async (req, res) => {
+  try {
+    const { required, enabled } = req.body;
+    const targetValue = required !== undefined ? required : enabled;
+    if (typeof targetValue !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Trường required hoặc enabled phải là kiểu boolean (true/false).'
+      });
+    }
+
+    const updated = await setPhoneVerificationSetting(targetValue, req.user?.userId || null);
+    return res.status(200).json({
+      success: true,
+      message: `Đã ${targetValue ? 'bật' : 'tắt'} yêu cầu xác minh số điện thoại qua SMS OTP thành công!`,
+      required: targetValue,
+      updatedAt: updated?.updatedAt || new Date()
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi cập nhật cấu hình xác minh số điện thoại: ' + error.message
+    });
+  }
 };
 
 // Đổi mật khẩu tài khoản hiện tại (PUT /api/v1/auth/change-password)

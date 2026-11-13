@@ -11,6 +11,7 @@ export default defineConfig({
       '/api/v1/auth': 'http://localhost:3005',
       '/api/v1/restaurants': 'http://localhost:3001',
       '/api/v1/stores': 'http://localhost:3001',
+      '/api/v1/upload': 'http://localhost:3001',
       '/api/v1/vouchers': 'http://localhost:3001',
       '/api/v1/reviews': 'http://localhost:3001',
       '/api/v1/admin/vouchers': 'http://localhost:3001',

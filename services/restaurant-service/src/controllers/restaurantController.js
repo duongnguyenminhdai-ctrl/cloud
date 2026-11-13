@@ -493,6 +493,11 @@ exports.registerStore = async (req, res) => {
       rating: 0,
       completed_orders: 0,
       review_count: 0,
+      categories: [
+        { id: 'cat_main', name: 'Món chính', order: 1 },
+        { id: 'cat_drink', name: 'Đồ uống & Trà sữa', order: 2 },
+        { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
+      ],
       wallet: {
         availableBalance: 0,
         pendingBalance: 0,
@@ -543,6 +548,20 @@ exports.getMyStore = async (req, res) => {
 
     // Tự động kiểm tra hết hạn lệnh khóa quán
     await applyAutoUnbanIfExpired(store);
+
+    // Tự động khởi tạo danh mục mặc định nếu quán chưa có danh mục
+    if (!store.categories || store.categories.length === 0) {
+      store.categories = [
+        { id: 'cat_main', name: 'Món chính', order: 1 },
+        { id: 'cat_drink', name: 'Đồ uống & Trà sữa', order: 2 },
+        { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
+      ];
+      try {
+        await store.save();
+      } catch (saveErr) {
+        console.warn('[getMyStore] Auto-saving default categories failed:', saveErr.message);
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -627,7 +646,7 @@ exports.addMenuItem = async (req, res) => {
       notePlaceholder: 'Ghi chú cho quán (không hành, ít cay...)'
     };
 
-    let finalDishImage = image || '';
+    let finalDishImage = (typeof image === 'string' ? image : (image?.url || image?.secure_url)) || '';
     if (finalDishImage && typeof finalDishImage === 'string' && finalDishImage.startsWith('data:image/')) {
       try {
         const up = await uploadToCloudinary(finalDishImage, { folder: 'foodfast/dishes' });
@@ -683,7 +702,7 @@ exports.updateMenuItem = async (req, res) => {
     if (price !== undefined) item.price = Number(price);
     if (description !== undefined) item.description = description;
     if (image !== undefined) {
-      let finalDishImage = image || '';
+      let finalDishImage = (typeof image === 'string' ? image : (image?.url || image?.secure_url)) || '';
       if (finalDishImage && typeof finalDishImage === 'string' && finalDishImage.startsWith('data:image/')) {
         try {
           const up = await uploadToCloudinary(finalDishImage, { folder: 'foodfast/dishes' });

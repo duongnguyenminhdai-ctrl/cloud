@@ -48,11 +48,16 @@ import {
   Calculator,
   Info,
   ShieldCheck,
-  Gift
+  Gift,
+  Upload,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Loader2
 } from 'lucide-react';
-import { storeApi, orderApi, reviewApi } from '../api/client';
+import { storeApi, orderApi, reviewApi, uploadApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Pagination, { paginateList } from '../components/Pagination';
+import { compressReviewImage } from '../utils/imageHelpers';
 import {
   calculateMerchantSettlement,
   simulateMerchantVoucher,
@@ -177,6 +182,12 @@ export default function MerchantDashboard() {
     }
   });
 
+  // Quản lý Chế độ tải ảnh món ăn: 'upload' (từ máy) | 'url' (nhập link)
+  const [dishImageMode, setDishImageMode] = useState('upload');
+  const [uploadingDishImage, setUploadingDishImage] = useState(false);
+  const [dishImageError, setDishImageError] = useState(false);
+  const dishFileInputRef = useRef(null);
+
   // =========================================================================
   // 3. PHÂN HỆ TRẠNG THÁI & LỊCH HOẠT ĐỘNG (Images 10 - 15)
   // =========================================================================
@@ -281,6 +292,11 @@ export default function MerchantDashboard() {
               { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
             ];
             setEditingCategories(defaultCats);
+            storeData.categories = defaultCats;
+            setStore({ ...storeData, categories: defaultCats });
+            storeApi.updateCategories({ categories: defaultCats }).catch((catErr) => {
+              console.warn('[MerchantDashboard] Auto-save default categories failed:', catErr.message);
+            });
           } else {
             setEditingCategories(storeData.categories);
           }
@@ -551,10 +567,67 @@ export default function MerchantDashboard() {
     setMenuPage(1);
   }, [selectedCategory, menuSearch]);
 
+  // Nguồn dữ liệu danh mục đồng bộ duy nhất: kết hợp store.categories, editingCategories, menuItems và danh mục mặc định
+  const availableCategories = useMemo(() => {
+    const catsMap = new Map();
+    const defaultCats = [
+      { id: 'cat_main', name: 'Món chính', order: 1 },
+      { id: 'cat_drink', name: 'Đồ uống & Trà sữa', order: 2 },
+      { id: 'cat_snack', name: 'Đồ ăn vặt', order: 3 }
+    ];
+
+    // 1. Ưu tiên store.categories hoặc editingCategories
+    const initialList = (store?.categories && store.categories.length > 0)
+      ? store.categories
+      : (editingCategories && editingCategories.length > 0)
+        ? editingCategories
+        : defaultCats;
+
+    initialList.forEach((c) => {
+      const catId = c.id || c._id || c.name;
+      if (catId && !catsMap.has(catId)) {
+        catsMap.set(catId, {
+          id: catId,
+          name: c.name || catId,
+          order: c.order !== undefined ? c.order : catsMap.size + 1
+        });
+      }
+    });
+
+    // 2. Tự động đồng bộ các categoryId/category đang có trên menuItems của quán
+    (store?.menuItems || []).forEach((item) => {
+      const itemCatId = item.categoryId || item.category;
+      if (itemCatId && !catsMap.has(itemCatId)) {
+        let fallbackName = itemCatId;
+        if (itemCatId === 'cat_main') fallbackName = 'Món chính';
+        else if (itemCatId === 'cat_drink') fallbackName = 'Đồ uống & Trà sữa';
+        else if (itemCatId === 'cat_snack') fallbackName = 'Đồ ăn vặt';
+
+        catsMap.set(itemCatId, {
+          id: itemCatId,
+          name: fallbackName,
+          order: catsMap.size + 1
+        });
+      }
+    });
+
+    // 3. Đảm bảo 3 danh mục mặc định luôn có mặt
+    defaultCats.forEach((dc) => {
+      if (!catsMap.has(dc.id)) {
+        catsMap.set(dc.id, { ...dc, order: dc.order || catsMap.size + 1 });
+      }
+    });
+
+    return Array.from(catsMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [store?.categories, store?.menuItems, editingCategories]);
+
   const filteredMenuItems = useMemo(() => {
-    return (store?.menuItems || []).filter((m) =>
-      selectedCategory === 'ALL' ? true : m.categoryId === selectedCategory
-    );
+    return (store?.menuItems || []).filter((m) => {
+      if (selectedCategory === 'ALL') return true;
+      const cat = m.categoryId || m.category;
+      if (!cat && (selectedCategory === 'cat_main' || selectedCategory === 'Món chính')) return true;
+      return cat === selectedCategory;
+    });
   }, [store?.menuItems, selectedCategory]);
 
   const paginatedMenuState = useMemo(
@@ -724,16 +797,85 @@ export default function MerchantDashboard() {
     setEditingCategories([...editingCategories, newCat]);
   };
 
+  // Thêm nhanh danh mục ngay trong Modal Món ăn
+  const handleQuickAddCategory = async () => {
+    const catName = prompt('Nhập tên danh mục món mới (VD: Cơm trưa, Trà sữa, Khai vị):');
+    if (!catName || !catName.trim()) return;
+    const trimmed = catName.trim();
+    const newCatId = `cat_${Date.now()}`;
+    const newCat = {
+      id: newCatId,
+      name: trimmed,
+      order: (availableCategories?.length || 0) + 1
+    };
+
+    const nextCats = [...availableCategories, newCat];
+    setEditingCategories(nextCats);
+    if (store) {
+      setStore({ ...store, categories: nextCats });
+    }
+    setItemForm((prev) => ({ ...prev, categoryId: newCatId }));
+
+    try {
+      await storeApi.updateCategories({ categories: nextCats });
+      showToast(`Đã thêm danh mục "${trimmed}" thành công!`);
+    } catch (err) {
+      console.warn('Lỗi tự động lưu danh mục mới:', err);
+    }
+  };
+
+  // Xử lý upload ảnh món ăn lên Cloudinary CDN
+  const handleDishFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG, WebP)!');
+      return;
+    }
+
+    try {
+      setUploadingDishImage(true);
+      setDishImageError(false);
+
+      // 1. Nén ảnh nhanh phía client qua canvas
+      const compressed = await compressReviewImage(file);
+      // Hiển thị preview lạc quan ngay lập tức
+      setItemForm((prev) => ({ ...prev, image: compressed }));
+
+      // 2. Upload lên Cloudinary CDN
+      const res = await uploadApi.uploadImage(compressed, 'foodfast/dishes');
+      const cdnUrl = res.data?.data?.url || res.data?.url || res.data?.data?.secure_url;
+      if (cdnUrl) {
+        setItemForm((prev) => ({ ...prev, image: cdnUrl }));
+        showToast('Đã tải ảnh món lên Cloudinary CDN thành công!');
+      }
+    } catch (err) {
+      console.error('Lỗi upload ảnh món:', err);
+      alert('Không thể tải ảnh lên: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingDishImage(false);
+      if (dishFileInputRef.current) dishFileInputRef.current.value = '';
+    }
+  };
+
   // Mở modal Thêm món mới (Image 3)
   const handleOpenAddItemModal = () => {
     setEditingItem(null);
     setItemModalTab('basic');
+    setDishImageMode('upload');
+    setUploadingDishImage(false);
+    setDishImageError(false);
+    if (dishFileInputRef.current) dishFileInputRef.current.value = '';
+
+    const initialCatId = (selectedCategory !== 'ALL' ? selectedCategory : availableCategories?.[0]?.id) || 'cat_main';
+
     setItemForm({
       name: '',
       price: '',
       description: '',
       image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-      categoryId: store?.categories?.[0]?.id || '',
+      categoryId: initialCatId,
       isAvailable: true,
       sellingHours: {
         isAllDay: true,
@@ -755,12 +897,18 @@ export default function MerchantDashboard() {
   const handleOpenEditItemModal = (item) => {
     setEditingItem(item);
     setItemModalTab('basic');
+    const isUrlMode = item.image?.startsWith('http') && !item.image.includes('cloudinary');
+    setDishImageMode(isUrlMode ? 'url' : 'upload');
+    setUploadingDishImage(false);
+    setDishImageError(false);
+    if (dishFileInputRef.current) dishFileInputRef.current.value = '';
+
     setItemForm({
       name: item.name || '',
       price: item.price || '',
       description: item.description || '',
       image: item.image || '',
-      categoryId: item.categoryId || '',
+      categoryId: item.categoryId || item.category || availableCategories?.[0]?.id || 'cat_main',
       isAvailable: item.isAvailable !== false,
       sellingHours: item.sellingHours || {
         isAllDay: true,
@@ -1993,7 +2141,7 @@ export default function MerchantDashboard() {
                   >
                     Tất cả món
                   </button>
-                  {(store.categories || []).map((cat) => (
+                  {availableCategories.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => setSelectedCategory(cat.id)}
@@ -3601,14 +3749,25 @@ export default function MerchantDashboard() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300">Danh mục:</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-300">Danh mục:</label>
+                      <button
+                        type="button"
+                        onClick={handleQuickAddCategory}
+                        className="text-[11px] text-orange-400 hover:text-orange-300 font-medium flex items-center gap-0.5 transition-colors cursor-pointer"
+                        title="Tạo danh mục mới nhanh"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Thêm danh mục
+                      </button>
+                    </div>
                     <select
                       value={itemForm.categoryId}
                       onChange={(e) => setItemForm({ ...itemForm, categoryId: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1 focus:border-orange-500 focus:outline-none"
                     >
                       <option value="">Chọn danh mục</option>
-                      {(store.categories || []).map((cat) => (
+                      {availableCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
                         </option>
@@ -3617,15 +3776,171 @@ export default function MerchantDashboard() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300">Ảnh món ăn (URL):</label>
-                  <input
-                    type="text"
-                    value={itemForm.image}
-                    onChange={(e) => setItemForm({ ...itemForm, image: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1"
-                  />
+                {/* Phần Chọn & Xem trước Ảnh món ăn */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
+                      Ảnh món ăn:
+                    </label>
+                    {/* Bộ chuyển chế độ: Tải từ máy vs Dán link URL */}
+                    <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setDishImageMode('upload')}
+                        className={`px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                          dishImageMode === 'upload'
+                            ? 'bg-orange-600 text-white shadow'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Upload className="w-3 h-3" />
+                        Tải từ máy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDishImageMode('url')}
+                        className={`px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                          dishImageMode === 'url'
+                            ? 'bg-orange-600 text-white shadow'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <LinkIcon className="w-3 h-3" />
+                        Dán URL
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start">
+                    {/* Khung Xem trước (Preview Thumbnail) */}
+                    <div className="relative group shrink-0">
+                      <div className="w-24 h-24 rounded-2xl bg-slate-950 border border-slate-700 overflow-hidden flex items-center justify-center relative shadow-inner">
+                        {itemForm.image && !dishImageError ? (
+                          <img
+                            src={itemForm.image}
+                            alt="Preview món"
+                            className="w-full h-full object-cover"
+                            onError={() => setDishImageError(true)}
+                            onLoad={() => setDishImageError(false)}
+                          />
+                        ) : dishImageError ? (
+                          <div className="flex flex-col items-center justify-center p-2 text-rose-400 text-center">
+                            <AlertCircle className="w-5 h-5 mb-1" />
+                            <span className="text-[9px] leading-tight font-medium">Link ảnh lỗi</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-slate-500 text-center p-2">
+                            <ImageIcon className="w-6 h-6 mb-1 text-slate-600" />
+                            <span className="text-[9px] leading-tight">Chưa có ảnh</span>
+                          </div>
+                        )}
+
+                        {/* Nút xóa ảnh khi đã có ảnh */}
+                        {itemForm.image && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setItemForm({ ...itemForm, image: '' });
+                              setDishImageError(false);
+                              if (dishFileInputRef.current) dishFileInputRef.current.value = '';
+                            }}
+                            className="absolute top-1 right-1 p-1 rounded-md bg-black/75 hover:bg-rose-600 text-slate-300 hover:text-white transition-all shadow cursor-pointer"
+                            title="Gỡ ảnh này"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+
+                        {/* Spinner khi đang upload */}
+                        {uploadingDishImage && (
+                          <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-orange-400">
+                            <Loader2 className="w-6 h-6 animate-spin mb-1" />
+                            <span className="text-[9px] font-bold">Đang tải...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Khung Thao tác nhập liệu theo Chế độ */}
+                    <div className="flex-1 min-w-0">
+                      {dishImageMode === 'upload' ? (
+                        <div>
+                          <input
+                            ref={dishFileInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            className="hidden"
+                            onChange={handleDishFileUpload}
+                          />
+                          <div
+                            onClick={() => !uploadingDishImage && dishFileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-2xl p-3.5 text-center cursor-pointer transition-all ${
+                              uploadingDishImage
+                                ? 'border-orange-500 bg-orange-950/20'
+                                : 'border-slate-700 hover:border-orange-500 bg-slate-800/60 hover:bg-slate-800'
+                            }`}
+                          >
+                            {uploadingDishImage ? (
+                              <div className="flex items-center justify-center gap-2 text-orange-400 text-xs">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Đang xử lý & lưu vào Cloudinary CDN...</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-orange-400">
+                                  <Upload className="w-4 h-4" />
+                                  <span>Chọn ảnh từ máy tính</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">
+                                  Hỗ trợ JPG, PNG, WebP (Tối đa 5MB) • Tự động nén & tối ưu CDN
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={itemForm.image}
+                              onChange={(e) => {
+                                setItemForm({ ...itemForm, image: e.target.value.trim() });
+                                setDishImageError(false);
+                              }}
+                              placeholder="Dán link ảnh: https://..."
+                              className="w-full pl-8 pr-8 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:border-orange-500 focus:outline-none"
+                            />
+                            <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                            {itemForm.image && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setItemForm({ ...itemForm, image: '' });
+                                  setDishImageError(false);
+                                }}
+                                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Dán đường dẫn ảnh HTTPS trực tiếp từ website của bạn hoặc nguồn ảnh trực tuyến.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Gợi ý / Trạng thái ảnh */}
+                      {itemForm.image && itemForm.image.includes('cloudinary.com') && (
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
+                          <CheckCircle2 className="w-3 h-3 shrink-0" />
+                          <span>Ảnh đã được lưu trữ an toàn trên Cloudinary CDN</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div>

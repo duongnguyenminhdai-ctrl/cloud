@@ -108,6 +108,21 @@ router.put(
   authController.adminChangePassword
 );
 
+// Cấu hình kiểm soát xác minh số điện thoại hệ thống (Admin only)
+router.get(
+  ['/admin/config/phone-verification', '/auth/admin/config/phone-verification', '/api/auth/admin/config/phone-verification', '/api/v1/auth/admin/config/phone-verification'],
+  verifyToken,
+  requireAdmin,
+  authController.getAdminPhoneVerificationConfig
+);
+
+router.put(
+  ['/admin/config/phone-verification', '/auth/admin/config/phone-verification', '/api/auth/admin/config/phone-verification', '/api/v1/auth/admin/config/phone-verification'],
+  verifyToken,
+  requireAdmin,
+  authController.updateAdminPhoneVerificationConfig
+);
+
 // -----------------------------------------------------------------------------
 // QUẢN LÝ THÔNG TIN TÀI KHOẢN & ĐỔI MẬT KHẨU (USER & ADMIN)
 // -----------------------------------------------------------------------------

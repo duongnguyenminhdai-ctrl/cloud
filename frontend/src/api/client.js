@@ -668,7 +668,14 @@ export const notificationApi = {
 // -----------------------------------------------------------------------------
 export const uploadApi = {
   uploadImage: async (image, folder = 'foodfast') => {
-    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/upload'), { image, folder });
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/upload'), { image, folder });
+    } catch (err) {
+      if (err.response?.status === 404 || !err.response) {
+        return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/upload'), { image, folder });
+      }
+      throw err;
+    }
   }
 };
 
@@ -743,6 +750,13 @@ export const adminApi = {
   },
   deleteVoucher: async (id) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`));
+  },
+  // Cấu hình xác minh số điện thoại hệ thống (Admin System Settings)
+  getPhoneVerificationConfig: async () => {
+    return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/admin/config/phone-verification'));
+  },
+  updatePhoneVerificationConfig: async (data) => {
+    return await apiClient.put(buildUrl(AUTH_SERVICE_URL, '/auth/admin/config/phone-verification'), data);
   }
 };
 

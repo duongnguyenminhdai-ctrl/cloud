@@ -7,7 +7,7 @@ import {
   Building, User, CreditCard, TrendingUp, FileText, Check, ExternalLink,
   ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
   Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight,
-  Gift, Wallet, Flame, Upload, Image as ImageIcon
+  Gift, Wallet, Flame, Upload, Image as ImageIcon, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi, uploadApi } from '../api/client';
@@ -446,6 +446,40 @@ export default function AdminDashboard() {
   const [userSortOrder, setUserSortOrder] = useState('desc');
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // Cấu hình kiểm soát xác minh số điện thoại qua SMS OTP (Firebase Phone Auth)
+  const [phoneVerifConfig, setPhoneVerifConfig] = useState({ required: true, loading: false });
+  const [togglingPhoneVerif, setTogglingPhoneVerif] = useState(false);
+
+  const fetchPhoneVerificationConfig = async () => {
+    try {
+      setPhoneVerifConfig((prev) => ({ ...prev, loading: true }));
+      const res = await adminApi.getPhoneVerificationConfig();
+      if (res.data?.success) {
+        setPhoneVerifConfig({ required: Boolean(res.data.required), loading: false });
+      }
+    } catch (err) {
+      console.warn('Lỗi tải cấu hình xác minh SĐT:', err);
+      setPhoneVerifConfig((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleTogglePhoneVerification = async () => {
+    const nextVal = !phoneVerifConfig.required;
+    setTogglingPhoneVerif(true);
+    try {
+      const res = await adminApi.updatePhoneVerificationConfig({ required: nextVal });
+      if (res.data?.success) {
+        setPhoneVerifConfig({ required: nextVal, loading: false });
+        showNotif('success', res.data.message || `Đã ${nextVal ? 'bật' : 'tắt'} xác thực SĐT SMS OTP thành công!`);
+        publishRealtimeSignal('admin', { type: 'config.phone_verification.updated', required: nextVal });
+      }
+    } catch (err) {
+      showNotif('error', err.response?.data?.message || 'Không thể cập nhật cấu hình xác minh SĐT');
+    } finally {
+      setTogglingPhoneVerif(false);
+    }
+  };
+
   // Modal Thêm / Sửa User
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -486,6 +520,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
+      fetchPhoneVerificationConfig();
       if (!stores || stores.length === 0) {
         fetchStores({ silent: true });
       }
@@ -1351,6 +1386,70 @@ export default function AdminDashboard() {
               >
                 <Plus className="w-4 h-4" /> Thêm tài khoản mới
               </button>
+            </div>
+
+            {/* Cấu hình Bảo mật: Bật/Tắt xác minh số điện thoại SMS OTP */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-800 via-slate-800 to-slate-850 border border-slate-700/80 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                  phoneVerifConfig.required
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">
+                      Xác thực số điện thoại qua SMS OTP (Firebase Phone Auth)
+                    </h3>
+                    {phoneVerifConfig.required ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> ĐANG BẬT
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <AlertTriangle className="w-3.5 h-3.5" /> ĐANG TẮT — Chế độ kiểm thử
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                    {phoneVerifConfig.required
+                      ? 'Hệ thống đang bắt buộc người dùng xác thực mã OTP gửi về SMS điện thoại khi đăng ký tài khoản mới để chống SĐT rác.'
+                      : 'Chế độ kiểm thử đang bật: Người dùng có thể nhập số điện thoại và đăng ký tài khoản trực tiếp mà không cần mã OTP SMS Firebase.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 self-end md:self-center shrink-0 pt-2 md:pt-0">
+                <span className="text-xs font-semibold text-slate-300">
+                  {phoneVerifConfig.required ? 'Bắt buộc OTP' : 'Bỏ qua OTP'}
+                </span>
+                <button
+                  type="button"
+                  disabled={togglingPhoneVerif || phoneVerifConfig.loading}
+                  onClick={handleTogglePhoneVerification}
+                  title={phoneVerifConfig.required ? 'Nhấn để tắt xác minh SĐT (chế độ kiểm thử)' : 'Nhấn để bật bắt buộc xác minh SĐT'}
+                  aria-label="Chuyển đổi trạng thái xác minh số điện thoại"
+                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${
+                    phoneVerifConfig.required ? 'bg-orange-600' : 'bg-slate-700'
+                  } ${togglingPhoneVerif || phoneVerifConfig.loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span
+                    className={`pointer-events-none flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      phoneVerifConfig.required ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  >
+                    {togglingPhoneVerif ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-600" />
+                    ) : phoneVerifConfig.required ? (
+                      <Check className="w-3.5 h-3.5 text-orange-600" />
+                    ) : (
+                      <X className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* User Search & Filter */}
