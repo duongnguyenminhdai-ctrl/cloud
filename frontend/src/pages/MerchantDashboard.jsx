@@ -1600,7 +1600,7 @@ export default function MerchantDashboard() {
         {/* ===================================================================== */}
         {/* 3. THANH ĐIỀU HƯỚNG 6 TABS CHUẨN FOODFAST PARTNER */}
         {/* ===================================================================== */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
           {[
             { id: 'orders', label: '1. Đơn hàng (Live Orders)', icon: ShoppingBag, badge: orders.filter((o) => ['PENDING', 'NEW'].includes(o.status)).length },
             { id: 'menu', label: '2. Thực đơn & Topping', icon: UtensilsCrossed, badge: store.menuItems?.length || 0 },
@@ -1978,7 +1978,7 @@ export default function MerchantDashboard() {
             {menuSubTab === 'items' && (
               <div className="space-y-4">
                 {/* Lọc danh mục */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2">
                   <button
                     onClick={() => setSelectedCategory('ALL')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer ${

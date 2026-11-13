@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -26,12 +26,16 @@ import {
   BadgePercent,
   Store,
   CreditCard,
-  Percent
+  Percent,
+  Camera,
+  Upload,
+  X
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderApi, voucherApi, reviewApi } from '../api/client';
 import { getOrderDishImage, enrichOrderWithDishImages } from '../utils/menuImageSync';
+import { compressReviewImage } from '../utils/imageHelpers';
 import Pagination, { paginateList } from '../components/Pagination';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 
@@ -101,6 +105,36 @@ export default function OrdersPage({ initialTab }) {
   const [ratingScore, setRatingScore] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewedSuccess, setReviewedSuccess] = useState(false);
+  const [reviewImages, setReviewImages] = useState([]);
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(false);
+  const reviewFileInputRef = useRef(null);
+
+  const handleReviewImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (reviewImages.length + files.length > 5) {
+      alert('Tối đa 5 hình ảnh cho mỗi đánh giá.');
+      return;
+    }
+    try {
+      setUploadingReviewImg(true);
+      const newImages = [];
+      for (const file of files) {
+        const compressed = await compressReviewImage(file);
+        newImages.push(compressed);
+      }
+      setReviewImages((prev) => [...prev, ...newImages]);
+    } catch (err) {
+      alert('Không thể xử lý ảnh: ' + err.message);
+    } finally {
+      setUploadingReviewImg(false);
+      if (reviewFileInputRef.current) reviewFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveReviewImage = (idx) => {
+    setReviewImages((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   // Voucher State (Mục Voucher mới chuẩn FoodFast)
   const [voucherCategory, setVoucherCategory] = useState('ALL'); // 'ALL' | 'FREESHIP' | 'DISCOUNT' | 'STORE'
@@ -618,7 +652,8 @@ export default function OrdersPage({ initialTab }) {
             name: firstItem.name || reviewOrderModal.restaurantName || 'Món ăn đặc sản',
             image: firstItem.image || '',
             options: optionsStr
-          }
+          },
+          images: reviewImages
         });
 
         // Đánh dấu đơn đã đánh giá
@@ -652,6 +687,7 @@ export default function OrdersPage({ initialTab }) {
     setTimeout(() => {
       setReviewedSuccess(false);
       setReviewComment('');
+      setReviewImages([]);
       setReviewOrderModal(null);
     }, 1800);
   };
@@ -1785,7 +1821,7 @@ export default function OrdersPage({ initialTab }) {
       {/* =================================================================== */}
       {reviewOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
             <div className="text-center space-y-1">
               <h3 className="font-bold text-base text-gray-900">
                 Đánh giá đơn hàng & Nhận 1.000 Xu
@@ -1827,9 +1863,64 @@ export default function OrdersPage({ initialTab }) {
                   className="w-full h-20 p-3 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE4D2D]"
                 />
 
+                {/* Tải lên hình ảnh món ăn thực tế (Tối đa 5 ảnh) */}
+                <div className="space-y-1.5 text-left">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-gray-700 flex items-center gap-1">
+                      <Camera className="w-3.5 h-3.5 text-[#EE4D2D]" />
+                      Ảnh chụp món ăn ({reviewImages.length}/5)
+                    </span>
+                    <span className="text-[11px] text-gray-400">JPG, PNG</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 shadow-2xs group">
+                        <img src={img} alt="review upload" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveReviewImage(idx)}
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {reviewImages.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => reviewFileInputRef.current?.click()}
+                        disabled={uploadingReviewImg}
+                        className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 hover:text-[#EE4D2D] cursor-pointer transition"
+                      >
+                        {uploadingReviewImg ? (
+                          <div className="w-4 h-4 border-2 border-[#EE4D2D] border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span className="text-[9px] font-bold mt-0.5">Thêm ảnh</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={reviewFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleReviewImageUpload}
+                  />
+                </div>
+
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setReviewOrderModal(null)}
+                    onClick={() => {
+                      setReviewOrderModal(null);
+                      setReviewImages([]);
+                    }}
                     className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold"
                   >
                     Hủy

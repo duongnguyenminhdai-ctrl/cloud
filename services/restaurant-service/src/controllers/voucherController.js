@@ -3,6 +3,7 @@ const Voucher = require('../models/Voucher');
 const Restaurant = require('../models/Restaurant');
 const { client, decrQuota, incrQuota, setQuota } = require('../../redis');
 const { broadcastAdminEvent, emitStoreUpdate } = require('../utils/realtimeHub');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 function emitVoucherUpdate(action, voucher, store = null) {
   const storeId = voucher?.store_id ? String(voucher.store_id) : (store?._id ? String(store._id) : null);
@@ -59,6 +60,23 @@ async function seedDefaultVouchers() {
           usage_limit: 1000,
           used_count: 0,
           is_active: true
+        },
+        {
+          code: 'FREESHIP50K',
+          title: 'Đại Tiệc FoodFast - Giảm 50%',
+          issuer_type: 'PLATFORM',
+          discount_type: 'PERCENTAGE',
+          discount_value: 50,
+          max_discount_amount: 50000,
+          min_order_value: 0,
+          usage_limit: 1000,
+          used_count: 0,
+          is_active: true,
+          is_banner: true,
+          banner_image: '/popups/foodfast-promo.jpg',
+          banner_title: 'Đại Tiệc FoodFast - Giảm 50%',
+          banner_description: 'Áp dụng cho tất cả quán ăn đối tác tại TP. Hồ Chí Minh & toàn quốc. Giảm tối đa 50.000đ cho đơn hàng đầu tiên!',
+          banner_order: 1
         }
       ];
 
@@ -66,7 +84,7 @@ async function seedDefaultVouchers() {
         await Voucher.create(v);
         await setQuota(`voucher:quota:${v.code}`, v.usage_limit);
       }
-      console.log('[Voucher] 🎫 Đã khởi tạo 3 voucher mẫu mặc định vào Database & Redis!');
+      console.log('[Voucher] 🎫 Đã khởi tạo 4 voucher mẫu mặc định vào Database & Redis!');
     }
   } catch (err) {
     console.warn('[Voucher] Lỗi seed voucher:', err.message);
@@ -218,6 +236,32 @@ exports.applyVoucher = async (req, res) => {
 };
 
 /**
+ * 2.1 GET /api/v1/vouchers/banners
+ * Lấy danh sách Voucher Banner Popup đang hoạt động hiển thị ngoài trang chủ (Shopee Flash Sale Style)
+ */
+exports.getBannerVouchers = async (req, res) => {
+  try {
+    const now = new Date();
+    const banners = await Voucher.find({
+      is_banner: true,
+      is_active: true,
+      $or: [{ end_date: null }, { end_date: { $gte: now } }]
+    }).sort({ banner_order: 1, createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: banners.length,
+      data: banners
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi lấy danh sách voucher banner: ' + error.message
+    });
+  }
+};
+
+/**
  * 3. GET /api/v1/vouchers
  * Lấy danh sách voucher khả dụng (Gồm Voucher Sàn PLATFORM & Voucher Quán STORE nếu truyền store_id)
  */
@@ -300,7 +344,12 @@ exports.createVoucher = async (req, res) => {
       used_count: 0,
       start_date: req.body.start_date ? new Date(req.body.start_date) : Date.now(),
       end_date: end_date ? new Date(end_date) : null,
-      is_active: req.body.is_active !== false
+      is_active: req.body.is_active !== false,
+      is_banner: Boolean(req.body.is_banner),
+      banner_image: req.body.banner_image || '',
+      banner_title: req.body.banner_title || '',
+      banner_description: req.body.banner_description || '',
+      banner_order: Number(req.body.banner_order) || 0
     });
 
     const saved = await newVoucher.save();
@@ -351,8 +400,14 @@ exports.adminGetVouchers = async (req, res) => {
       ];
     }
 
-    if (issuer_type && issuer_type !== 'ALL') {
+    if (issuer_type === 'BANNER') {
+      query.is_banner = true;
+    } else if (issuer_type && issuer_type !== 'ALL') {
       query.issuer_type = issuer_type;
+    }
+
+    if (req.query.is_banner !== undefined && req.query.is_banner !== 'ALL') {
+      query.is_banner = req.query.is_banner === 'true' || req.query.is_banner === true;
     }
 
     if (is_active !== undefined && is_active !== 'ALL') {
@@ -454,6 +509,16 @@ exports.adminCreateVoucher = async (req, res) => {
 
     const numLimit = Math.max(1, parseInt(usage_limit) || 100);
 
+    let finalBannerImage = req.body.banner_image || '';
+    if (finalBannerImage && finalBannerImage.startsWith('data:image/')) {
+      try {
+        const uploaded = await uploadToCloudinary(finalBannerImage, { folder: 'foodfast/vouchers' });
+        finalBannerImage = uploaded.secure_url;
+      } catch (err) {
+        console.warn('[Voucher] Cloudinary upload banner failed, keeping original:', err.message);
+      }
+    }
+
     const newVoucher = new Voucher({
       code: cleanCode,
       title: title && title.trim() ? title.trim() : `Mã giảm ${numValue}${discount_type === 'PERCENTAGE' ? '%' : 'đ'}`,
@@ -468,7 +533,12 @@ exports.adminCreateVoucher = async (req, res) => {
       city_code: (city_code || 'ALL').toLowerCase().trim(),
       start_date: start_date ? new Date(start_date) : new Date(),
       end_date: end_date ? new Date(end_date) : null,
-      is_active: is_active !== false
+      is_active: is_active !== false,
+      is_banner: Boolean(req.body.is_banner),
+      banner_image: finalBannerImage,
+      banner_title: req.body.banner_title || '',
+      banner_description: req.body.banner_description || '',
+      banner_order: Number(req.body.banner_order) || 0
     });
 
     const saved = await newVoucher.save();
@@ -544,6 +614,30 @@ exports.adminUpdateVoucher = async (req, res) => {
     }
     if (is_active !== undefined) {
       voucher.is_active = Boolean(is_active);
+    }
+    if (req.body.is_banner !== undefined) {
+      voucher.is_banner = Boolean(req.body.is_banner);
+    }
+    if (req.body.banner_image !== undefined) {
+      let finalBannerImage = req.body.banner_image || '';
+      if (finalBannerImage && finalBannerImage.startsWith('data:image/')) {
+        try {
+          const uploaded = await uploadToCloudinary(finalBannerImage, { folder: 'foodfast/vouchers' });
+          finalBannerImage = uploaded.secure_url;
+        } catch (err) {
+          console.warn('[Voucher] Cloudinary upload banner failed, keeping original:', err.message);
+        }
+      }
+      voucher.banner_image = finalBannerImage;
+    }
+    if (req.body.banner_title !== undefined) {
+      voucher.banner_title = req.body.banner_title || '';
+    }
+    if (req.body.banner_description !== undefined) {
+      voucher.banner_description = req.body.banner_description || '';
+    }
+    if (req.body.banner_order !== undefined) {
+      voucher.banner_order = Number(req.body.banner_order) || 0;
     }
 
     await voucher.save();
@@ -727,7 +821,12 @@ exports.merchantCreateVoucher = async (req, res) => {
       used_count: 0,
       start_date: start_date ? new Date(start_date) : new Date(),
       end_date: end_date ? new Date(end_date) : null,
-      is_active: is_active !== false
+      is_active: is_active !== false,
+      is_banner: Boolean(req.body.is_banner),
+      banner_image: req.body.banner_image || '',
+      banner_title: req.body.banner_title || '',
+      banner_description: req.body.banner_description || '',
+      banner_order: Number(req.body.banner_order) || 0
     });
 
     const saved = await newVoucher.save();
@@ -805,6 +904,30 @@ exports.merchantUpdateVoucher = async (req, res) => {
     }
     if (is_active !== undefined) {
       voucher.is_active = Boolean(is_active);
+    }
+    if (req.body.is_banner !== undefined) {
+      voucher.is_banner = Boolean(req.body.is_banner);
+    }
+    if (req.body.banner_image !== undefined) {
+      let finalBannerImage = req.body.banner_image || '';
+      if (finalBannerImage && finalBannerImage.startsWith('data:image/')) {
+        try {
+          const uploaded = await uploadToCloudinary(finalBannerImage, { folder: 'foodfast/vouchers' });
+          finalBannerImage = uploaded.secure_url;
+        } catch (err) {
+          console.warn('[Voucher] Cloudinary upload banner failed, keeping original:', err.message);
+        }
+      }
+      voucher.banner_image = finalBannerImage;
+    }
+    if (req.body.banner_title !== undefined) {
+      voucher.banner_title = req.body.banner_title || '';
+    }
+    if (req.body.banner_description !== undefined) {
+      voucher.banner_description = req.body.banner_description || '';
+    }
+    if (req.body.banner_order !== undefined) {
+      voucher.banner_order = Number(req.body.banner_order) || 0;
     }
 
     await voucher.save();

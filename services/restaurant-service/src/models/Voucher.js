@@ -82,6 +82,28 @@ const voucherSchema = new mongoose.Schema(
       type: String,
       default: null,
       index: true // Voucher đích danh được tặng riêng cho khách hàng
+    },
+    // Thuộc diện Voucher Banner Popup quảng cáo (Shopee / FoodFast Flash Sale)
+    is_banner: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    banner_image: {
+      type: String,
+      default: '' // URL hoặc Base64 ảnh món ăn sinh động
+    },
+    banner_title: {
+      type: String,
+      default: '' // Tiêu đề hiển thị trên Banner Popup
+    },
+    banner_description: {
+      type: String,
+      default: '' // Nội dung mô tả chương trình ưu đãi
+    },
+    banner_order: {
+      type: Number,
+      default: 0 // Thứ tự hiển thị voucher banner (1, 2, 3...)
     }
   },
   {

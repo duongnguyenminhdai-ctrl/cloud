@@ -8,20 +8,80 @@
   }
 }
 
-/* Custom scrollbar */
+/* =============================================================================
+   MỞ RỘNG THANH CUỘN & THANH KÉO NGANG TOÀN HỆ THỐNG (FOODFAST PREMIUM DESIGN)
+   ============================================================================= */
+
+/* Kích thước thanh cuộn mở rộng: ngang 10px, dọc 8px (dễ nhìn, dễ nhấn kéo) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 10px;
 }
+
+/* Rãnh trượt (Track) bán trong suốt tinh tế, không còn bị vệt trắng chói trên nền tối */
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgba(148, 163, 184, 0.15);
   border-radius: 9999px;
+  margin: 2px 4px;
 }
-::-webkit-scrollbar-thumb:hover {
+
+/* Rãnh trượt trên các khối nền tối (Dark mode / Merchant & Admin Dashboard) */
+.bg-slate-900 ::-webkit-scrollbar-track,
+.bg-slate-950 ::-webkit-scrollbar-track,
+.bg-slate-800 ::-webkit-scrollbar-track,
+.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(51, 65, 85, 0.45);
+}
+
+/* Con trỏ kéo (Thumb) bo góc tròn kiểu viên thuốc (Pill), êm ái */
+::-webkit-scrollbar-thumb {
   background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+/* Con trỏ kéo trên nền tối */
+.bg-slate-900 ::-webkit-scrollbar-thumb,
+.bg-slate-950 ::-webkit-scrollbar-thumb,
+.bg-slate-800 ::-webkit-scrollbar-thumb,
+.dark ::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+/* Hiệu ứng di chuột (Hover): Phát sáng cam FoodFast nổi bật, nhận diện kéo dễ dàng */
+::-webkit-scrollbar-thumb:hover {
+  background: #ea580c !important;
+  border-width: 1px;
+}
+
+/* Khi đang nhấn giữ chuột kéo (Active) */
+::-webkit-scrollbar-thumb:active {
+  background: #c2410c !important;
+}
+
+/* Hỗ trợ Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 rgba(148, 163, 184, 0.15);
+}
+
+/* Class hỗ trợ ẩn thanh cuộn khi thực sự cần thiết */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Cuộn mượt cho tất cả khối overflow ngang */
+.overflow-x-auto,
+.overflow-x-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Leaflet compatibility with Tailwind CSS preflight */
@@ -37,4 +97,3 @@
 .leaflet-pane {
   z-index: 1 !important;
 }
-

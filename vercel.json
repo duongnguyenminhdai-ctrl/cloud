@@ -29,6 +29,14 @@
       "destination": "https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/restaurants/:path*"
     },
     {
+      "source": "/api/v1/upload",
+      "destination": "https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/restaurants/upload"
+    },
+    {
+      "source": "/api/v1/upload/:path*",
+      "destination": "https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/restaurants/upload/:path*"
+    },
+    {
       "source": "/api/v1/orders",
       "destination": "https://food-delivery-order-service-4yzg.onrender.com/api/v1/orders"
     },

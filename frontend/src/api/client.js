@@ -609,6 +609,9 @@ export const voucherApi = {
       params: { store_id }
     });
   },
+  getBanners: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/banners'));
+  },
   create: async (voucherData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), voucherData);
   }
@@ -657,6 +660,15 @@ export const notificationApi = {
   },
   deleteNotification: async (id) => {
     return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/notifications/${id}`));
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 9.2 Cloudinary Media Upload API (Tải ảnh trực tiếp lên CDN & Giữ MongoDB siêu nhẹ)
+// -----------------------------------------------------------------------------
+export const uploadApi = {
+  uploadImage: async (image, folder = 'foodfast') => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/upload'), { image, folder });
   }
 };
 

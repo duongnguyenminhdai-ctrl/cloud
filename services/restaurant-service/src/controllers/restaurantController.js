@@ -4,6 +4,7 @@ const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../re
 const { calculateMerchantSettlement } = require('../utils/settlementEngine');
 const { subscribe, emitStoreUpdate, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
 const { JWT_SECRET } = require('../middlewares/authMiddleware');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 function getAuthenticatedUserId(req) {
   return String(req.user?.userId || req.user?.id || req.user?._id || '').trim();
@@ -543,6 +544,23 @@ exports.updateMyStore = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng của bạn.' });
     }
 
+    if (req.body.image && typeof req.body.image === 'string' && req.body.image.startsWith('data:image/')) {
+      try {
+        const up = await uploadToCloudinary(req.body.image, { folder: 'foodfast/stores' });
+        req.body.image = up.secure_url;
+      } catch (err) {
+        console.warn('[Store] Upload store image to Cloudinary failed:', err.message);
+      }
+    }
+    if (req.body.coverImage && typeof req.body.coverImage === 'string' && req.body.coverImage.startsWith('data:image/')) {
+      try {
+        const up = await uploadToCloudinary(req.body.coverImage, { folder: 'foodfast/stores' });
+        req.body.coverImage = up.secure_url;
+      } catch (err) {
+        console.warn('[Store] Upload store cover to Cloudinary failed:', err.message);
+      }
+    }
+
     const allowedUpdates = [
       'name', 'phone', 'address', 'image', 'coverImage',
       'latitude', 'longitude', 'prep_time',
@@ -591,11 +609,21 @@ exports.addMenuItem = async (req, res) => {
       notePlaceholder: 'Ghi chú cho quán (không hành, ít cay...)'
     };
 
+    let finalDishImage = image || '';
+    if (finalDishImage && typeof finalDishImage === 'string' && finalDishImage.startsWith('data:image/')) {
+      try {
+        const up = await uploadToCloudinary(finalDishImage, { folder: 'foodfast/dishes' });
+        finalDishImage = up.secure_url;
+      } catch (err) {
+        console.warn('[Menu] Upload dish image to Cloudinary failed:', err.message);
+      }
+    }
+
     store.menuItems.push({
       name,
       price: Number(price),
       description: description || '',
-      image: image || '',
+      image: finalDishImage,
       isAvailable: true,
       categoryId: categoryId || '',
       sellingHours: sellingHours || { isAllDay: true, customDays: [], shifts: [] },
@@ -636,7 +664,18 @@ exports.updateMenuItem = async (req, res) => {
     if (name) item.name = name;
     if (price !== undefined) item.price = Number(price);
     if (description !== undefined) item.description = description;
-    if (image !== undefined) item.image = image;
+    if (image !== undefined) {
+      let finalDishImage = image || '';
+      if (finalDishImage && typeof finalDishImage === 'string' && finalDishImage.startsWith('data:image/')) {
+        try {
+          const up = await uploadToCloudinary(finalDishImage, { folder: 'foodfast/dishes' });
+          finalDishImage = up.secure_url;
+        } catch (err) {
+          console.warn('[Menu] Upload dish image to Cloudinary failed:', err.message);
+        }
+      }
+      item.image = finalDishImage;
+    }
     if (isAvailable !== undefined) item.isAvailable = isAvailable;
     if (customization !== undefined) item.customization = customization;
     if (categoryId !== undefined) item.categoryId = categoryId;

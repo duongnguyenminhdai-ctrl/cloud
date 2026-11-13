@@ -5,6 +5,9 @@ const voucherController = require('../controllers/voucherController');
 // 1. Áp dụng mã giảm giá (POST /api/v1/vouchers/apply)
 router.post(['/apply', '/vouchers/apply'], voucherController.applyVoucher);
 
+// 1.1 Lấy danh sách Voucher Banner Popup trang chủ (GET /api/v1/vouchers/banners)
+router.get(['/banners', '/vouchers/banners'], voucherController.getBannerVouchers);
+
 // 2. Admin Voucher Management Routes (khi router được gọi qua tiền tố /vouchers)
 router.get(['/admin', '/admin/list'], voucherController.adminGetVouchers);
 router.post(['/admin', '/admin/create'], voucherController.adminCreateVoucher);

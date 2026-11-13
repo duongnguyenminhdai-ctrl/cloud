@@ -39,6 +39,12 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
 
   # ----------------------------------------------------------------------------
   # 2. Restaurant Service (kèm Redis Cache & RabbitMQ)
@@ -64,6 +70,12 @@ services:
         sync: false
       - key: RABBITMQ_URL
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
 
   # ----------------------------------------------------------------------------
   # 3. Order Service
@@ -87,6 +99,12 @@ services:
         sync: false
       - key: RABBITMQ_URL
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
 
   # ----------------------------------------------------------------------------
   # 4. Payment Service (kèm VNPay Sandbox)
@@ -109,6 +127,12 @@ services:
       - key: MONGO_URI_PAYMENT
         sync: false
       - key: RABBITMQ_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false
       - key: VNP_TMN_CODE
         sync: false
@@ -140,4 +164,10 @@ services:
       - key: MONGO_URI_DELIVERY
         sync: false
       - key: RABBITMQ_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false

@@ -5,6 +5,7 @@ const CustomerNotification = require('../models/CustomerNotification');
 const { publishEvent } = require('../rabbitmq');
 const { invalidateRestaurantCache } = require('../../redis');
 const { emitStoreUpdate, emitUserEvent } = require('../utils/realtimeHub');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 /**
  * Hàm hỗ trợ cộng 1.000 Xu cho người dùng (Thực hiện trực tiếp trên Atlas auth_db hoặc qua API)
@@ -112,7 +113,26 @@ exports.createReview = async (req, res) => {
       console.warn('[Review] Bỏ qua kiểm tra CustomerNotification:', notifErr.message);
     }
 
-    // 1.3 Lưu Review chuẩn Shopee vào MongoDB
+    // 1.3 Upload ảnh đánh giá lên Cloudinary CDN để tiết kiệm bộ nhớ MongoDB
+    let uploadedImages = [];
+    if (Array.isArray(images) && images.length > 0) {
+      uploadedImages = await Promise.all(
+        images.slice(0, 5).map(async (img) => {
+          if (typeof img === 'string' && img.startsWith('data:image/')) {
+            try {
+              const res = await uploadToCloudinary(img, { folder: 'foodfast/reviews' });
+              return res.secure_url;
+            } catch (err) {
+              console.warn('[Review] Cloudinary upload review image failed:', err.message);
+              return img;
+            }
+          }
+          return img;
+        })
+      );
+    }
+
+    // 1.4 Lưu Review chuẩn Shopee vào MongoDB
     const newReview = new Review({
       order_id,
       user_id: userId,
@@ -126,7 +146,7 @@ exports.createReview = async (req, res) => {
         packaging: criteria?.packaging || (numRating >= 4 ? 'Cẩn thận, sạch sẽ' : 'Bình thường'),
         deliverySpeed: criteria?.deliverySpeed || (numRating >= 4 ? 'Giao siêu tốc' : 'Đúng giờ')
       },
-      images: Array.isArray(images) ? images.filter(Boolean) : [],
+      images: uploadedImages,
       purchasedItem: {
         name: purchasedItem?.name || '',
         image: purchasedItem?.image || '',

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Gift, Check, Trash2, Clock, Star, X, CheckCircle2 } from 'lucide-react';
+import { Bell, Gift, Check, Trash2, Clock, Star, X, CheckCircle2, Camera, Upload } from 'lucide-react';
 import { notificationApi, reviewApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { compressReviewImage } from '../utils/imageHelpers';
 import { playNotificationChime } from '../utils/realtimeSync';
 
 export default function NotificationBell({ onReviewOrder }) {
@@ -19,6 +20,36 @@ export default function NotificationBell({ onReviewOrder }) {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewedSuccess, setReviewedSuccess] = useState(false);
   const [reviewError, setReviewError] = useState(null);
+  const [reviewImages, setReviewImages] = useState([]);
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(false);
+  const reviewFileInputRef = useRef(null);
+
+  const handleReviewImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (reviewImages.length + files.length > 5) {
+      alert('Tối đa 5 hình ảnh cho mỗi đánh giá.');
+      return;
+    }
+    try {
+      setUploadingReviewImg(true);
+      const newImages = [];
+      for (const file of files) {
+        const compressed = await compressReviewImage(file);
+        newImages.push(compressed);
+      }
+      setReviewImages((prev) => [...prev, ...newImages]);
+    } catch (err) {
+      alert('Không thể xử lý ảnh: ' + err.message);
+    } finally {
+      setUploadingReviewImg(false);
+      if (reviewFileInputRef.current) reviewFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveReviewImage = (idx) => {
+    setReviewImages((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const fetchNotifications = async () => {
     if (!isAuthenticated) return;
@@ -107,6 +138,7 @@ export default function NotificationBell({ onReviewOrder }) {
   const handleOpenReview = (notif) => {
     setRatingScore(5);
     setReviewComment('');
+    setReviewImages([]);
     setReviewError(null);
     setReviewedSuccess(false);
     setActiveReviewModal(notif);
@@ -136,7 +168,8 @@ export default function NotificationBell({ onReviewOrder }) {
         purchasedItem: {
           name: activeReviewModal.storeName || 'Món ăn đặc sản',
           options: 'Đơn hàng giao thành công'
-        }
+        },
+        images: reviewImages
       });
 
       if (res.data?.success) {
@@ -153,6 +186,7 @@ export default function NotificationBell({ onReviewOrder }) {
 
         setTimeout(() => {
           setActiveReviewModal(null);
+          setReviewImages([]);
           setReviewedSuccess(false);
         }, 1800);
       } else {
@@ -348,6 +382,58 @@ export default function NotificationBell({ onReviewOrder }) {
                   />
                 </div>
 
+                {/* Tải lên hình ảnh món ăn thực tế (Tối đa 5 ảnh) */}
+                <div className="space-y-1.5 text-left">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-gray-700 flex items-center gap-1">
+                      <Camera className="w-3.5 h-3.5 text-[#EE4D2D]" />
+                      Ảnh chụp món ăn ({reviewImages.length}/5)
+                    </span>
+                    <span className="text-[11px] text-gray-400">JPG, PNG</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 shadow-2xs group">
+                        <img src={img} alt="review upload" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveReviewImage(idx)}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {reviewImages.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => reviewFileInputRef.current?.click()}
+                        disabled={uploadingReviewImg}
+                        className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 hover:text-[#EE4D2D] cursor-pointer transition"
+                      >
+                        {uploadingReviewImg ? (
+                          <div className="w-3 h-3 border-2 border-[#EE4D2D] border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span className="text-[8px] font-bold mt-0.5">Thêm ảnh</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={reviewFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleReviewImageUpload}
+                  />
+                </div>
+
                 {reviewError && (
                   <p className="text-xs text-red-600 font-medium">{reviewError}</p>
                 )}
@@ -359,7 +445,10 @@ export default function NotificationBell({ onReviewOrder }) {
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setActiveReviewModal(null)}
+                    onClick={() => {
+                      setActiveReviewModal(null);
+                      setReviewImages([]);
+                    }}
                     className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors"
                   >
                     Để sau
@@ -367,7 +456,7 @@ export default function NotificationBell({ onReviewOrder }) {
                   <button
                     type="submit"
                     disabled={submittingReview}
-                    className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-600/30 transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 bg-[#EE4D2D] hover:bg-[#d73f21] disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-500/20 transition-all flex items-center justify-center gap-1.5"
                   >
                     {submittingReview ? 'Đang gửi...' : 'Gửi Đánh Giá (+1.000 Xu)'}
                   </button>

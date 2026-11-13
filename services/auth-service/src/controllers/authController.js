@@ -7,6 +7,7 @@ const {
   normalizeVietnamPhone,
   verifyFirebasePhoneToken
 } = require('../utils/firebaseAdmin');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_123';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -993,7 +994,16 @@ exports.updateProfile = async (req, res) => {
       if (!avatarCheck.valid) {
         return res.status(400).json({ success: false, message: avatarCheck.message });
       }
-      user.avatar = avatarCheck.value;
+      let finalAvatar = avatarCheck.value;
+      if (finalAvatar && finalAvatar.startsWith('data:image/')) {
+        try {
+          const uploaded = await uploadToCloudinary(finalAvatar, { folder: 'foodfast/avatars' });
+          finalAvatar = uploaded.secure_url;
+        } catch (uploadErr) {
+          console.warn('[Auth] Cloudinary upload avatar failed, keeping original:', uploadErr.message);
+        }
+      }
+      user.avatar = finalAvatar;
     }
 
     await user.save();

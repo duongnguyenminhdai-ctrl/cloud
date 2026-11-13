@@ -7,11 +7,12 @@ import {
   Building, User, CreditCard, TrendingUp, FileText, Check, ExternalLink,
   ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
   Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight,
-  Gift, Wallet
+  Gift, Wallet, Flame, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi } from '../api/client';
+import { adminApi, uploadApi } from '../api/client';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
+import { compressReviewImage } from '../utils/imageHelpers';
 import UserProfileModal from '../components/UserProfileModal';
 import UserAvatar from '../components/UserAvatar';
 import Pagination from '../components/Pagination';
@@ -618,7 +619,12 @@ export default function AdminDashboard() {
     city_code: 'ALL',
     start_date: '',
     end_date: '',
-    is_active: true
+    is_active: true,
+    is_banner: false,
+    banner_image: '',
+    banner_title: '',
+    banner_description: '',
+    banner_order: 1
   });
 
   const fetchVouchers = async ({ silent = false } = {}) => {
@@ -714,6 +720,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleBannerImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressReviewImage(file);
+      // Hiển thị ngay ảnh preview cho Admin
+      setVoucherForm((prev) => ({ ...prev, banner_image: compressed }));
+      showNotif('info', 'Đang tải ảnh lên Cloudinary CDN...');
+
+      // Upload lên Cloudinary
+      const res = await uploadApi.uploadImage(compressed, 'foodfast/vouchers');
+      const cdnUrl = res.data?.data?.url || res.data?.url;
+      if (cdnUrl) {
+        setVoucherForm((prev) => ({ ...prev, banner_image: cdnUrl }));
+        showNotif('success', 'Đã lưu trữ ảnh lên Cloudinary CDN thành công!');
+      }
+    } catch (err) {
+      showNotif('error', err.message || 'Lỗi xử lý ảnh banner');
+    }
+  };
+
   const handleOpenCreateVoucher = () => {
     setEditingVoucherId(null);
     const now = new Date();
@@ -731,7 +758,12 @@ export default function AdminDashboard() {
       city_code: 'ALL',
       start_date: now.toISOString().slice(0, 16),
       end_date: oneMonthLater.toISOString().slice(0, 16),
-      is_active: true
+      is_active: true,
+      is_banner: false,
+      banner_image: '',
+      banner_title: '',
+      banner_description: '',
+      banner_order: 1
     });
     setShowVoucherModal(true);
   };
@@ -751,7 +783,12 @@ export default function AdminDashboard() {
       city_code: v.city_code || 'ALL',
       start_date: v.start_date ? new Date(v.start_date).toISOString().slice(0, 16) : '',
       end_date: v.end_date ? new Date(v.end_date).toISOString().slice(0, 16) : '',
-      is_active: v.is_active !== false
+      is_active: v.is_active !== false,
+      is_banner: Boolean(v.is_banner),
+      banner_image: v.banner_image || '',
+      banner_title: v.banner_title || '',
+      banner_description: v.banner_description || '',
+      banner_order: v.banner_order || 1
     });
     setShowVoucherModal(true);
   };
@@ -776,7 +813,12 @@ export default function AdminDashboard() {
         min_order_value: Math.max(0, Number(voucherForm.min_order_value) || 0),
         usage_limit: Math.max(1, Number(voucherForm.usage_limit) || 100),
         start_date: voucherForm.start_date ? new Date(voucherForm.start_date).toISOString() : new Date().toISOString(),
-        end_date: voucherForm.end_date ? new Date(voucherForm.end_date).toISOString() : null
+        end_date: voucherForm.end_date ? new Date(voucherForm.end_date).toISOString() : null,
+        is_banner: Boolean(voucherForm.is_banner),
+        banner_image: voucherForm.banner_image || '',
+        banner_title: voucherForm.banner_title || '',
+        banner_description: voucherForm.banner_description || '',
+        banner_order: Number(voucherForm.banner_order) || 1
       };
 
       if (editingVoucherId) {
@@ -1552,6 +1594,7 @@ export default function AdminDashboard() {
                   className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-orange-500"
                 >
                   <option value="ALL">Tất cả nguồn phát hành</option>
+                  <option value="BANNER">Voucher Banner Popup (Trang chủ)</option>
                   <option value="PLATFORM">Voucher Sàn (Admin)</option>
                   <option value="STORE">Voucher Quán (Store)</option>
                 </select>
@@ -1643,17 +1686,40 @@ export default function AdminDashboard() {
                           <tr key={v._id} className="hover:bg-slate-700/30 transition-colors">
                             {/* Cột 1: Mã Voucher */}
                             <td className="py-3 px-4">
-                              <span className="font-mono font-black text-orange-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-orange-500/30 text-xs tracking-wider inline-block">
-                                {v.code}
-                              </span>
-                              <div className="text-[11px] text-slate-300 font-medium mt-1 truncate max-w-[200px]" title={v.title}>
-                                {v.title || 'Mã ưu đãi FoodFast'}
+                              <div className="flex items-center gap-2.5">
+                                {v.banner_image && (
+                                  <img
+                                    src={v.banner_image}
+                                    alt="Banner"
+                                    className="w-10 h-10 object-cover rounded-lg border border-orange-500/30 shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <span className="font-mono font-black text-orange-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-orange-500/30 text-xs tracking-wider inline-block">
+                                    {v.code}
+                                  </span>
+                                  <div className="text-[11px] text-slate-300 font-medium mt-1 truncate max-w-[200px]" title={v.title}>
+                                    {v.title || 'Mã ưu đãi FoodFast'}
+                                  </div>
+                                </div>
                               </div>
                             </td>
 
                             {/* Cột 2: Nguồn phát hành */}
                             <td className="py-3 px-4">
-                              {v.issuer_type === 'STORE' ? (
+                              {v.is_banner ? (
+                                <div className="space-y-1">
+                                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-bold border border-orange-500/40 text-[10px] flex items-center gap-1 w-fit">
+                                    <Flame className="w-3 h-3 text-orange-400 fill-orange-400 animate-pulse" /> Banner Popup #{v.banner_order || 1}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 block">
+                                    {v.issuer_type === 'STORE' ? (v.store_id?.name || 'Voucher Quán') : 'Voucher Sàn (Admin)'}
+                                  </span>
+                                </div>
+                              ) : v.issuer_type === 'STORE' ? (
                                 <div>
                                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 text-[10px] flex items-center gap-1 w-fit">
                                     <Store className="w-3 h-3 text-amber-400" /> Voucher Quán
@@ -3625,6 +3691,136 @@ export default function AdminDashboard() {
                 </label>
               </div>
 
+              {/* Thiết lập Voucher Banner Popup Khuyến Mãi */}
+              <div className="p-4 rounded-xl bg-orange-950/20 border border-orange-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-400 fill-orange-400 animate-pulse" />
+                    <div>
+                      <span className="font-bold text-white text-xs block">
+                        Hiển thị làm Voucher Banner Popup (Trang chủ)
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Xuất hiện trong popup flash sale trang chủ có nút mũi tên chuyển slide và sao chép mã.
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={voucherForm.is_banner}
+                      onChange={(e) => setVoucherForm({ ...voucherForm, is_banner: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                  </label>
+                </div>
+
+                {voucherForm.is_banner && (
+                  <div className="pt-2 border-t border-orange-500/20 space-y-3 animate-fadeIn">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-2">
+                        <label className="block font-bold text-slate-300 mb-1">
+                          Tiêu đề Banner Popup (Shopee Flash Sale)
+                        </label>
+                        <input
+                          type="text"
+                          value={voucherForm.banner_title}
+                          onChange={(e) => setVoucherForm({ ...voucherForm, banner_title: e.target.value })}
+                          placeholder="VD: Đại Tiệc FoodFast - Giảm 50%"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">
+                          Thứ tự hiển thị (Order)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={voucherForm.banner_order}
+                          onChange={(e) => setVoucherForm({ ...voucherForm, banner_order: Math.max(1, parseInt(e.target.value) || 1) })}
+                          placeholder="1, 2, 3..."
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        Mô tả ngắn hiển thị trên popup
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={voucherForm.banner_description}
+                        onChange={(e) => setVoucherForm({ ...voucherForm, banner_description: e.target.value })}
+                        placeholder="VD: Áp dụng cho tất cả quán ăn đối tác tại TP. Hồ Chí Minh & toàn quốc. Giảm tối đa 50.000đ cho đơn hàng đầu tiên!"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500 resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        Hình ảnh Banner Popup sống động
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <input
+                          type="text"
+                          value={voucherForm.banner_image}
+                          onChange={(e) => setVoucherForm({ ...voucherForm, banner_image: e.target.value })}
+                          placeholder="Nhập link ảnh hoặc tải ảnh lên bên cạnh..."
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500 text-xs font-mono"
+                        />
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
+                          <label className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs whitespace-nowrap">
+                            <Upload className="w-3.5 h-3.5" /> Tải ảnh lên
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleBannerImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setVoucherForm({ ...voucherForm, banner_image: '/popups/foodfast-promo.jpg' })}
+                            className="px-2.5 py-2 bg-orange-600/30 hover:bg-orange-600/50 text-orange-300 border border-orange-500/40 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer"
+                            title="Sử dụng ảnh mẫu FoodFast Flash Sale"
+                          >
+                            Ảnh mẫu
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Khung xem trước ảnh banner nếu có */}
+                      {voucherForm.banner_image && (
+                        <div className="mt-2 relative h-36 rounded-xl overflow-hidden border border-orange-500/30 group bg-slate-900">
+                          <img
+                            src={voucherForm.banner_image}
+                            alt="Banner Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/popups/foodfast-promo.jpg';
+                            }}
+                          />
+                          <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                            <Flame className="w-3 h-3 fill-white" /> HOT DEAL HÔM NAY
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setVoucherForm({ ...voucherForm, banner_image: '' })}
+                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition cursor-pointer"
+                            title="Xóa ảnh banner"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Live Preview Card */}
               <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
@@ -3643,6 +3839,11 @@ export default function AdminDashboard() {
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
                         {voucherForm.issuer_type === 'PLATFORM' ? 'Voucher Sàn' : 'Voucher Quán'}
                       </span>
+                      {voucherForm.is_banner && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 flex items-center gap-0.5">
+                          <Flame className="w-2.5 h-2.5 fill-orange-400 text-orange-400" /> Banner #{voucherForm.banner_order || 1}
+                        </span>
+                      )}
                       {voucherForm.city_code && voucherForm.city_code !== 'ALL' && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">
                           {voucherForm.city_code}

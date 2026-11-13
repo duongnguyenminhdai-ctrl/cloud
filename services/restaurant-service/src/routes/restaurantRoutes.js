@@ -4,7 +4,14 @@ const restaurantController = require('../controllers/restaurantController');
 const voucherController = require('../controllers/voucherController');
 const recommendationController = require('../controllers/recommendationController');
 const reviewController = require('../controllers/reviewController');
+const uploadController = require('../controllers/uploadController');
 const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
+
+// 0. Cloudinary Media Upload API
+router.post(
+  ['/upload', '/stores/upload', '/restaurants/upload', '/api/v1/upload', '/api/v1/restaurants/upload'],
+  uploadController.uploadImage
+);
 
 // -----------------------------------------------------------------------------
 // 1. Cửa hàng của tôi (My Store & Onboarding)
@@ -239,6 +246,10 @@ router.get(
 // -----------------------------------------------------------------------------
 // 4. Hệ thống Voucher (FoodFast Style & Concurrency Control với Redis)
 // -----------------------------------------------------------------------------
+router.get(
+  ['/vouchers/banners', '/api/v1/vouchers/banners', '/banners'],
+  voucherController.getBannerVouchers
+);
 router.post(
   ['/vouchers/apply', '/api/v1/vouchers/apply', '/apply'],
   voucherController.applyVoucher
