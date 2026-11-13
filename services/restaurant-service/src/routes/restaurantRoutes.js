@@ -263,6 +263,14 @@ router.get(
   ['/reviews/store/:storeId', '/api/v1/reviews/store/:storeId'],
   reviewController.getStoreReviews
 );
+router.post(
+  ['/reviews/:reviewId/like', '/api/v1/reviews/:reviewId/like'],
+  reviewController.toggleLikeReview
+);
+router.post(
+  ['/reviews/:reviewId/reply', '/api/v1/reviews/:reviewId/reply'],
+  reviewController.replyReview
+);
 
 // -----------------------------------------------------------------------------
 // 6. Khách hàng xem danh sách và chi tiết quán ăn (Public Endpoints)

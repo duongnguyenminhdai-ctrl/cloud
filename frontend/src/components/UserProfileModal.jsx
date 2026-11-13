@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X, User, Phone, MapPin, Calendar, Mail, Key, Lock,
-  ShieldCheck, Eye, EyeOff, Save, CheckCircle2, AlertCircle, Sparkles, Camera, Trash2
+  ShieldCheck, Eye, EyeOff, Save, CheckCircle2, AlertCircle, Camera, Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/client';

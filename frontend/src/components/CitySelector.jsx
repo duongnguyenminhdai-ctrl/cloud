@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MapPin, ChevronDown, Search, X, Check, Sparkles } from 'lucide-react';
+import { MapPin, ChevronDown, Search, X, Check, Flame } from 'lucide-react';
 import { useLocationCity } from '../context/LocationContext';
 import { TOP_CITIES, OTHER_CITIES } from '../constants/vietnamLocations';
 
@@ -105,7 +105,7 @@ export default function CitySelector() {
           {!searchQuery && (
             <div className="p-3 border-b border-gray-100 bg-white">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" />
+                <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
                 <span>Thành phố trọng điểm</span>
               </p>
               <div className="flex flex-wrap gap-1.5">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Star,
@@ -12,13 +12,17 @@ import {
   Zap,
   AlertCircle,
   MessageSquare,
-  Sparkles,
   Gift,
   X,
   User,
   Clock,
   Heart,
-  Coins
+  Coins,
+  ThumbsUp,
+  Upload,
+  Trash2,
+  UtensilsCrossed,
+  Camera
 } from 'lucide-react';
 import { restaurantApi, reviewApi, orderApi } from '../api/client';
 import { useCart } from '../context/CartContext';
@@ -29,6 +33,7 @@ import AddressPickerModal from '../components/AddressPickerModal';
 import DishCustomizationModal from '../components/DishCustomizationModal';
 import UpdateVariantModal from '../components/UpdateVariantModal';
 import { hasDishCustomization } from '../utils/dishCustomization';
+import { compressReviewImage } from '../utils/imageHelpers';
 import Pagination from '../components/Pagination';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 
@@ -41,12 +46,34 @@ export default function RestaurantDetail() {
   const [addedItemIds, setAddedItemIds] = useState([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
-  // Review & Event-Driven Incentive States
+  // Review & Event-Driven Incentive States (Chuẩn Shopee)
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsSummary, setReviewsSummary] = useState({
+    avgRating: 0,
+    totalReviews: 0,
+    starCounts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+    withCommentsCount: 0,
+    withPhotosCount: 0
+  });
+  const [reviewFilter, setReviewFilter] = useState('all'); // 'all' | '5' | '4' | '3' | '2' | '1' | 'with_comments' | 'with_photos'
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [likedReviewIds, setLikedReviewIds] = useState(new Set());
+
+  // Form Đánh Giá & Tiêu chí chi tiết
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewCriteria, setReviewCriteria] = useState({
+    taste: 'Tuyệt vời',
+    packaging: 'Cẩn thận, sạch sẽ',
+    deliverySpeed: 'Giao siêu tốc'
+  });
+  const [reviewImages, setReviewImages] = useState([]);
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(false);
+  const [targetPurchasedItem, setTargetPurchasedItem] = useState({ name: '', image: '', options: '' });
+  const reviewFileInputRef = useRef(null);
+
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewReward, setReviewReward] = useState(null);
   const [reviewError, setReviewError] = useState(null);
@@ -73,12 +100,15 @@ export default function RestaurantDetail() {
   // Tab danh mục món ăn đang chọn
   const [activeCategoryTab, setActiveCategoryTab] = useState('ALL');
 
-  const fetchReviews = async ({ silent = false } = {}) => {
+  const fetchReviews = async ({ silent = false, filter = reviewFilter } = {}) => {
     if (!silent) setReviewsLoading(true);
     try {
-      const res = await reviewApi.getByStore(id);
+      const res = await reviewApi.getByStore(id, { filter });
       if (res.data?.success) {
         setReviews(res.data.data || []);
+        if (res.data.summary) {
+          setReviewsSummary(res.data.summary);
+        }
       }
     } catch (err) {
       if (!silent) {
@@ -87,6 +117,59 @@ export default function RestaurantDetail() {
     } finally {
       if (!silent) setReviewsLoading(false);
     }
+  };
+
+  const handleFilterChange = (filterVal) => {
+    setReviewFilter(filterVal);
+    setReviewsPage(1);
+    fetchReviews({ filter: filterVal });
+  };
+
+  const handleToggleLikeReview = async (reviewId) => {
+    try {
+      const res = await reviewApi.toggleLike(reviewId);
+      if (res.data?.success) {
+        setReviews((prev) =>
+          prev.map((r) => (r._id === reviewId ? { ...r, likes: res.data.likes } : r))
+        );
+        setLikedReviewIds((prev) => {
+          const next = new Set(prev);
+          if (res.data.isLiked) next.add(reviewId);
+          else next.delete(reviewId);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi like review:', err);
+    }
+  };
+
+  const handleReviewImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (reviewImages.length + files.length > 5) {
+      alert('Tối đa 5 hình ảnh cho mỗi đánh giá.');
+      return;
+    }
+
+    try {
+      setUploadingReviewImg(true);
+      const newImages = [];
+      for (const file of files) {
+        const compressed = await compressReviewImage(file);
+        newImages.push(compressed);
+      }
+      setReviewImages((prev) => [...prev, ...newImages]);
+    } catch (err) {
+      alert('Không thể xử lý ảnh: ' + err.message);
+    } finally {
+      setUploadingReviewImg(false);
+      if (reviewFileInputRef.current) reviewFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveReviewImage = (idx) => {
+    setReviewImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const fetchDetail = async ({ silent = false } = {}) => {
@@ -250,6 +333,21 @@ export default function RestaurantDetail() {
       }
 
       setTargetOrderId(eligibleOrder._id);
+      const firstItem = eligibleOrder.items?.[0] || {};
+      const optionsStr = firstItem.options || (firstItem.size ? `Size ${firstItem.size}` : '') || (eligibleOrder.items?.length > 1 ? `và ${eligibleOrder.items.length - 1} món khác` : 'Khẩu phần chuẩn');
+      setTargetPurchasedItem({
+        name: firstItem.name || eligibleOrder.restaurantName || 'Món ăn đặc sản',
+        image: firstItem.image || restaurant?.image || '',
+        options: optionsStr
+      });
+      setReviewRating(5);
+      setReviewComment('');
+      setReviewCriteria({
+        taste: 'Tuyệt vời',
+        packaging: 'Cẩn thận, sạch sẽ',
+        deliverySpeed: 'Giao siêu tốc'
+      });
+      setReviewImages([]);
       setReviewError(null);
       setReviewReward(null);
       setIsReviewModalOpen(true);
@@ -273,7 +371,12 @@ export default function RestaurantDetail() {
         store_id: id,
         rating: Number(reviewRating),
         comment: reviewComment.trim(),
-        order_id: targetOrderId
+        order_id: targetOrderId,
+        userName: user?.name || 'Khách hàng FoodFast',
+        userAvatar: user?.avatar || '',
+        criteria: reviewCriteria,
+        images: reviewImages,
+        purchasedItem: targetPurchasedItem
       });
 
       if (res.data?.success) {
@@ -661,31 +764,141 @@ export default function RestaurantDetail() {
       </div>
 
       {/* ===================================================================== */}
-      {/* Reviews & Event-Driven Incentive Section */}
+      {/* 5. ĐÁNH GIÁ SHOP / QUÁN ĂN (CHUẨN SHOPEE STYLE DỰA THEO HÌNH ẢNH) */}
       {/* ===================================================================== */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+        {/* Header Phân vùng */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-orange-600" />
-              <span>Đánh giá từ khách hàng ({reviews.length})</span>
+            <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+              <span>Đánh giá Shop</span>
             </h2>
             <p className="text-xs text-gray-400">
-              Đánh giá 5 sao nhận ngay Voucher 10%, đánh giá dưới 2 sao nhận Voucher đền bù 20%!
+              Đánh giá từ khách hàng đã trải nghiệm và nhận món thực tế tại quán
             </p>
           </div>
 
           <button
             onClick={handleOpenReviewModal}
-            className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5 self-start sm:self-auto"
+            className="px-4 py-2.5 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white font-bold text-xs sm:text-sm shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Viết đánh giá & nhận voucher</span>
+            <Star className="w-4 h-4 fill-white" />
+            <span>Viết đánh giá & nhận 1.000 Xu</span>
           </button>
         </div>
 
+        {/* Khung Tóm Tắt Điểm Số & Dãy Bộ Lọc (Shopee Summary Box trong ảnh) */}
+        <div className="bg-[#fffbf8] border border-[#f53d2d]/20 rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row items-center gap-6 shadow-xs">
+          {/* Cột Trái: Điểm số to 4.9 trên 5 kèm 5 ngôi sao đỏ/cam */}
+          <div className="flex flex-col items-center justify-center text-center shrink-0 min-w-[170px] border-b md:border-b-0 md:border-r border-orange-100/80 pb-4 md:pb-0 md:pr-6">
+            <div className="flex items-baseline gap-1.5 text-[#EE4D2D]">
+              <span className="text-4xl sm:text-5xl font-black tracking-tight">
+                {reviewsSummary.totalReviews > 0
+                  ? Number(reviewsSummary.avgRating || 0).toFixed(1)
+                  : restaurant?.rating > 0
+                  ? Number(restaurant.rating).toFixed(1)
+                  : '5.0'}
+              </span>
+              <span className="text-base sm:text-lg font-bold text-[#EE4D2D]/90">trên 5</span>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-[#EE4D2D]">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className="w-5 h-5 fill-[#EE4D2D] text-[#EE4D2D]" />
+              ))}
+            </div>
+            <span className="text-xs text-gray-400 mt-1.5">
+              ({reviewsSummary.totalReviews || reviews.length} lượt đánh giá)
+            </span>
+          </div>
+
+          {/* Cột Phải: Dãy nút filter theo tab (Tất Cả, 5 Sao, 4 Sao, ..., Có Hình Ảnh, Có Bình Luận) */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 flex-1">
+            <button
+              onClick={() => handleFilterChange('all')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === 'all'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              Tất Cả
+            </button>
+            <button
+              onClick={() => handleFilterChange('5')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === '5'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              5 Sao ({reviewsSummary.starCounts?.[5] || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('4')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === '4'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              4 Sao ({reviewsSummary.starCounts?.[4] || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('3')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === '3'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              3 Sao ({reviewsSummary.starCounts?.[3] || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('2')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === '2'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              2 Sao ({reviewsSummary.starCounts?.[2] || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('1')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === '1'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              1 Sao ({reviewsSummary.starCounts?.[1] || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('with_photos')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === 'with_photos'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              Có Hình Ảnh ({reviewsSummary.withPhotosCount || 0})
+            </button>
+            <button
+              onClick={() => handleFilterChange('with_comments')}
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                reviewFilter === 'with_comments'
+                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+              }`}
+            >
+              Có Bình Luận ({reviewsSummary.withCommentsCount || 0})
+            </button>
+          </div>
+        </div>
+
+        {/* Danh Sách Đánh Giá Khách Hàng */}
         {reviewsLoading ? (
-          <div className="space-y-3 animate-pulse">
+          <div className="space-y-4 animate-pulse">
             {[1, 2].map((i) => (
               <div key={i} className="p-4 bg-gray-50 rounded-2xl space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-1/4" />
@@ -694,49 +907,156 @@ export default function RestaurantDetail() {
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-            <p className="text-sm font-semibold text-gray-600">Chưa có đánh giá nào cho quán này.</p>
+          <div className="p-10 text-center bg-gray-50/70 rounded-2xl border border-gray-100 space-y-2">
+            <p className="text-sm font-bold text-gray-700">Chưa có đánh giá nào phù hợp với bộ lọc.</p>
             <p className="text-xs text-gray-400">
-              Hãy là người đầu tiên trải nghiệm món ăn và để lại cảm nhận của bạn!
+              Hãy là người đầu tiên trải nghiệm món ăn và để lại cảm nhận của bạn để nhận 1.000 Xu FoodFast!
             </p>
           </div>
         ) : (
-          <div>
-            <div className="divide-y divide-gray-100">
-              {paginatedReviews.map((rev) => (
-                <div key={rev._id} className="py-4 space-y-2 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-xs">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-900">
-                          {rev.user_id ? `Khách hàng #${String(rev.user_id).slice(-4)}` : 'Khách hàng FoodFast'}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-3 h-3 ${
-                                star <= rev.rating
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-200 fill-gray-200'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(rev.created_at || Date.now()).toLocaleDateString('vi-VN')}
-                    </span>
+          <div className="divide-y divide-gray-100">
+            {paginatedReviews.map((rev) => (
+              <div key={rev._id} className="py-6 space-y-3 first:pt-2 last:pb-2">
+                {/* 1. Header Khách hàng: Avatar + Username + 5 Sao + Meta row */}
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
+                    {rev.userAvatar ? (
+                      <img src={rev.userAvatar} alt={rev.userName} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-400" />
+                    )}
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-700 pl-10 leading-relaxed">{rev.comment}</p>
+
+                  <div className="flex-1 space-y-1">
+                    {/* Tên khách hàng */}
+                    <p className="text-xs sm:text-sm font-medium text-gray-900">
+                      {rev.userName || (rev.user_id ? `d***${String(rev.user_id).slice(-4)}` : 'Khách hàng FoodFast')}
+                    </p>
+
+                    {/* 5 ngôi sao đỏ/cam chuẩn Shopee */}
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= rev.rating ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Meta row: Thời gian | Phân loại hàng */}
+                    <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
+                      <span>
+                        {rev.created_at || rev.createdAt
+                          ? new Date(rev.created_at || rev.createdAt).toISOString().replace('T', ' ').slice(0, 16)
+                          : 'Vừa xong'}
+                      </span>
+                      <span>|</span>
+                      <span>
+                        Phân loại hàng: {rev.purchasedItem?.options || rev.purchasedItem?.name || 'Món ăn đặc sản'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* 2. Tiêu chí chi tiết (Hương vị, Đóng gói, Thời gian giao - như trong ảnh) */}
+                {rev.criteria && (
+                  <div className="space-y-1 text-xs text-gray-600 pl-13 font-normal">
+                    {rev.criteria.taste && (
+                      <p>
+                        <span className="text-gray-400">Hương vị món ăn:</span>{' '}
+                        <span className="text-gray-800 font-medium">{rev.criteria.taste}</span>
+                      </p>
+                    )}
+                    {rev.criteria.packaging && (
+                      <p>
+                        <span className="text-gray-400">Đóng gói & nhiệt độ:</span>{' '}
+                        <span className="text-gray-800 font-medium">{rev.criteria.packaging}</span>
+                      </p>
+                    )}
+                    {rev.criteria.deliverySpeed && (
+                      <p>
+                        <span className="text-gray-400">Thời gian giao & phục vụ:</span>{' '}
+                        <span className="text-gray-800 font-medium">{rev.criteria.deliverySpeed}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. Nội dung nhận xét bình luận */}
+                {rev.comment && (
+                  <p className="text-xs sm:text-sm text-gray-800 pl-13 leading-relaxed whitespace-pre-line">
+                    {rev.comment}
+                  </p>
+                )}
+
+                {/* 4. Album hình ảnh đính kèm do khách tải lên (thumbnails vuông click phóng to) */}
+                {Array.isArray(rev.images) && rev.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pl-13 pt-1">
+                    {rev.images.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setLightboxImage(imgUrl)}
+                        className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-gray-200 hover:border-[#EE4D2D] cursor-pointer shadow-2xs group relative transition-all"
+                        title="Bấm để xem ảnh phóng to"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Ảnh đánh giá ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 5. Thẻ món ăn đã mua (Purchased Item Card - như ảnh Shopee) */}
+                {rev.purchasedItem?.name && (
+                  <div className="ml-13 bg-gray-50/90 border border-gray-200/80 rounded-xl p-2.5 flex items-center gap-3 w-fit max-w-md">
+                    {rev.purchasedItem.image ? (
+                      <img
+                        src={rev.purchasedItem.image}
+                        alt={rev.purchasedItem.name}
+                        className="w-12 h-12 rounded-lg object-cover border border-gray-200 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                        <UtensilsCrossed className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-semibold text-gray-800 line-clamp-1">{rev.purchasedItem.name}</p>
+                      {rev.purchasedItem.options && (
+                        <p className="text-[11px] text-gray-400">Phân loại hàng: {rev.purchasedItem.options}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Phản hồi từ Người Bán / Chủ quán */}
+                {rev.sellerReply?.comment && (
+                  <div className="ml-13 bg-gray-50 border-l-2 border-[#EE4D2D] rounded-r-xl p-3 text-xs space-y-1">
+                    <p className="font-bold text-gray-900">Phản Hồi Của Người Bán</p>
+                    <p className="text-gray-600 leading-relaxed">{rev.sellerReply.comment}</p>
+                  </div>
+                )}
+
+                {/* 7. Nút 👍 Hữu ích? */}
+                <div className="flex items-center gap-4 pl-13 pt-1">
+                  <button
+                    onClick={() => handleToggleLikeReview(rev._id)}
+                    className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                      likedReviewIds.has(rev._id) ? 'text-[#EE4D2D] font-bold' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <ThumbsUp className={`w-3.5 h-3.5 ${likedReviewIds.has(rev._id) ? 'fill-[#EE4D2D]' : ''}`} />
+                    <span>Hữu ích?</span>
+                    {(rev.likes || 0) > 0 && <span className="font-semibold">({rev.likes})</span>}
+                  </button>
+                </div>
+              </div>
+            ))}
 
             {/* Phân trang danh sách đánh giá */}
             <Pagination
@@ -753,18 +1073,40 @@ export default function RestaurantDetail() {
         )}
       </div>
 
-      {/* Modal Viết Đánh Giá Kích Hoạt RabbitMQ Incentive */}
+      {/* Lightbox Xem Ảnh Phóng To (Shopee Style) */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-2xl max-h-[90vh]">
+            <img
+              src={lightboxImage}
+              alt="Ảnh đánh giá phóng to"
+              className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl"
+            />
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white text-gray-800 flex items-center justify-center shadow-lg font-bold hover:bg-gray-100 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Viết Đánh Giá Đơn Hàng Mới Chuẩn Shopee */}
       {isReviewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 space-y-4">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
-                <Gift className="w-5 h-5 text-orange-600" />
+                <Gift className="w-5 h-5 text-[#EE4D2D]" />
                 Đánh giá quán & Nhận 1.000 Xu
               </h3>
               <button
                 onClick={() => setIsReviewModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-full"
+                className="p-1 text-gray-400 hover:text-gray-700 rounded-full cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -775,18 +1117,45 @@ export default function RestaurantDetail() {
                 <p className="font-extrabold text-sm text-emerald-800">{reviewReward.title}</p>
                 <p className="text-xs text-emerald-700 leading-relaxed">{reviewReward.message}</p>
                 <div className="p-2 bg-white rounded-xl border border-emerald-300 font-mono text-xs font-bold text-emerald-800">
-                  {reviewReward.type === 'FIVE_STAR' ? 'Mã áp dụng: THANKYOU (Giảm 10%)' : reviewReward.type === 'SORRY' ? 'Mã áp dụng: SORRY (Giảm 20%)' : 'Đã ghi nhận!'}
+                  {reviewReward.type === 'FIVE_STAR'
+                    ? 'Mã áp dụng: THANKYOU (Giảm 10%)'
+                    : reviewReward.type === 'SORRY'
+                    ? 'Mã áp dụng: SORRY (Giảm 20%)'
+                    : 'Đã ghi nhận!'}
                 </div>
                 <button
                   onClick={() => setIsReviewModalOpen(false)}
-                  className="mt-2 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+                  className="mt-2 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Đóng & Tiếp tục đặt món
                 </button>
               </div>
             ) : (
               <form onSubmit={handleSubmitReview} className="space-y-4">
-                {/* Chọn số sao */}
+                {/* Thẻ Món Ăn Đã Mua Trong Đơn Hàng */}
+                {targetPurchasedItem?.name && (
+                  <div className="bg-orange-50/70 border border-orange-200/70 rounded-2xl p-3 flex items-center gap-3">
+                    {targetPurchasedItem.image ? (
+                      <img
+                        src={targetPurchasedItem.image}
+                        alt={targetPurchasedItem.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-orange-200 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-orange-200 text-orange-700 flex items-center justify-center shrink-0">
+                        <UtensilsCrossed className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-bold text-gray-900">{targetPurchasedItem.name}</p>
+                      {targetPurchasedItem.options && (
+                        <p className="text-[11px] text-gray-500">Phân loại: {targetPurchasedItem.options}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chọn số sao (Đỏ/cam Shopee) */}
                 <div className="space-y-1.5 text-center">
                   <label className="text-xs font-bold text-gray-700">Chất lượng món ăn & phục vụ:</label>
                   <div className="flex items-center justify-center gap-2 pt-1">
@@ -795,19 +1164,19 @@ export default function RestaurantDetail() {
                         key={num}
                         type="button"
                         onClick={() => setReviewRating(num)}
-                        className="p-1 hover:scale-110 transition-transform"
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
                       >
                         <Star
                           className={`w-7 h-7 ${
                             num <= reviewRating
-                              ? 'fill-yellow-400 text-yellow-400'
+                              ? 'fill-[#EE4D2D] text-[#EE4D2D]'
                               : 'fill-gray-200 text-gray-200'
                           }`}
                         />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] font-bold text-orange-600">
+                  <p className="text-[11px] font-bold text-[#EE4D2D]">
                     {reviewRating === 5 && 'Tuyệt vời! (Tự động tặng mã THANKYOU giảm 10%)'}
                     {reviewRating === 4 && 'Rất ngon & hài lòng'}
                     {reviewRating === 3 && 'Bình thường'}
@@ -815,20 +1184,139 @@ export default function RestaurantDetail() {
                   </p>
                 </div>
 
-                {/* Nhập bình luận */}
+                {/* Chọn các tiêu chí cụ thể (Hương vị, Đóng gói, Tốc độ giao) */}
+                <div className="space-y-3 bg-gray-50/70 p-3.5 rounded-2xl border border-gray-100 text-xs">
+                  {/* Tiêu chí 1: Hương vị */}
+                  <div>
+                    <span className="font-semibold text-gray-700 block mb-1.5">Hương vị món ăn:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Tuyệt vời', 'Rất ngon', 'Tạm ổn', 'Chưa hợp khẩu vị'].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setReviewCriteria((p) => ({ ...p, taste: t }))}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
+                            reviewCriteria.taste === t
+                              ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tiêu chí 2: Đóng gói & Nhiệt độ */}
+                  <div>
+                    <span className="font-semibold text-gray-700 block mb-1.5">Đóng gói & nhiệt độ:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Cẩn thận, sạch sẽ', 'Nóng hổi', 'Bình thường', 'Cần cải thiện'].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setReviewCriteria((prev) => ({ ...prev, packaging: p }))}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
+                            reviewCriteria.packaging === p
+                              ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tiêu chí 3: Tốc độ giao & chuẩn bị */}
+                  <div>
+                    <span className="font-semibold text-gray-700 block mb-1.5">Thời gian giao & phục vụ:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Giao siêu tốc', 'Đúng giờ', 'Hơi chậm'].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setReviewCriteria((prev) => ({ ...prev, deliverySpeed: d }))}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
+                            reviewCriteria.deliverySpeed === d
+                              ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nhập nhận xét */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-700">Cảm nhận chi tiết:</label>
                   <textarea
                     rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="Món ăn ngon, giao nhanh, đóng gói cẩn thận..."
-                    className="w-full p-3 text-xs sm:text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    placeholder="Hãy chia sẻ trải nghiệm chân thực của bạn về món ăn, hương vị và thái độ phục vụ..."
+                    className="w-full p-3 text-xs sm:text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D]"
+                  />
+                </div>
+
+                {/* Tải lên hình ảnh chụp món ăn (Tối đa 5 ảnh) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-gray-700 flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5 text-[#EE4D2D]" />
+                      Ảnh chụp món ăn ({reviewImages.length}/5)
+                    </span>
+                    <span className="text-gray-400 text-[11px]">Định dạng JPG, PNG</span>
+                  </div>
+
+                  {/* Preview danh sách ảnh & nút thêm ảnh */}
+                  <div className="flex flex-wrap gap-2">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 shadow-2xs group">
+                        <img src={img} alt="review upload" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveReviewImage(idx)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-red-600 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {reviewImages.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => reviewFileInputRef.current?.click()}
+                        disabled={uploadingReviewImg}
+                        className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 hover:text-[#EE4D2D] cursor-pointer transition"
+                      >
+                        {uploadingReviewImg ? (
+                          <div className="w-4 h-4 border-2 border-[#EE4D2D] border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span className="text-[10px] font-bold mt-0.5">Thêm ảnh</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={reviewFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleReviewImageUpload}
                   />
                 </div>
 
                 {reviewError && (
-                  <p className="text-xs text-red-600 flex items-center gap-1">
+                  <p className="text-xs text-red-600 flex items-center gap-1 font-medium">
                     <AlertCircle className="w-3.5 h-3.5" />
                     <span>{reviewError}</span>
                   </p>
@@ -836,15 +1324,15 @@ export default function RestaurantDetail() {
 
                 <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 leading-relaxed flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
-                  <span>🎁 Hoàn tất đánh giá đơn hàng để nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy (dùng giảm trừ 1:1 cho các đơn hàng tiếp theo)!</span>
+                  <span>🎁 Đánh giá kèm hình ảnh chân thực nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy vào ví!</span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={submittingReview}
-                  className="w-full py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#EE4D2D] hover:bg-[#d73f21] disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {submittingReview ? 'Đang gửi đánh giá...' : 'Gửi Đánh Giá (+1.000 Xu) →'}
+                  {submittingReview ? 'Đang gửi đánh giá...' : 'Hoàn Tất Đánh Giá (+1.000 Xu) →'}
                 </button>
               </form>
             )}

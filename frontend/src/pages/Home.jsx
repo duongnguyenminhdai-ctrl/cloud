@@ -13,7 +13,6 @@ import {
   Crosshair,
   Compass,
   Tag,
-  Sparkles,
   SlidersHorizontal,
   Flame,
   Award,
@@ -880,7 +879,7 @@ export default function Home() {
             <div className="bg-white rounded-3xl p-4 shadow-xl border border-gray-100 text-gray-900 space-y-3">
               <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                 <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900">
-                  <Sparkles className="w-4 h-4 text-orange-500 fill-orange-500" />
+                  <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
                   <span>Ưu đãi hôm nay</span>
                 </div>
                 <span className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer">
@@ -1138,7 +1137,7 @@ export default function Home() {
         <div className="flex items-center justify-between gap-3 p-3 bg-orange-50/90 border border-orange-200 rounded-2xl text-xs shadow-xs animate-fadeIn mb-4">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="font-bold text-gray-700 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-orange-600 fill-orange-600" />
+              <Tag className="w-3.5 h-3.5 text-orange-600" />
               Đang lọc:
             </span>
 

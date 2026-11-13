@@ -23,7 +23,6 @@ import {
   Check,
   Ticket,
   Copy,
-  Sparkles,
   BadgePercent,
   Store,
   CreditCard,
@@ -601,11 +600,25 @@ export default function OrdersPage({ initialTab }) {
   const handleSendReview = async () => {
     if (reviewOrderModal?.restaurantId) {
       try {
+        const firstItem = reviewOrderModal.items?.[0] || {};
+        const optionsStr = firstItem.options || (firstItem.size ? `Size ${firstItem.size}` : '') || (reviewOrderModal.items?.length > 1 ? `và ${reviewOrderModal.items.length - 1} món khác` : 'Khẩu phần chuẩn');
         const res = await reviewApi.create({
           order_id: reviewOrderModal._id,
           store_id: reviewOrderModal.restaurantId,
           rating: Number(ratingScore) || 5,
-          comment: (reviewComment || '').trim() || 'Món ăn ngon, giao hàng nhanh!'
+          comment: (reviewComment || '').trim() || 'Món ăn ngon, giao hàng nhanh!',
+          userName: user?.name || 'Khách hàng FoodFast',
+          userAvatar: user?.avatar || '',
+          criteria: {
+            taste: Number(ratingScore) >= 4 ? 'Tuyệt vời' : Number(ratingScore) === 3 ? 'Tạm ổn' : 'Chưa hợp khẩu vị',
+            packaging: Number(ratingScore) >= 4 ? 'Cẩn thận, sạch sẽ' : 'Bình thường',
+            deliverySpeed: Number(ratingScore) >= 4 ? 'Giao siêu tốc' : 'Đúng giờ'
+          },
+          purchasedItem: {
+            name: firstItem.name || reviewOrderModal.restaurantName || 'Món ăn đặc sản',
+            image: firstItem.image || '',
+            options: optionsStr
+          }
         });
 
         // Đánh dấu đơn đã đánh giá
@@ -1572,7 +1585,7 @@ export default function OrdersPage({ initialTab }) {
             {/* Mẹo sử dụng voucher */}
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 space-y-1">
               <p className="font-bold flex items-center gap-1 text-amber-950">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Mẹo tiết kiệm cùng FoodFast:
+                <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Mẹo tiết kiệm cùng FoodFast:
               </p>
               <p className="text-amber-800 leading-relaxed">
                 Bạn có thể sao chép mã hoặc chọn trực tiếp tại màn hình <strong>Thanh toán</strong> để giảm trừ ngay vào tổng đơn. Hệ thống hỗ trợ hoàn trả mã khi hủy đơn!
@@ -1800,7 +1813,7 @@ export default function OrdersPage({ initialTab }) {
                     >
                       <Star
                         className={`w-7 h-7 ${
-                          star <= ratingScore ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'
+                          star <= ratingScore ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 text-gray-200'
                         }`}
                       />
                     </button>

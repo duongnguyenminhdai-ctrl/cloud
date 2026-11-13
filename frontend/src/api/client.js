@@ -632,8 +632,16 @@ export const reviewApi = {
   create: async (reviewData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/reviews'), reviewData);
   },
-  getByStore: async (storeId) => {
-    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, `/reviews/store/${storeId}`));
+  getByStore: async (storeId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = `/reviews/store/${storeId}${query ? `?${query}` : ''}`;
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, url));
+  },
+  toggleLike: async (reviewId) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/reviews/${reviewId}/like`));
+  },
+  reply: async (reviewId, comment) => {
+    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, `/reviews/${reviewId}/reply`), { comment });
   }
 };
 

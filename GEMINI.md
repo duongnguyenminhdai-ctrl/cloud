@@ -7,6 +7,7 @@
 ## 1. Thương hiệu & Stack công nghệ
 - **Thương hiệu chính thức:** **FoodFast** *(tuyệt đối không dùng tên bên thứ ba như ShopeeFood / Shopee Partner trong giao diện, email, API response hay nội dung mới)*.
 - **Frontend:** React 18 + Vite + TailwindCSS (`frontend/`, dev `5173`, Docker `3000`, deploy Vercel qua [`vercel.json`](vercel.json) & [`frontend/vercel.json`](frontend/vercel.json)).
+- **Giao diện & Icon chuẩn TMĐT:** Tuyệt đối không dùng các icon ngôi sao 4 cánh (`Sparkles` / logo Gemini AI) trong giao diện để tránh cảm giác "AI". Thay bằng các icon chuẩn ứng dụng ẩm thực & thương mại điện tử thực tế như `Star`, `Flame`, `Tag`, `Coins`, `Zap`.
 - **API Gateway:** Nginx (`gateway/nginx.conf`, Docker host port `8080 -> 80`), chuyển tiếp `/api/v1/auth`, `/api/v1/restaurants`, `/api/v1/orders`, `/api/v1/payments`, `/api/v1/deliveries`, `/socket.io/`.
 - **Hạ tầng dữ liệu:** MongoDB Atlas (`cluster1.1aa64fz.mongodb.net`), Redis, RabbitMQ (`foodfast_events`), Firebase Phone Authentication (`foodfast-38ac0`).
 
@@ -55,11 +56,15 @@
 ---
 
 ## 5. Trạng thái dự án & Tính năng gần nhất (Handover Context)
-- **Hệ thống Đánh giá & Xu thưởng (Shopee-style) — Commit `91fdb24`:**
-  - Khách nhận hàng thành công (`DELIVERED`) nhận thông báo qua **Chuông** [`NotificationBell.jsx`](frontend/src/components/NotificationBell.jsx).
-  - Đánh giá đơn thành công nhận ngay **1.000 Xu FoodFast** lưu vào DB thật (`User.coins` trong `auth_db`).
-  - Thông báo và quyền đánh giá nhận xu có thời hạn **7 ngày** (sử dụng MongoDB Native TTL Index tự động dọn dẹp và xóa bản ghi).
-  - Chặn hoàn toàn việc tạo mã đơn hàng ảo `ord_${Date.now()}`; loại bỏ text kỹ thuật RabbitMQ trong Modal đánh giá quán.
+- **Hệ thống Đánh giá & Xu thưởng (Shopee-style) — Commit `91fdb24` & Bản nâng cấp mới:**
+  - **Dọn sạch 100% đánh giá ảo:** Đã xóa toàn bộ review ảo trong DB và reset rating/review_count của các quán ăn về dữ liệu thật.
+  - **Giao diện Đánh giá Shop chuẩn Shopee:**
+    - Khung điểm số trung bình (ví dụ `4.9 trên 5` kèm 5 sao đỏ/cam `#EE4D2D`).
+    - Dãy nút bộ lọc: `Tất Cả`, `5 Sao`, `4 Sao`, `3 Sao`, `2 Sao`, `1 Sao`, `Có Hình Ảnh`, `Có Bình Luận`.
+    - Thẻ chi tiết đánh giá: Avatar, Username, Ngày giờ & Phân loại hàng, Tiêu chí chi tiết (Hương vị, Đóng gói, Tốc độ giao), Bình luận, Album ảnh tải lên (click phóng to xem ảnh lớn Lightbox), Thẻ món ăn đã mua (Purchased Item Card), Nút "👍 Hữu ích?".
+    - Khách nhận hàng thành công (`DELIVERED`) đánh giá nhận ngay **1.000 Xu FoodFast** lưu vào DB thật (`User.coins` trong `auth_db`).
+    - Thông báo và quyền đánh giá nhận xu có thời hạn **7 ngày** (sử dụng MongoDB Native TTL Index tự động dọn dẹp và xóa bản ghi).
+    - Chặn hoàn toàn việc tạo mã đơn hàng ảo `ord_${Date.now()}`; loại bỏ text kỹ thuật RabbitMQ trong Modal đánh giá quán.
 - **Voucher & Popup Khuyến mãi:**
   - Popup Flash Sale tại trang chủ [`PromotionPopupModal.jsx`](frontend/src/components/PromotionPopupModal.jsx).
   - Voucher mặc định hệ thống: `FREESHIP50`, `QUANNGON20`, `FOODFAST10`. Có thể nâng cấp kết nối API Admin quản trị banner popup động từ MongoDB.

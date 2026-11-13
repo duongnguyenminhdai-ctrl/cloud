@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   AlertCircle,
   MapPin,
-  Sparkles,
+  Zap,
   ExternalLink,
   Banknote,
   Phone
@@ -481,7 +481,7 @@ export default function OrderTracking() {
       {/* Event Stream Log Explainer */}
       <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 space-y-2">
         <div className="flex items-center gap-1.5 font-bold">
-          <Sparkles className="w-4 h-4 text-amber-600" />
+          <Zap className="w-4 h-4 text-amber-600" />
           <span>Kiến trúc Event-Driven Microservices hoạt động ngầm:</span>
         </div>
         <ul className="list-disc pl-5 space-y-1 text-amber-800">

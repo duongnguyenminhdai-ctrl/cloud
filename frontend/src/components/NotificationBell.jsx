@@ -125,7 +125,18 @@ export default function NotificationBell({ onReviewOrder }) {
         order_id: activeReviewModal.orderId,
         store_id: activeReviewModal.storeId,
         rating: Number(ratingScore),
-        comment: reviewComment.trim() || 'Món ăn ngon, giao hàng nhanh chóng!'
+        comment: reviewComment.trim() || 'Món ăn ngon, giao hàng nhanh chóng!',
+        userName: user?.name || 'Khách hàng FoodFast',
+        userAvatar: user?.avatar || '',
+        criteria: {
+          taste: Number(ratingScore) >= 4 ? 'Tuyệt vời' : Number(ratingScore) === 3 ? 'Tạm ổn' : 'Chưa hợp khẩu vị',
+          packaging: Number(ratingScore) >= 4 ? 'Cẩn thận, sạch sẽ' : 'Bình thường',
+          deliverySpeed: Number(ratingScore) >= 4 ? 'Giao siêu tốc' : 'Đúng giờ'
+        },
+        purchasedItem: {
+          name: activeReviewModal.storeName || 'Món ăn đặc sản',
+          options: 'Đơn hàng giao thành công'
+        }
       });
 
       if (res.data?.success) {
@@ -311,13 +322,13 @@ export default function NotificationBell({ onReviewOrder }) {
                       >
                         <Star
                           className={`w-7 h-7 ${
-                            star <= ratingScore ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'
+                            star <= ratingScore ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 text-gray-200'
                           }`}
                         />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] font-bold text-orange-600">
+                  <p className="text-[11px] font-bold text-[#EE4D2D]">
                     {ratingScore === 5 && 'Tuyệt vời! (+1.000 Xu & Tặng voucher tri ân)'}
                     {ratingScore === 4 && 'Rất ngon & hài lòng (+1.000 Xu)'}
                     {ratingScore === 3 && 'Bình thường (+1.000 Xu)'}

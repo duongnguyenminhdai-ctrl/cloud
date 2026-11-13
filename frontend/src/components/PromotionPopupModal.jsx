@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { X, Copy, Check, Flame, Tag, ArrowRight } from 'lucide-react';
 
 /**
  * Modal Popup Khuyến mãi Deal sốc đầu ứng dụng thương hiệu FoodFast (Flash Sale)
@@ -55,7 +55,7 @@ export default function PromotionPopupModal() {
               }}
             />
             <div className="absolute top-3 left-3 bg-red-600 text-white text-[11px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 animate-pulse">
-              <Sparkles className="w-3 h-3" />
+              <Flame className="w-3.5 h-3.5 text-white fill-white" />
               HOT DEAL HÔM NAY
             </div>
           </div>

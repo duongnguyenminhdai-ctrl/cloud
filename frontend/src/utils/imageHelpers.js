@@ -78,3 +78,10 @@ export function compressAvatarFile(file, options = {}) {
   });
 }
 
+/**
+ * Nén ảnh chụp món ăn khi đánh giá (kích thước tối đa 800px, dung lượng nhẹ ~80-120KB)
+ */
+export function compressReviewImage(file) {
+  return compressAvatarFile(file, { maxSize: 800, quality: 0.8 });
+}
+

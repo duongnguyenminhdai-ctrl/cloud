@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   UtensilsCrossed, CheckCircle2, ChevronRight, ChevronLeft,
-  Building, User, CreditCard, Clock, Sparkles, ArrowRight,
+  Building, User, CreditCard, Clock, ArrowRight,
   Upload, AlertCircle, FileText, Check, ShieldCheck, Trash2,
   Image as ImageIcon, Briefcase, FileCheck, ExternalLink
 } from 'lucide-react';

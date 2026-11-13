@@ -14,7 +14,7 @@ import {
   ChevronRight,
   TrendingUp,
   Settings2,
-  Sparkles,
+  Star,
   Check,
   X,
   FileText,
@@ -1575,7 +1575,7 @@ export default function MerchantDashboard() {
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
+              <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
             </div>
           </div>
 

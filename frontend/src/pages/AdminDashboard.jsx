@@ -4,7 +4,7 @@ import {
   ShieldCheck, Users, Store, Key, LogOut, Search, Filter,
   Trash2, Edit, CheckCircle2, XCircle, Clock, Plus, ChevronLeft,
   ChevronRight, RefreshCw, AlertCircle, Save, X, Eye, EyeOff, Lock,
-  Building, User, CreditCard, Sparkles, FileText, Check, ExternalLink,
+  Building, User, CreditCard, TrendingUp, FileText, Check, ExternalLink,
   ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
   Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight,
   Gift, Wallet
@@ -2365,7 +2365,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
                     <div>
                       <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-orange-400" /> 5. Gói tăng trưởng doanh thu đã chọn
+                        <TrendingUp className="w-4 h-4 text-orange-400" /> 5. Gói tăng trưởng doanh thu đã chọn
                       </h4>
                       <p className="text-[11px] text-slate-400 mt-0.5">Quyền lợi khuyến mãi tiếp thị và trạng thái thanh toán gói</p>
                     </div>

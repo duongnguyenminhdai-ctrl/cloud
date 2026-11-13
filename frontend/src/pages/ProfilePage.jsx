@@ -25,7 +25,6 @@ import {
   Package,
   Ticket,
   Compass,
-  Sparkles,
   Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
