@@ -16,6 +16,20 @@ export default function Navbar() {
   const [checkingStore, setCheckingStore] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // Pre-warm backend & Cập nhật cache trạng thái cửa hàng ngầm ngay khi vào web
+  useEffect(() => {
+    if (!isAuthenticated || user?.role === 'ADMIN') return;
+    const userId = user?.id || user?._id || user?.userId;
+
+    storeApi.getMyStatus()
+      .then((res) => {
+        if (res.data?.success && res.data.store_status && userId) {
+          localStorage.setItem(`foodfast_store_status_${userId}`, res.data.store_status);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, user?.id, user?._id, user?.userId, user?.role]);
+
   // Xử lý sự kiện OnClick nút "Cửa hàng của tôi"
   const handleMyStoreClick = async () => {
     if (!isAuthenticated) {
@@ -28,17 +42,35 @@ export default function Navbar() {
       return;
     }
 
+    const userId = user?.id || user?._id || user?.userId;
+    const cachedStatus = userId ? localStorage.getItem(`foodfast_store_status_${userId}`) : null;
+
+    // 1. Chuyển trang NGAY LẬP TỨC (0s độ trễ) nếu đã có trạng thái trong cache
+    if (cachedStatus === 'ACTIVE') {
+      navigate('/merchant/dashboard');
+      return;
+    } else if (cachedStatus === 'PENDING' || cachedStatus === 'REJECTED') {
+      navigate('/merchant/status');
+      return;
+    } else if (cachedStatus === 'NOT_REGISTERED') {
+      navigate('/merchant/register');
+      return;
+    }
+
+    // 2. Nếu là lần đầu tiên chưa có cache, kiểm tra từ server
     setCheckingStore(true);
     try {
       const res = await storeApi.getMyStatus();
       if (res.data?.success) {
         const status = res.data.store_status;
+        if (userId && status) {
+          localStorage.setItem(`foodfast_store_status_${userId}`, status);
+        }
         if (status === 'ACTIVE') {
           navigate('/merchant/dashboard');
         } else if (status === 'NOT_REGISTERED') {
           navigate('/merchant/register');
         } else {
-          // PENDING hoặc REJECTED: hiển thị màn hình tiến độ duyệt hồ sơ
           navigate('/merchant/status');
         }
       } else {

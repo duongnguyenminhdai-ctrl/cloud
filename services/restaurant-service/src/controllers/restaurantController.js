@@ -1,6 +1,6 @@
 const Restaurant = require('../models/Restaurant');
 const jwt = require('jsonwebtoken');
-const { getCache, setCache, invalidateRestaurantCache, TTL } = require('../../redis');
+const { getCache, setCache, deleteCache, invalidateRestaurantCache, TTL } = require('../../redis');
 const { calculateMerchantSettlement } = require('../utils/settlementEngine');
 const { subscribe, emitStoreUpdate, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
 const { JWT_SECRET } = require('../middlewares/authMiddleware');
@@ -245,29 +245,46 @@ exports.updateRestaurant = async (req, res) => {
 // CỬA HÀNG CỦA TÔI (MY STORE & SELLER ONBOARDING)
 // =============================================================================
 
-// 5. Kiểm tra trạng thái cửa hàng của người dùng hiện tại
+// 5. Kiểm tra trạng thái cửa hàng của người dùng hiện tại (kèm Redis Cache siêu tốc)
 exports.getStoreStatus = async (req, res) => {
   try {
     const userId = getAuthenticatedUserId(req);
-    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Chưa xác thực người dùng.' });
+    }
+
+    const cacheKey = `store_status:${userId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return res.status(200).json(cached);
+    }
+
+    // Chỉ chọn các trường cần thiết, bỏ qua mảng menuItems và giao dịch nặng
+    const store = await Restaurant.findOne({ ownerId: userId })
+      .select('_id status name ownerId phone city')
+      .lean();
 
     if (!store) {
-      return res.status(200).json({
+      const notFoundData = {
         success: true,
         has_store: false,
         store_status: 'NOT_REGISTERED',
         store_id: null,
         store: null
-      });
+      };
+      await setCache(cacheKey, notFoundData, 120);
+      return res.status(200).json(notFoundData);
     }
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
       has_store: true,
       store_status: store.status,
       store_id: store._id.toString(),
       store
-    });
+    };
+    await setCache(cacheKey, responseData, 300);
+    return res.status(200).json(responseData);
   } catch (error) {
     console.error('[restaurantController] ❌ Lỗi kiểm tra trạng thái quán:', error.message);
     return res.status(500).json({
@@ -494,6 +511,7 @@ exports.registerStore = async (req, res) => {
     });
 
     const savedStore = await newStore.save();
+    await deleteCache(`store_status:${userId}`);
     await invalidateRestaurantCache(savedStore._id.toString());
     emitStoreUpdate({ store: savedStore, event: 'store.registered', includePublic: false });
 
@@ -796,6 +814,7 @@ exports.adminApproveRestaurant = async (req, res) => {
     store.notifications.unshift(approvalNotif);
 
     await store.save();
+    if (store.ownerId) await deleteCache(`store_status:${store.ownerId}`);
     await invalidateRestaurantCache(id);
     emitStoreUpdate({ store, event: 'store.approved', notification: approvalNotif, includePublic: true });
 
@@ -837,6 +856,7 @@ exports.adminRejectRestaurant = async (req, res) => {
     store.notifications.unshift(rejectNotif);
 
     await store.save();
+    if (store.ownerId) await deleteCache(`store_status:${store.ownerId}`);
     await invalidateRestaurantCache(id);
     emitStoreUpdate({ store, event: 'store.rejected', notification: rejectNotif, includePublic: true });
 
@@ -900,6 +920,7 @@ exports.adminBanRestaurant = async (req, res) => {
     store.notifications.unshift(banNotification);
 
     await store.save();
+    if (store.ownerId) await deleteCache(`store_status:${store.ownerId}`);
     await invalidateRestaurantCache(id);
     emitStoreUpdate({ store, event: 'store.banned', notification: banNotification, includePublic: true });
 
@@ -942,6 +963,7 @@ exports.adminUnbanRestaurant = async (req, res) => {
     store.notifications.unshift(unbanNotification);
 
     await store.save();
+    if (store.ownerId) await deleteCache(`store_status:${store.ownerId}`);
     await invalidateRestaurantCache(id);
     emitStoreUpdate({ store, event: 'store.unbanned', notification: unbanNotification, includePublic: true });
 
@@ -985,6 +1007,7 @@ exports.adminWarnRestaurant = async (req, res) => {
     store.notifications.unshift(warnNotification);
 
     await store.save();
+    if (store.ownerId) await deleteCache(`store_status:${store.ownerId}`);
     await invalidateRestaurantCache(id);
     emitStoreUpdate({ store, event: 'notification.created', notification: warnNotification, includePublic: false });
 

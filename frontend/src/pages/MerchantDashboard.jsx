@@ -264,6 +264,10 @@ export default function MerchantDashboard() {
       if (res.data?.success) {
         const storeData = res.data.data;
         setStore(storeData);
+        const currentUserId = user?.id || user?._id || user?.userId;
+        if (currentUserId && storeData.status) {
+          localStorage.setItem(`foodfast_store_status_${currentUserId}`, storeData.status);
+        }
         if (Array.isArray(storeData.notifications)) {
           syncNotificationsList(storeData.notifications);
         }

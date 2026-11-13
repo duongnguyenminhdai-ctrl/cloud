@@ -495,6 +495,10 @@ export default function MerchantRegister() {
 
       const res = await storeApi.register(payload);
       if (res.data?.success) {
+        const userId = user?.id || user?._id || user?.userId;
+        if (userId) {
+          localStorage.setItem(`foodfast_store_status_${userId}`, 'PENDING');
+        }
         navigate('/merchant/status');
       } else {
         setErrorMsg(res.data?.message || 'Có lỗi xảy ra khi đăng ký');
