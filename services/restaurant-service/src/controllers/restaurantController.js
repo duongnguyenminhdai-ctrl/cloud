@@ -280,6 +280,15 @@ exports.getStoreStatus = async (req, res) => {
 exports.registerStore = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    // Quản trị viên (ADMIN) không cần mở cửa hàng, chuyên tâm quản trị hệ thống
+    if (userRole === 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản Quản trị viên (ADMIN) không được phép mở cửa hàng. Vui lòng chuyên tâm quản lý hệ thống.'
+      });
+    }
 
     // Kiểm tra xem người dùng đã từng đăng ký store chưa
     const existingStore = await Restaurant.findOne({ ownerId: userId });

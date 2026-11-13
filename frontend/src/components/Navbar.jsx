@@ -23,6 +23,11 @@ export default function Navbar() {
       return;
     }
 
+    if (user?.role === 'ADMIN') {
+      navigate('/admin');
+      return;
+    }
+
     setCheckingStore(true);
     try {
       const res = await storeApi.getMyStatus();
@@ -73,8 +78,8 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Nút "Cửa hàng của tôi" - Viền cam / chữ cam tiệp theme FoodFast */}
-          {isAuthenticated && (
+          {/* Nút "Cửa hàng của tôi" - Viền cam / chữ cam tiệp theme FoodFast (Ẩn đối với Admin) */}
+          {isAuthenticated && user?.role !== 'ADMIN' && (
             <button
               onClick={handleMyStoreClick}
               disabled={checkingStore}

@@ -38,6 +38,10 @@ export default function MerchantStatus() {
       navigate('/login?redirect=/merchant/status');
       return;
     }
+    if (user?.role === 'ADMIN') {
+      navigate('/admin');
+      return;
+    }
     fetchStatus();
 
     const unsubscribe = subscribeRealtimeStream({

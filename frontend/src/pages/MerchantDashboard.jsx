@@ -383,8 +383,12 @@ export default function MerchantDashboard() {
       navigate('/login?redirect=/merchant/dashboard');
       return;
     }
+    if (user?.role === 'ADMIN') {
+      navigate('/admin');
+      return;
+    }
     fetchStoreData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.role]);
 
   // Kênh Realtime 1: Thông báo chuông Admin, Khóa/Mở quán, Ví đối tác, Voucher, Đánh giá, Thực đơn
   useEffect(() => {

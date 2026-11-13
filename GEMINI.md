@@ -38,6 +38,9 @@
 4. **Xác thực SĐT & Firebase Phone Auth:**
    - Bật kiểm soát SĐT khi `REQUIRE_PHONE_VERIFICATION=true` (Frontend dùng `VITE_FIREBASE_*` + invisible reCAPTCHA tại [`frontend/src/utils/firebase.js`](frontend/src/utils/firebase.js); Backend verify token qua [`firebaseAdmin.js`](services/auth-service/src/utils/firebaseAdmin.js)).
    - Chỉ nhận SĐT di động Việt Nam hợp lệ 10 chữ số đầu `03/05/07/08/09` (E.164 `+84...`); mỗi SĐT đã xác thực chỉ gắn với 1 tài khoản duy nhất.
+5. **Phân quyền Role ADMIN & Quản trị hệ thống:**
+   - Tài khoản `role: 'ADMIN'` chỉ chuyên tâm giám sát, duyệt quán, quản lý voucher sàn và điều phối hệ thống.
+   - Ẩn hoàn toàn nút **"Cửa hàng của tôi"** trên Navbar đối với `ADMIN`, tự động điều hướng sang `/admin` khi truy cập trang merchant, và chặn API đăng ký quán (`/stores/register`) đối với tài khoản `ADMIN`.
 
 ---
 

@@ -299,12 +299,14 @@ export default function MerchantRegister() {
     packagePrice: 0,
   });
 
-  // Kiểm tra nếu chưa đăng nhập thì chuyển hướng sang login
+  // Kiểm tra nếu chưa đăng nhập thì chuyển hướng sang login; nếu là ADMIN thì chuyển về trang quản trị
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login?redirect=/merchant/register');
+    } else if (user?.role === 'ADMIN') {
+      navigate('/admin');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user?.role, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
