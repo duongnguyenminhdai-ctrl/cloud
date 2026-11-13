@@ -49,3 +49,16 @@
   - Build frontend kiểm tra lỗi bundle: `npm run build --prefix frontend`
 - **Deploy:** Backend cấu hình theo [`render.yaml`](render.yaml) (`auth-service` và `restaurant-service` dùng chung `JWT_SECRET` và `REQUIRE_PHONE_VERIFICATION=true`); Frontend deploy Vercel.
 
+---
+
+## 5. Trạng thái dự án & Tính năng gần nhất (Handover Context)
+- **Hệ thống Đánh giá & Xu thưởng (Shopee-style) — Commit `91fdb24`:**
+  - Khách nhận hàng thành công (`DELIVERED`) nhận thông báo qua **Chuông** [`NotificationBell.jsx`](frontend/src/components/NotificationBell.jsx).
+  - Đánh giá đơn thành công nhận ngay **1.000 Xu FoodFast** lưu vào DB thật (`User.coins` trong `auth_db`).
+  - Thông báo và quyền đánh giá nhận xu có thời hạn **7 ngày** (sử dụng MongoDB Native TTL Index tự động dọn dẹp và xóa bản ghi).
+  - Chặn hoàn toàn việc tạo mã đơn hàng ảo `ord_${Date.now()}`; loại bỏ text kỹ thuật RabbitMQ trong Modal đánh giá quán.
+- **Voucher & Popup Khuyến mãi:**
+  - Popup Flash Sale tại trang chủ [`PromotionPopupModal.jsx`](frontend/src/components/PromotionPopupModal.jsx).
+  - Voucher mặc định hệ thống: `FREESHIP50`, `QUANNGON20`, `FOODFAST10`. Có thể nâng cấp kết nối API Admin quản trị banner popup động từ MongoDB.
+
+
