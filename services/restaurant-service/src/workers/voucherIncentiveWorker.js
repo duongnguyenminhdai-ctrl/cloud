@@ -1,7 +1,9 @@
 const { consumeEvent } = require('../rabbitmq');
 const Voucher = require('../models/Voucher');
+const CustomerNotification = require('../models/CustomerNotification');
+const Restaurant = require('../models/Restaurant');
 const { setQuota } = require('../../redis');
-const { emitStoreUpdate, broadcastAdminEvent } = require('../utils/realtimeHub');
+const { emitStoreUpdate, broadcastAdminEvent, emitUserEvent } = require('../utils/realtimeHub');
 
 /**
  * Worker tự động tặng Voucher khi có Review (Event-Driven qua RabbitMQ)
@@ -86,22 +88,79 @@ async function startVoucherIncentiveWorker() {
  * để phát sóng SSE Realtime ngay lập tức về Dashboard của Chủ quán & Admin.
  */
 async function startRealtimeOrderRelayWorker() {
-  const handleOrderRelayEvent = async (data) => {
+  const handleOrderRelayEvent = async (data, msg) => {
     try {
       const storeId = data?.restaurantId || data?.store_id || null;
+      const orderId = data?.orderId || data?._id;
+      const status = data?.status || data?.newStatus;
+      const customerId = data?.customerId || data?.userId;
+
       if (storeId) {
         emitStoreUpdate({
           storeId: String(storeId),
           event: 'order.updated',
           extra: {
-            orderId: data?.orderId || data?._id,
-            status: data?.status || data?.newStatus
+            orderId,
+            status
           }
         });
       } else {
         broadcastAdminEvent('order.updated', data);
       }
-    } catch {}
+
+      // Khi đơn hàng giao thành công (DELIVERED / COMPLETED): Gửi thông báo mời đánh giá nhận 1.000 Xu
+      const isDelivered = ['DELIVERED', 'COMPLETED'].includes(String(status).toUpperCase()) ||
+        (msg && ['order.completed', 'delivery.completed'].includes(msg.fields?.routingKey));
+
+      if (isDelivered && orderId && customerId) {
+        const cleanOrderId = String(orderId);
+        const cleanCustomerId = String(customerId);
+
+        // Kiểm tra xem đã tạo thông báo mời đánh giá cho đơn này chưa
+        const existingNotif = await CustomerNotification.findOne({
+          orderId: cleanOrderId,
+          userId: cleanCustomerId
+        });
+
+        if (!existingNotif) {
+          let storeName = data?.restaurantName || data?.storeName;
+          let storeImage = data?.restaurantImage || data?.storeImage || '';
+
+          if ((!storeName || !storeImage) && storeId) {
+            try {
+              const storeDoc = await Restaurant.findById(storeId).select('name image logo');
+              if (storeDoc) {
+                storeName = storeName || storeDoc.name;
+                storeImage = storeImage || storeDoc.image || storeDoc.logo || '';
+              }
+            } catch {}
+          }
+
+          const createdNotif = await CustomerNotification.create({
+            userId: cleanCustomerId,
+            orderId: cleanOrderId,
+            storeId: storeId || '000000000000000000000000',
+            storeName: storeName || 'Quán ăn FoodFast',
+            storeImage: storeImage || '',
+            type: 'ORDER_REVIEW_PROMPT',
+            title: 'Đơn hàng đã giao thành công!',
+            content: `Đơn hàng #${cleanOrderId.slice(-6)} tại ${storeName || 'quán ăn'} đã hoàn tất. Hãy gửi đánh giá trong vòng 7 ngày để nhận ngay 1.000 Xu FoodFast!`,
+            rewardCoins: 1000,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          });
+
+          emitUserEvent(cleanCustomerId, 'notification.created', {
+            notification: createdNotif,
+            orderId: cleanOrderId,
+            rewardCoins: 1000
+          });
+
+          console.log(`[Notification Worker] 🔔 Đã gửi thông báo mời đánh giá nhận 1.000 Xu cho khách [${cleanCustomerId}] cho đơn [${cleanOrderId}]`);
+        }
+      }
+    } catch (relayErr) {
+      console.warn('[Realtime Order Relay] Lỗi xử lý sự kiện đơn hàng:', relayErr.message);
+    }
   };
 
   for (const routingKey of ['order.created', 'order.status_updated', 'order.completed', 'delivery.completed']) {

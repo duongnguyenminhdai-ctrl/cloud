@@ -85,6 +85,11 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    coins: {
+      type: Number,
+      default: 0,
+      min: [0, 'Số xu không được âm']
     }
   },
   {

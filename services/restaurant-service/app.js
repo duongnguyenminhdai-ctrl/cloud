@@ -9,6 +9,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const restaurantRoutes = require('./src/routes/restaurantRoutes');
 const voucherRoutes = require('./src/routes/voucherRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
+const customerNotificationRoutes = require('./src/routes/customerNotificationRoutes');
 
 const app = express();
 const SERVICE_NAME = 'restaurant-service';
@@ -44,6 +45,16 @@ app.use('/vouchers', voucherRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/reviews', reviewRoutes);
+
+// 3.3 Customer Notifications Endpoints (/api/v1/notifications, /api/v1/customer-notifications)
+app.use('/api/v1/notifications', customerNotificationRoutes);
+app.use('/api/notifications', customerNotificationRoutes);
+app.use('/notifications', customerNotificationRoutes);
+app.use('/api/v1/customer-notifications', customerNotificationRoutes);
+app.use('/api/customer-notifications', customerNotificationRoutes);
+app.use('/customer-notifications', customerNotificationRoutes);
+app.use('/api/v1/restaurants/customer-notifications', customerNotificationRoutes);
+app.use('/api/restaurants/customer-notifications', customerNotificationRoutes);
 
 // 3.3 Restaurant & Store & Recommendation Endpoints
 app.use('/api/v1/restaurants', restaurantRoutes);

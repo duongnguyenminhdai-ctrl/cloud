@@ -152,4 +152,24 @@ router.post(
   authController.verifyFirebasePhone
 );
 
+// -----------------------------------------------------------------------------
+// XU TÍCH LŨY (FOODFAST COINS)
+// -----------------------------------------------------------------------------
+router.get(
+  ['/coins/balance', '/auth/coins/balance', '/api/auth/coins/balance', '/api/v1/auth/coins/balance'],
+  verifyToken,
+  authController.getCoinsBalance
+);
+
+router.post(
+  ['/coins/reward', '/auth/coins/reward', '/api/auth/coins/reward', '/api/v1/auth/coins/reward'],
+  authController.rewardCoins
+);
+
+router.post(
+  ['/coins/deduct', '/auth/coins/deduct', '/api/auth/coins/deduct', '/api/v1/auth/coins/deduct'],
+  verifyToken,
+  authController.deductCoins
+);
+
 module.exports = router;

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { storeApi } from '../api/client';
 import CitySelector from './CitySelector';
 import UserProfileModal from './UserProfileModal';
 import UserAvatar from './UserAvatar';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -125,6 +126,21 @@ export default function Navbar() {
               </span>
             )}
           </Link>
+
+          {/* Chuông Thông Báo Khách Hàng (Shopee Style) */}
+          {isAuthenticated && <NotificationBell />}
+
+          {/* Hiển thị số Xu FoodFast tích lũy */}
+          {isAuthenticated && (
+            <Link
+              to="/orders?tab=reviews"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 font-extrabold text-xs hover:bg-amber-100 hover:border-amber-300 transition-all shadow-xs"
+              title="Số Xu FoodFast tích lũy (Đánh giá đơn hàng để nhận 1.000 Xu)"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+              <span>{Number(user?.coins || 0).toLocaleString('vi-VN')} Xu</span>
+            </Link>
+          )}
 
           {/* User Profile / Auth */}
           {isAuthenticated ? (

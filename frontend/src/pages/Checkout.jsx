@@ -4,7 +4,7 @@ import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCo
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { orderApi, paymentApi, voucherApi } from '../api/client';
+import { orderApi, paymentApi, voucherApi, authApi } from '../api/client';
 import AddressPickerModal from '../components/AddressPickerModal';
 import VoucherPickerModal from '../components/VoucherPickerModal';
 import { calculateShippingFee } from '../utils/pricingEngine';
@@ -16,7 +16,7 @@ import { isFirebasePhoneConfigured } from '../utils/firebase';
 
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { user, isAuthenticated, loginWithToken } = useAuth();
+  const { user, isAuthenticated, loginWithToken, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   const { location: userCoord, setManualLocation } = useUserLocation();
   const [checkoutPhone, setCheckoutPhone] = useState(user?.phone || '');
@@ -38,20 +38,28 @@ export default function Checkout() {
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [vouchersList, setVouchersList] = useState([]);
 
-  // Quản lý Xu tích lũy (FoodFast Coins)
+  // Quản lý Xu tích lũy (FoodFast Coins đồng bộ với tài khoản)
   const currentUserId = (user?.id || user?.userId || user?._id || user?.email || 'guest').toString();
   const coinsStorageKey = `user_coins_${currentUserId}`;
   const [userCoins, setUserCoins] = useState(() => {
+    if (user?.coins !== undefined && user?.coins !== null) {
+      return Number(user.coins) || 0;
+    }
     try {
       const saved = localStorage.getItem(coinsStorageKey);
       if (saved !== null) return Number(saved) || 0;
-      localStorage.setItem(coinsStorageKey, '2500');
-      return 2500;
+      return 1000;
     } catch {
-      return 2500;
+      return 1000;
     }
   });
   const [useCoins, setUseCoins] = useState(false);
+
+  useEffect(() => {
+    if (user?.coins !== undefined && user?.coins !== null) {
+      setUserCoins(Number(user.coins) || 0);
+    }
+  }, [user?.coins]);
 
   // Trạng thái tính cước phí giao hàng động (Dynamic Surge Pricing & Demo Simulator)
   const [shippingFeeData, setShippingFeeData] = useState(null);
@@ -298,6 +306,12 @@ export default function Checkout() {
           setUserCoins(remainingCoins);
           try {
             localStorage.setItem(coinsStorageKey, remainingCoins.toString());
+          } catch (e) { }
+          try {
+            authApi.deductCoins({ amount: coinDiscountAmount, orderId }).catch(() => {});
+            if (typeof updateUserProfile === 'function') {
+              updateUserProfile({ coins: remainingCoins });
+            }
           } catch (e) { }
         }
 

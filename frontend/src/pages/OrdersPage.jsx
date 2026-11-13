@@ -39,7 +39,17 @@ import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtim
 export default function OrdersPage({ initialTab }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserProfile } = useAuth();
+
+  // Danh sách đơn hàng đã gửi đánh giá (chống trùng lặp trên giao diện)
+  const [reviewedOrderIds, setReviewedOrderIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('foodfast_reviewed_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const { cartItems, currentRestaurant, updateQuantity, removeFromCart, clearCart, subtotal, totalItems } = useCart();
 
   // Định danh tài khoản người dùng đang đăng nhập
@@ -409,10 +419,26 @@ export default function OrdersPage({ initialTab }) {
     });
   }, [orders, selectedStatus, searchQuery]);
 
-  // Đơn chờ đánh giá
+  // Đơn chờ đánh giá (Áp dụng thời hạn 7 ngày và loại bỏ đơn đã đánh giá)
   const reviewableOrders = useMemo(() => {
-    return orders.filter((o) => o.status === 'DELIVERED');
-  }, [orders]);
+    const now = Date.now();
+    return orders
+      .filter((o) => o.status === 'DELIVERED')
+      .map((o) => {
+        const orderTime = new Date(o.createdAt || o.updatedAt || now).getTime();
+        const diffMs = now - orderTime;
+        const isExpired = diffMs > (7 * 24 * 60 * 60 * 1000);
+        const daysLeft = Math.max(0, Math.ceil((7 * 24 * 60 * 60 * 1000 - diffMs) / (1000 * 60 * 60 * 24)));
+        const isReviewed = reviewedOrderIds.includes(String(o._id));
+        return {
+          ...o,
+          isExpired,
+          daysLeft,
+          isReviewed
+        };
+      })
+      .filter((o) => !o.isReviewed);
+  }, [orders, reviewedOrderIds]);
 
   // Toàn bộ danh sách voucher tổng hợp (Chỉ hiển thị khi đã đăng nhập)
   const allVouchers = useMemo(() => {
@@ -575,19 +601,38 @@ export default function OrdersPage({ initialTab }) {
   const handleSendReview = async () => {
     if (reviewOrderModal?.restaurantId) {
       try {
-        await reviewApi.create({
+        const res = await reviewApi.create({
           order_id: reviewOrderModal._id,
           store_id: reviewOrderModal.restaurantId,
           rating: Number(ratingScore) || 5,
           comment: (reviewComment || '').trim() || 'Món ăn ngon, giao hàng nhanh!'
         });
+
+        // Đánh dấu đơn đã đánh giá
+        const nextReviewed = [...reviewedOrderIds, String(reviewOrderModal._id)];
+        setReviewedOrderIds(nextReviewed);
+        try {
+          localStorage.setItem('foodfast_reviewed_orders', JSON.stringify(nextReviewed));
+        } catch {}
+
+        // Cập nhật số xu vào tài khoản
+        if (res.data?.newCoinsBalance !== undefined) {
+          updateUserProfile({ coins: res.data.newCoinsBalance });
+        } else if (user) {
+          updateUserProfile({ coins: (user.coins || 0) + 1000 });
+        }
+
         publishRealtimeSignal('review', {
           storeId: reviewOrderModal.restaurantId,
           orderId: reviewOrderModal._id,
           rating: Number(ratingScore) || 5
         });
       } catch {
-        // Bỏ qua nếu đơn đã đánh giá trước đó hoặc thiếu store_id
+        const nextReviewed = [...reviewedOrderIds, String(reviewOrderModal._id)];
+        setReviewedOrderIds(nextReviewed);
+        try {
+          localStorage.setItem('foodfast_reviewed_orders', JSON.stringify(nextReviewed));
+        } catch {}
       }
     }
     setReviewedSuccess(true);
@@ -1245,14 +1290,14 @@ export default function OrdersPage({ initialTab }) {
         )}
 
         {/* =================================================================== */}
-        {/* 7. TAB NỘI DUNG: ĐÁNH GIÁ (Nhận 500 xu) */}
+        {/* 7. TAB NỘI DUNG: ĐÁNH GIÁ (Nhận 1.000 xu Shopee Style) */}
         {/* =================================================================== */}
         {activeTab === 'reviews' && (
           <div className="flex-1 p-4 space-y-3">
             <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex items-center gap-2.5">
               <Coins className="w-5 h-5 text-amber-500 shrink-0" />
               <p className="text-xs text-amber-900 font-medium">
-                Mỗi đánh giá 5 sao kèm nhận xét sẽ nhận ngay <strong>500 Xu FoodFast</strong> và nhận voucher tri ân giảm 10%!
+                Mỗi đánh giá đơn hàng kèm nhận xét sẽ nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy (Áp dụng cho đơn giao thành công trong vòng 7 ngày).
               </p>
             </div>
 
@@ -1286,13 +1331,24 @@ export default function OrdersPage({ initialTab }) {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setReviewOrderModal(ord)}
-                        className="w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
-                        <span>Viết đánh giá nhận 500 Xu</span>
-                      </button>
+
+                      {ord.isExpired ? (
+                        <button
+                          disabled
+                          className="w-full py-2 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Đã hết hạn đánh giá (quá 7 ngày)</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setReviewOrderModal(ord)}
+                          className="w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 border border-orange-200/80"
+                        >
+                          <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
+                          <span>Viết đánh giá nhận 1.000 Xu (Còn {ord.daysLeft} ngày)</span>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1712,14 +1768,14 @@ export default function OrdersPage({ initialTab }) {
       </div>
 
       {/* ===================================================================== */}
-      {/* 11. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 500 Xu) */}
+      {/* 11. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 1.000 Xu Shopee Style) */}
       {/* =================================================================== */}
       {reviewOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
             <div className="text-center space-y-1">
               <h3 className="font-bold text-base text-gray-900">
-                Đánh giá đơn hàng
+                Đánh giá đơn hàng & Nhận 1.000 Xu
               </h3>
               <p className="text-xs text-gray-500">
                 {reviewOrderModal.restaurantName || 'Quán ăn'}
@@ -1729,8 +1785,8 @@ export default function OrdersPage({ initialTab }) {
             {reviewedSuccess ? (
               <div className="py-6 text-center space-y-2 text-emerald-600">
                 <CheckCircle2 className="w-12 h-12 mx-auto animate-bounce" />
-                <p className="font-extrabold text-sm">Đã nhận 500 Xu FoodFast!</p>
-                <p className="text-xs text-gray-500">Cảm ơn bạn đã đóng góp đánh giá hữu ích.</p>
+                <p className="font-extrabold text-sm">Đã nhận 1.000 Xu FoodFast!</p>
+                <p className="text-xs text-gray-500">Xu đã được cộng vào tài khoản của bạn để trừ tiền cho đơn hàng tiếp theo.</p>
               </div>
             ) : (
               <>
@@ -1769,7 +1825,7 @@ export default function OrdersPage({ initialTab }) {
                     onClick={handleSendReview}
                     className="flex-1 py-2.5 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold shadow-md shadow-red-500/20"
                   >
-                    Gửi đánh giá (+500 xu)
+                    Gửi đánh giá (+1.000 xu)
                   </button>
                 </div>
               </>

@@ -26,6 +26,7 @@ const formatAuthUser = (user) => ({
   phoneVerifiedAt: user.phoneVerifiedAt || null,
   birthYear: user.birthYear || null,
   address: user.address || '',
+  coins: Number(user.coins) || 0,
   createdAt: user.createdAt
 });
 
@@ -1185,5 +1186,106 @@ exports.changeUserPassword = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi đổi mật khẩu: ' + error.message });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// QUẢN LÝ XU TÍCH LŨY (FOODFAST COINS)
+// -----------------------------------------------------------------------------
+
+// Lấy số dư Xu hiện tại (GET /api/v1/auth/coins/balance)
+exports.getCoinsBalance = async (req, res) => {
+  try {
+    const targetUserId = req.user?.userId || req.user?.id;
+    const user = await User.findById(targetUserId).select('coins');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
+    }
+    return res.status(200).json({
+      success: true,
+      coins: Number(user.coins) || 0
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy số dư xu: ' + error.message });
+  }
+};
+
+// Cộng thưởng Xu (POST /api/v1/auth/coins/reward) - Dùng khi đánh giá đơn hàng hoàn tất hoặc nhận thưởng
+exports.rewardCoins = async (req, res) => {
+  try {
+    const targetUserId = req.body.userId || req.user?.userId || req.user?.id;
+    const amount = Number(req.body.amount) || 1000;
+    const { reason, orderId } = req.body;
+
+    if (!targetUserId) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp userId' });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Số xu cộng thưởng phải lớn hơn 0' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      targetUserId,
+      { $inc: { coins: amount } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản để cộng xu' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã cộng thành công ${amount.toLocaleString('vi-VN')} Xu FoodFast`,
+      coins: user.coins,
+      rewardedAmount: amount,
+      reason: reason || 'REVIEW_REWARD',
+      orderId: orderId || null
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cộng xu: ' + error.message });
+  }
+};
+
+// Sử dụng Xu trừ vào đơn hàng (POST /api/v1/auth/coins/deduct)
+exports.deductCoins = async (req, res) => {
+  try {
+    const targetUserId = req.body.userId || req.user?.userId || req.user?.id;
+    const amount = Number(req.body.amount) || 0;
+    const { orderId } = req.body;
+
+    if (!targetUserId) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp userId' });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Số xu sử dụng phải lớn hơn 0' });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
+    }
+
+    if ((user.coins || 0) < amount) {
+      return res.status(400).json({
+        success: false,
+        message: `Số dư xu không đủ (hiện có ${user.coins || 0} xu, yêu cầu ${amount} xu)`
+      });
+    }
+
+    user.coins = Math.max(0, (user.coins || 0) - amount);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã sử dụng thành công ${amount.toLocaleString('vi-VN')} Xu FoodFast`,
+      coins: user.coins,
+      deductedAmount: amount,
+      orderId: orderId || null
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi sử dụng xu: ' + error.message });
   }
 };

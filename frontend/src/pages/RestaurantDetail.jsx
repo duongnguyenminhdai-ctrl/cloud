@@ -17,9 +17,10 @@ import {
   X,
   User,
   Clock,
-  Heart
+  Heart,
+  Coins
 } from 'lucide-react';
-import { restaurantApi, reviewApi } from '../api/client';
+import { restaurantApi, reviewApi, orderApi } from '../api/client';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
@@ -58,7 +59,8 @@ export default function RestaurantDetail() {
     getDishTotalQuantity,
     updateVariantQuantity
   } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserProfile } = useAuth();
+  const [targetOrderId, setTargetOrderId] = useState(null);
   const { location: userCoord, setManualLocation } = useUserLocation();
 
   // Trạng thái Quán yêu thích (Like / Wishlist)
@@ -224,14 +226,36 @@ export default function RestaurantDetail() {
     return reviews.slice(start, start + REVIEWS_PAGE_SIZE);
   }, [reviews, reviewsPage]);
 
-  const handleOpenReviewModal = () => {
+  const handleOpenReviewModal = async () => {
     if (!isAuthenticated) {
-      alert('Vui lòng đăng nhập để gửi đánh giá và nhận voucher ưu đãi!');
+      alert('Vui lòng đăng nhập để gửi đánh giá và nhận 1.000 Xu FoodFast!');
       return;
     }
-    setReviewError(null);
-    setReviewReward(null);
-    setIsReviewModalOpen(true);
+
+    try {
+      const res = await orderApi.getMyOrders();
+      const allOrders = res.data?.data || [];
+      const now = Date.now();
+      const eligibleOrder = allOrders.find((o) => {
+        const isMatchStore = String(o.restaurantId) === String(id);
+        const isDelivered = o.status === 'DELIVERED';
+        const orderTime = new Date(o.createdAt || o.updatedAt || now).getTime();
+        const within7Days = (now - orderTime) <= (7 * 24 * 60 * 60 * 1000);
+        return isMatchStore && isDelivered && within7Days;
+      });
+
+      if (!eligibleOrder) {
+        alert('Cơ chế đánh giá chuẩn FoodFast: Bạn chỉ có thể đánh giá sau khi đã mua hàng và nhận món thành công tại quán trong vòng 7 ngày gần nhất để nhận 1.000 Xu.');
+        return;
+      }
+
+      setTargetOrderId(eligibleOrder._id);
+      setReviewError(null);
+      setReviewReward(null);
+      setIsReviewModalOpen(true);
+    } catch {
+      alert('Vui lòng đặt món và nhận hàng thành công tại quán để tham gia đánh giá nhận 1.000 Xu.');
+    }
   };
 
   const handleSubmitReview = async (e) => {
@@ -249,28 +273,33 @@ export default function RestaurantDetail() {
         store_id: id,
         rating: Number(reviewRating),
         comment: reviewComment.trim(),
-        order_id: `ord_${Date.now()}` // Định danh đơn hàng thử nghiệm
+        order_id: targetOrderId
       });
 
       if (res.data?.success) {
-        // Thông báo cơ chế Event-Driven Worker RabbitMQ
+        if (res.data.newCoinsBalance !== undefined) {
+          updateUserProfile({ coins: res.data.newCoinsBalance });
+        } else if (user) {
+          updateUserProfile({ coins: (user.coins || 0) + 1000 });
+        }
+
         if (reviewRating === 5) {
           setReviewReward({
             type: 'FIVE_STAR',
-            title: '🎉 Nhận Voucher Cảm Ơn 10% (THANKYOU)!',
-            message: 'Worker RabbitMQ q.voucher_incentive đã tự động sinh mã giảm giá 10% gửi tới bạn!'
+            title: '🎉 Nhận 1.000 Xu & Voucher Tri Ân 10% (THANKYOU)!',
+            message: 'Đã cộng 1.000 Xu FoodFast vào tài khoản của bạn và tặng thêm voucher tri ân giảm 10% cho đơn sau!'
           });
         } else if (reviewRating <= 2) {
           setReviewReward({
             type: 'SORRY',
-            title: '🎁 Nhận Voucher Đền Bù 20% (SORRY)!',
-            message: 'Worker RabbitMQ q.voucher_incentive đã tự động sinh mã giảm 20% bồi thường cho bạn!'
+            title: '🎁 Nhận 1.000 Xu & Voucher Đền Bù 20% (SORRY)!',
+            message: 'Đã cộng 1.000 Xu FoodFast vào tài khoản của bạn và tặng thêm voucher đền bù 20% cho đơn kế tiếp!'
           });
         } else {
           setReviewReward({
             type: 'NORMAL',
-            title: '✨ Cảm ơn bạn đã đánh giá!',
-            message: 'Đánh giá đã được ghi nhận và cập nhật điểm xếp hạng quán.'
+            title: '✨ Nhận 1.000 Xu FoodFast Thành Công!',
+            message: 'Cảm ơn bạn đã đóng góp đánh giá. 1.000 Xu đã được lưu vào ví để giảm trừ vào đơn hàng tiếp theo.'
           });
         }
 
@@ -731,7 +760,7 @@ export default function RestaurantDetail() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
                 <Gift className="w-5 h-5 text-orange-600" />
-                Đánh giá quán & Nhận quà
+                Đánh giá quán & Nhận 1.000 Xu
               </h3>
               <button
                 onClick={() => setIsReviewModalOpen(false)}
@@ -805,8 +834,9 @@ export default function RestaurantDetail() {
                   </p>
                 )}
 
-                <div className="text-[10px] text-gray-400 leading-tight bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                  ⚡ Sau khi gửi, sự kiện <code className="text-orange-600 font-mono">review.submitted</code> sẽ được bắn qua RabbitMQ Exchange để tự động phân tích và tạo mã Voucher ưu đãi vào tài khoản!
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 leading-relaxed flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
+                  <span>🎁 Hoàn tất đánh giá đơn hàng để nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy (dùng giảm trừ 1:1 cho các đơn hàng tiếp theo)!</span>
                 </div>
 
                 <button
@@ -814,7 +844,7 @@ export default function RestaurantDetail() {
                   disabled={submittingReview}
                   className="w-full py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2"
                 >
-                  {submittingReview ? 'Đang gửi và xử lý sự kiện...' : 'Gửi Đánh Giá →'}
+                  {submittingReview ? 'Đang gửi đánh giá...' : 'Gửi Đánh Giá (+1.000 Xu) →'}
                 </button>
               </form>
             )}

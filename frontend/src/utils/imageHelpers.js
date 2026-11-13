@@ -77,3 +77,4 @@ export function compressAvatarFile(file, options = {}) {
     reader.readAsDataURL(file);
   });
 }
+

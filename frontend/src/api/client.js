@@ -199,6 +199,36 @@ export const authApi = {
       throw err;
     }
   },
+  getCoinsBalance: async () => {
+    try {
+      return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/coins/balance'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3005/api/v1/auth/coins/balance', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  deductCoins: async ({ amount, orderId }) => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/coins/deduct'), { amount, orderId });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/coins/deduct', { amount, orderId }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
   getPhoneConfigStatus: async () => {
     try {
       return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/phone/config-status'));
@@ -604,6 +634,21 @@ export const reviewApi = {
   },
   getByStore: async (storeId) => {
     return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, `/reviews/store/${storeId}`));
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 9.1 Thông báo Chuông Khách Hàng (Customer Notifications & Shopee Reviews)
+// -----------------------------------------------------------------------------
+export const notificationApi = {
+  getMyNotifications: async () => {
+    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/notifications/my-notifications'));
+  },
+  markAsRead: async (id = 'all') => {
+    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/notifications/${id}/read`));
+  },
+  deleteNotification: async (id) => {
+    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/notifications/${id}`));
   }
 };
 

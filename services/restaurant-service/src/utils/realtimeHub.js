@@ -149,6 +149,11 @@ function broadcastPublicEvent(event = 'public.updated', payload = {}) {
   return broadcast(['public'], event, { type: event, ...payload });
 }
 
+function emitUserEvent(userId, event = 'notification.created', payload = {}) {
+  if (!userId) return 0;
+  return broadcast([`user:${userId}`, 'public'], event, { type: event, ...payload });
+}
+
 function getActiveClientCount() {
   return clients.size;
 }
@@ -159,6 +164,7 @@ module.exports = {
   emitStoreUpdate,
   broadcastAdminEvent,
   broadcastPublicEvent,
+  emitUserEvent,
   getActiveClientCount
 };
 

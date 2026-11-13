@@ -48,3 +48,4 @@
   - Test từng service riêng: `npm test --prefix services/auth-service` (hoặc `restaurant-service`, `order-service`, `payment-service`, `delivery-service`)
   - Build frontend kiểm tra lỗi bundle: `npm run build --prefix frontend`
 - **Deploy:** Backend cấu hình theo [`render.yaml`](render.yaml) (`auth-service` và `restaurant-service` dùng chung `JWT_SECRET` và `REQUIRE_PHONE_VERIFICATION=true`); Frontend deploy Vercel.
+

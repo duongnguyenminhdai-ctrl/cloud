@@ -1041,7 +1041,10 @@ exports.streamAdmin = (req, res) => {
 
 exports.streamPublicStores = (req, res) => {
   const storeId = req.query?.storeId ? String(req.query.storeId) : null;
-  const channels = storeId ? ['public', `store:${storeId}`] : ['public'];
+  const userId = req.query?.userId ? String(req.query.userId) : (req.user?.userId || req.user?.id || null);
+  const channels = ['public'];
+  if (storeId) channels.push(`store:${storeId}`);
+  if (userId) channels.push(`user:${userId}`);
   return subscribe(req, res, channels);
 };
 

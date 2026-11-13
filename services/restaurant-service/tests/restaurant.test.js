@@ -16,6 +16,7 @@ jest.mock('../redis', () => ({
 jest.mock('../src/models/Restaurant');
 jest.mock('../src/models/Voucher');
 jest.mock('../src/models/Review');
+jest.mock('../src/models/CustomerNotification');
 jest.mock('../src/rabbitmq', () => ({
   connectRabbitMQ: jest.fn().mockResolvedValue({}),
   publishEvent: jest.fn().mockResolvedValue(true),

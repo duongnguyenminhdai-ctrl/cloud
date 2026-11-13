@@ -190,7 +190,7 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className={`rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col border shadow-2xl overflow-hidden ${bgModal}`}>
-        
+
         {/* Modal Header */}
         <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${bgHeader}`}>
           <div className="flex items-center gap-3">
@@ -220,11 +220,10 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white">Quản lý thông tin tài khoản</h3>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                  user?.role === 'ADMIN'
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${user?.role === 'ADMIN'
                     ? 'bg-red-500/20 text-red-400 border-red-500/30'
                     : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                }`}>
+                  }`}>
                   {user?.role === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : 'THÀNH VIÊN'}
                 </span>
               </div>
@@ -234,9 +233,8 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
 
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl transition ${
-              isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
-            }`}
+            className={`p-2 rounded-xl transition ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+              }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -249,11 +247,10 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
               setActiveTab('profile');
               setFeedback({ type: '', msg: '' });
             }}
-            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'profile'
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'profile'
                 ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <User className="w-4 h-4" />
             Thông tin liên hệ
@@ -264,11 +261,10 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
               setActiveTab('password');
               setFeedback({ type: '', msg: '' });
             }}
-            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'password'
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'password'
                 ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Key className="w-4 h-4" />
             Đổi mật khẩu
@@ -277,15 +273,14 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs sm:text-sm">
-          
+
           {/* Thông báo Alert */}
           {feedback.msg && (
             <div
-              className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-medium animate-in fade-in duration-150 ${
-                feedback.type === 'success'
+              className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-medium animate-in fade-in duration-150 ${feedback.type === 'success'
                   ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                   : 'bg-red-500/15 border-red-500/30 text-red-300'
-              }`}
+                }`}
             >
               {feedback.type === 'success' ? (
                 <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
@@ -331,7 +326,7 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
                             updateUserProfile(res.data?.data || { avatar: '' });
                             showMsg('success', 'Đã gỡ ảnh đại diện.');
                           }
-                        } catch {}
+                        } catch { }
                       }}
                       className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer"
                       title="Xóa ảnh đại diện"
@@ -449,9 +444,8 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
           {/* TAB 2: ĐỔI MẬT KHẨU */}
           {activeTab === 'password' && (
             <form onSubmit={handleChangePassword} className="space-y-3.5">
-              <div className={`p-3 rounded-xl border text-xs ${
-                isDark ? 'bg-slate-900/60 border-slate-700/60 text-slate-400' : 'bg-orange-50/50 border-orange-100 text-gray-600'
-              }`}>
+              <div className={`p-3 rounded-xl border text-xs ${isDark ? 'bg-slate-900/60 border-slate-700/60 text-slate-400' : 'bg-orange-50/50 border-orange-100 text-gray-600'
+                }`}>
                 <p>• Mật khẩu mới cần tối thiểu 6 ký tự để đảm bảo tính an toàn cho tài khoản.</p>
                 <p>• Hãy bảo mật mật khẩu và không chia sẻ cho bất kỳ ai.</p>
               </div>
@@ -549,9 +543,8 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
         <div className={`p-3.5 border-t flex items-center justify-end ${bgHeader}`}>
           <button
             onClick={onClose}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
           >
             Đóng
           </button>

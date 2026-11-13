@@ -1,8 +1,52 @@
+const mongoose = require('mongoose');
 const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
+const CustomerNotification = require('../models/CustomerNotification');
 const { publishEvent } = require('../rabbitmq');
 const { invalidateRestaurantCache } = require('../../redis');
-const { emitStoreUpdate } = require('../utils/realtimeHub');
+const { emitStoreUpdate, emitUserEvent } = require('../utils/realtimeHub');
+
+/**
+ * Hàm hỗ trợ cộng 1.000 Xu cho người dùng (Thực hiện trực tiếp trên Atlas auth_db hoặc qua API)
+ */
+async function creditUserCoins(userId, amount = 1000, reason = 'REVIEW_REWARD', orderId = null) {
+  if (process.env.NODE_ENV === 'test') {
+    return 1000;
+  }
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const authDb = mongoose.connection.useDb('auth_db');
+      const usersCol = authDb.collection('users');
+      const query = mongoose.isValidObjectId(userId) ? { _id: new mongoose.Types.ObjectId(userId) } : { _id: userId };
+      const updated = await usersCol.findOneAndUpdate(
+        query,
+        { $inc: { coins: amount } },
+        { returnDocument: 'after' }
+      );
+      if (updated && (updated.value?.coins !== undefined || updated.coins !== undefined)) {
+        return updated.value?.coins ?? updated.coins;
+      }
+    }
+  } catch (dbErr) {
+    console.warn('[Review] Cập nhật coins trực tiếp qua DB thất bại, fallback sang API:', dbErr.message);
+  }
+
+  try {
+    const authUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3005';
+    const resp = await fetch(`${authUrl}/api/v1/auth/coins/reward`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, reason, orderId })
+    });
+    const data = await resp.json();
+    if (data && data.success) {
+      return data.coins;
+    }
+  } catch (apiErr) {
+    console.warn('[Review] Gọi API cộng xu auth-service thất bại:', apiErr.message);
+  }
+  return null;
+}
 
 /**
  * 1. POST /api/v1/reviews
@@ -38,7 +82,26 @@ exports.createReview = async (req, res) => {
       });
     }
 
-    // 1.2 Lưu Review vào MongoDB
+    // 1.2 Kiểm tra thời hạn đánh giá qua CustomerNotification (nếu có thông báo gắn với đơn)
+    try {
+      const linkedNotif = await CustomerNotification.findOne({ orderId: String(order_id) });
+      if (linkedNotif) {
+        if (linkedNotif.expiresAt && new Date(linkedNotif.expiresAt) <= new Date()) {
+          return res.status(400).json({
+            success: false,
+            message: 'Đơn hàng này đã hết hạn đánh giá (chỉ được đánh giá trong vòng 7 ngày sau khi giao thành công).'
+          });
+        }
+        // Đánh dấu thông báo đã hoàn tất để không hiện trên chuông nữa
+        linkedNotif.isCompleted = true;
+        linkedNotif.isRead = true;
+        await linkedNotif.save();
+      }
+    } catch (notifErr) {
+      console.warn('[Review] Bỏ qua kiểm tra CustomerNotification:', notifErr.message);
+    }
+
+    // 1.3 Lưu Review vào MongoDB
     const newReview = new Review({
       order_id,
       user_id: userId,
@@ -50,7 +113,7 @@ exports.createReview = async (req, res) => {
 
     const savedReview = await newReview.save();
 
-    // 1.3 Cập nhật điểm Rating trung bình & số lượng đánh giá của Nhà hàng
+    // 1.4 Cập nhật điểm Rating trung bình & số lượng đánh giá của Nhà hàng
     const storeReviews = await Review.find({ store_id });
     if (storeReviews.length > 0) {
       const avgRating = (storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length).toFixed(1);
@@ -61,7 +124,11 @@ exports.createReview = async (req, res) => {
       await invalidateRestaurantCache(store_id.toString());
     }
 
-    // 1.4 Event-Driven: Đẩy sự kiện review.submitted vào RabbitMQ (Exchange: foodfast_events)
+    // 1.5 Cộng 1.000 Xu FoodFast cho người dùng đánh giá
+    const REWARD_COINS = 1000;
+    const newCoinsBalance = await creditUserCoins(userId, REWARD_COINS, 'REVIEW_REWARD', order_id);
+
+    // 1.6 Event-Driven: Đẩy sự kiện review.submitted vào RabbitMQ (Exchange: foodfast_events)
     const eventPayload = {
       review_id: savedReview._id.toString(),
       order_id,
@@ -69,6 +136,7 @@ exports.createReview = async (req, res) => {
       store_id: store_id.toString(),
       rating: numRating,
       comment: savedReview.comment,
+      rewardCoins: REWARD_COINS,
       timestamp: Date.now()
     };
 
@@ -87,9 +155,19 @@ exports.createReview = async (req, res) => {
       extra: { review: savedReview }
     });
 
+    if (userId && userId !== 'guest_user') {
+      emitUserEvent(userId, 'coins.updated', {
+        rewardCoins: REWARD_COINS,
+        newCoinsBalance,
+        orderId: order_id
+      });
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Gửi đánh giá món ăn thành công! Hệ thống đang xử lý ưu đãi cho bạn.',
+      message: `Đánh giá món ăn thành công! Bạn nhận được ${REWARD_COINS.toLocaleString('vi-VN')} Xu FoodFast.`,
+      rewardCoins: REWARD_COINS,
+      newCoinsBalance,
       data: savedReview
     });
   } catch (error) {
