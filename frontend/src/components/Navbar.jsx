@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 import { storeApi } from '../api/client';
 import CitySelector from './CitySelector';
 import UserProfileModal from './UserProfileModal';
@@ -12,6 +13,7 @@ import NotificationBell from './NotificationBell';
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
+  const { theme, isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [checkingStore, setCheckingStore] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -84,7 +86,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] text-[#2b2721] shadow-2xs">
+    <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo chính thức từ Google AI Studio & City Selector */}
         <div className="flex items-center gap-3">
@@ -97,7 +99,7 @@ export default function Navbar() {
               />
             </div>
             <div className="flex items-center">
-              <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] group-hover:text-[#9a6a3e] transition-colors leading-none">
+              <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] transition-colors leading-none">
                 FoodFast
               </span>
             </div>
@@ -117,13 +119,13 @@ export default function Navbar() {
             <button
               onClick={handleMyStoreClick}
               disabled={checkingStore}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[rgba(154,106,62,0.35)] text-[#9a6a3e] hover:bg-[#ece7dc] font-bold text-xs sm:text-sm transition-all shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[rgba(154,106,62,0.35)] dark:border-[rgba(229,184,135,0.35)] text-[#9a6a3e] dark:text-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#2b2520] font-bold text-xs sm:text-sm transition-all shadow-xs"
               title="Quản lý hoặc mở cửa hàng kinh doanh trên FoodFast"
             >
               {checkingStore ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#9a6a3e]" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[#9a6a3e] dark:text-[#e5b887]" />
               ) : (
-                <Store className="w-4 h-4 text-[#9a6a3e]" />
+                <Store className="w-4 h-4 text-[#9a6a3e] dark:text-[#e5b887]" />
               )}
               <span className="hidden sm:inline">Cửa hàng của tôi</span>
               <span className="sm:hidden">Quán tôi</span>
@@ -145,7 +147,7 @@ export default function Navbar() {
           {/* Cart Button: Nhấn vào hiển thị Giỏ hàng và các mục trên */}
           <Link
             to="/orders?tab=cart"
-            className="relative p-2.5 rounded-xl text-[#2b2721]/80 hover:text-[#9a6a3e] hover:bg-[#ece7dc]/70 transition-colors"
+            className="relative p-2.5 rounded-xl text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors"
             title="Xem giỏ hàng"
           >
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -163,7 +165,7 @@ export default function Navbar() {
           {isAuthenticated && (
             <Link
               to="/orders?tab=reviews"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2ece1] border border-[rgba(154,106,62,0.25)] text-[#845831] font-extrabold text-xs hover:bg-[#ebdcc8] transition-all shadow-2xs"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2ece1] dark:bg-[#2b2520] border border-[rgba(154,106,62,0.25)] dark:border-[rgba(181,129,76,0.3)] text-[#845831] dark:text-[#e5b887] font-extrabold text-xs hover:bg-[#ebdcc8] dark:hover:bg-[#383029] transition-all shadow-2xs"
               title="Số Xu FoodFast tích lũy (Đánh giá đơn hàng để nhận 1.000 Xu)"
             >
               <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
@@ -171,12 +173,32 @@ export default function Navbar() {
             </Link>
           )}
 
+          {/* Nút chuyển đổi Light / Dark Mode ("Candlelit Studio") nét 1.5px */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.18)] bg-[#f2ece1] dark:bg-[#26211c] text-[#2b2721] dark:text-[#ede6d8] hover:border-[#9a6a3e] dark:hover:border-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#302a24] text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+            title={`Chuyển sang chế độ ${isDark ? 'Sáng' : 'Tối'}`}
+            aria-label="Chuyển chế độ Sáng / Tối"
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400 stroke-[1.5]" />
+                <span className="hidden md:inline text-[11px] font-medium tracking-wide">Sáng</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-[#9a6a3e] stroke-[1.5]" />
+                <span className="hidden md:inline text-[11px] font-medium tracking-wide">Tối</span>
+              </>
+            )}
+          </button>
+
           {/* User Profile / Auth */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-[rgba(43,39,33,0.14)]">
+            <div className="flex items-center gap-2 pl-2 border-l border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.14)]">
               <Link
                 to="/profile"
-                className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-[#ece7dc]/80 transition-all text-right group cursor-pointer"
+                className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-[#ece7dc]/80 dark:hover:bg-[#2b2520]/80 transition-all text-right group cursor-pointer"
                 title="Xem và cập nhật thông tin tài khoản & Đổi mật khẩu"
               >
                 <UserAvatar
@@ -186,10 +208,10 @@ export default function Navbar() {
                   className="w-8 h-8 rounded-full text-xs shadow-xs"
                 />
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-sm font-semibold text-[#2b2721] group-hover:text-[#9a6a3e] leading-tight transition">
+                  <span className="text-sm font-semibold text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] leading-tight transition">
                     {user?.name || 'Khách hàng'}
                   </span>
-                  <span className="text-xs text-[#2b2721]/50 font-medium">
+                  <span className="text-xs text-[#2b2721]/50 dark:text-[#ede6d8]/50 font-medium">
                     {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
                   </span>
                 </div>
@@ -199,7 +221,7 @@ export default function Navbar() {
                   logout();
                   navigate('/login');
                 }}
-                className="p-2 text-[#2b2721]/60 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -209,7 +231,7 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 to="/login"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#2b2721] hover:text-[#9a6a3e] hover:bg-[#ece7dc]/60 rounded-xl transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/60 dark:hover:bg-[#2b2520]/60 rounded-xl transition-colors"
               >
                 Đăng nhập
               </Link>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { LocationProvider } from './context/LocationContext';
@@ -68,19 +69,19 @@ function AppContent() {
       <div
         className={`min-h-screen flex flex-col font-sans relative ${isAuthPage
           ? 'bg-transparent'
-          : 'bg-[#ece7dc] text-[#2b2721]'
+          : 'bg-[var(--app-bg,#ece7dc)] dark:bg-[#161412] text-[#2b2721] dark:text-[#ede6d8]'
           }`}
       >
         {/* Lớp nền Wash màu nước nghệ thuật Sổ Tay Ký Họa áp dụng toàn hệ thống (trừ các trang Auth) */}
         {!isAuthPage && !isIntro && (
           <>
             <div
-              className="fixed inset-0 pointer-events-none z-0 opacity-45 bg-cover bg-top"
+              className="fixed inset-0 pointer-events-none z-0 opacity-45 dark:opacity-20 dark:brightness-50 bg-cover bg-top transition-opacity duration-300"
               style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
               aria-hidden="true"
             />
             <div
-              className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90"
+              className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] dark:from-[#161412]/40 dark:via-[#161412]/80 dark:to-[#161412] opacity-90 transition-colors duration-300"
               aria-hidden="true"
             />
           </>
@@ -124,7 +125,7 @@ function AppContent() {
 
         {/* Footer Sổ Tay Ký Họa FoodFast đồng bộ toàn hệ thống */}
         {!isAuthPage && !isIntro && (
-          <footer className="relative z-10 border-t border-[rgba(43,39,33,0.12)] bg-[#f7f4ee]/90 backdrop-blur-xs py-8 mt-auto text-[#2b2721]">
+          <footer className="relative z-10 border-t border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] bg-[#f7f4ee]/90 dark:bg-[#1c1916]/95 backdrop-blur-xs py-8 mt-auto text-[#2b2721] dark:text-[#ede6d8]">
             <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 drop-shadow-xs">
@@ -136,21 +137,21 @@ function AppContent() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-serif text-xl font-bold tracking-tight text-[#2b2721]">
+                    <span className="font-serif text-xl font-bold tracking-tight text-[#2b2721] dark:text-[#ede6d8]">
                       FoodFast
                     </span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f2ece1] text-[#9a6a3e] border border-[rgba(154,106,62,0.2)]">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f2ece1] dark:bg-[#2b2520] text-[#9a6a3e] dark:text-[#e5b887] border border-[rgba(154,106,62,0.2)] dark:border-[rgba(181,129,76,0.3)]">
                       Sổ tay mỹ vị
                     </span>
                   </div>
-                  <p className="text-xs text-[#2b2721]/65 font-serif italic mt-0.5">
+                  <p className="text-xs text-[#2b2721]/65 dark:text-[#ede6d8]/65 font-serif italic mt-0.5">
                     Hương vị truyền thống & ngàn món ngon giao nhanh siêu tốc
                   </p>
                 </div>
               </div>
-              <div className="text-xs text-[#2b2721]/55 space-y-1 sm:text-right">
+              <div className="text-xs text-[#2b2721]/55 dark:text-[#ede6d8]/55 space-y-1 sm:text-right">
                 <p>© 2026 FoodFast. Nền tảng ẩm thực & ký họa mỹ vị Việt Nam.</p>
-                <p className="text-[11px] font-mono text-[#9a6a3e]">Mỹ vị Việt Nam — Giao nhanh tận cửa</p>
+                <p className="text-[11px] font-mono text-[#9a6a3e] dark:text-[#e5b887]">Mỹ vị Việt Nam — Giao nhanh tận cửa</p>
               </div>
             </div>
           </footer>
@@ -163,13 +164,15 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <LocationProvider>
-          <CartProvider>
-            <AppContent />
-          </CartProvider>
-        </LocationProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <AppContent />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

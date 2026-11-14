@@ -5,9 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FoodFast — Sổ Tay Ký Họa</title>
 <script>
-  if (location.search.includes('embed') || window.parent !== window) {
-    document.documentElement.classList.add('is-embedded');
-  }
+  (function() {
+    try {
+      if (location.search.includes('embed') || window.parent !== window) {
+        document.documentElement.classList.add('is-embedded');
+      }
+      var mode = localStorage.getItem('foodfast-theme') || 'dark';
+      document.documentElement.dataset.theme = mode;
+      if (mode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch(e) {}
+  })();
 </script>
 <meta name="description" content="designer, creator, AI educator — Singapore">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +36,14 @@
   --font:'Lora',Georgia,'Times New Roman',serif;
   --track-caps:.24em;
   --track-nav:.06em;
+}
+:root.dark, html.dark{
+  --paper:#161412;
+  --ink:#ede6d8;
+  --ink-soft:rgba(237,230,216,.68);
+  --ink-faint:rgba(237,230,216,.42);
+  --hairline:rgba(237,230,216,.14);
+  --earth:#b5814c;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -126,25 +145,121 @@ body.is-embedded::-webkit-scrollbar{
   width:0 !important;
   height:0 !important;
 }
+.is-embedded .wash,
+html.is-embedded .wash,
 body.is-embedded .wash{
   display:none !important;
 }
+.is-embedded .top,
+html.is-embedded .top,
 body.is-embedded .top{
   display:none !important;
 }
+.is-embedded .hero,
+html.is-embedded .hero,
 body.is-embedded .hero{
-  min-height:auto !important;
+  min-height:0 !important;
+  height:auto !important;
   padding:0 !important;
   margin:0 !important;
+  align-content:start !important;
+  justify-content:start !important;
 }
+.is-embedded .hero-kicker,
+html.is-embedded .hero-kicker,
 body.is-embedded .hero-kicker{
   display:none !important;
 }
+.is-embedded .sb-wrap,
+html.is-embedded .sb-wrap,
 body.is-embedded .sb-wrap{
-  gap:8px !important;
+  gap:4px !important;
   margin-top:0 !important;
   padding-top:0 !important;
 }
+.is-embedded .sb-stage,
+html.is-embedded .sb-stage,
+body.is-embedded .sb-stage{
+  margin-top:0 !important;
+  padding-top:0 !important;
+}
+.is-embedded .hero-down,
+html.is-embedded .hero-down,
+body.is-embedded .hero-down{
+  display:none !important;
+}
+.is-embedded .dish-actions,
+html.is-embedded .dish-actions,
+body.is-embedded .dish-actions{
+  display:none !important;
+}
+.is-embedded #plates,
+html.is-embedded #plates,
+body.is-embedded #plates{
+  display:none !important;
+}
+.is-embedded .rule,
+html.is-embedded .rule,
+body.is-embedded .rule{
+  display:block !important;
+  margin:clamp(10px,1.5vh,18px) auto clamp(8px,1vh,14px) !important;
+  opacity:0.35 !important;
+}
+.is-embedded .about,
+html.is-embedded .about,
+body.is-embedded .about{
+  display:grid !important;
+  padding-bottom:24px !important;
+}
+.is-embedded .foot,
+html.is-embedded .foot,
+body.is-embedded .foot{
+  display:none !important;
+}
+
+/* Dark Mode ("Candlelit Studio") Styles */
+html.dark .wash{
+  filter:brightness(0.24) contrast(1.2) sepia(0.35);
+  opacity:0.95;
+}
+html.dark .wash:after{
+  background:linear-gradient(180deg,rgba(22,20,18,0.5) 0%,rgba(22,20,18,0.85) 58%,var(--paper) 92%);
+}
+html.dark .top:before{
+  background:linear-gradient(180deg,rgba(22,20,18,0.96),rgba(22,20,18,0.7) 48%,rgba(22,20,18,0));
+}
+html.dark .sb-tools{
+  background:rgba(36,31,26,0.88);
+  border-color:rgba(237,230,216,0.16);
+  color:#ede6d8;
+}
+html.dark .sb-tools button{color:#ede6d8}
+html.dark .sb-arrow{color:rgba(237,230,216,0.45)}
+html.dark .sb-arrow:hover{color:#ede6d8}
+html.dark .tool-sep{background:rgba(237,230,216,0.16)}
+html.dark .sb-caption{color:#ede6d8}
+html.dark .bio{color:#ede6d8}
+html.dark .section-label{color:rgba(237,230,216,0.55)}
+html.dark .btn-explore-stores{
+  background:rgba(36,31,26,0.8);
+  border-color:rgba(237,230,216,0.18);
+  color:#ede6d8;
+}
+.theme-toggle-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:5px 8px;border-radius:9999px;border:1px solid var(--hairline);
+  background:rgba(250,246,238,0.7);color:var(--ink);
+  cursor:pointer;transition:all 0.2s ease;gap:4px;
+}
+.theme-toggle-btn:hover{
+  background:var(--paper);border-color:var(--earth);color:var(--earth);
+}
+.theme-toggle-btn svg{width:15px;height:15px;display:block}
+html.dark .theme-toggle-btn{background:rgba(36,31,26,0.75);color:#ede6d8;border-color:rgba(237,230,216,0.18)}
+html.dark .icon-sun{display:block}
+html.dark .icon-moon{display:none}
+html:not(.dark) .icon-sun{display:none}
+html:not(.dark) .icon-moon{display:block}
 body.is-embedded .hero-down{
   display:none !important;
 }
@@ -520,6 +635,11 @@ body.is-embedded .foot{
 </style>
 </head>
 <body>
+<script>
+  if (location.search.includes('embed') || window.parent !== window) {
+    document.body.classList.add('is-embedded');
+  }
+</script>
 <div class="wash" aria-hidden="true"></div>
 <main class="page home">
 
@@ -537,6 +657,10 @@ body.is-embedded .foot{
         <a href="#" class="icon-btn" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.9 3.5a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2ZM3.1 9.3h3.6v11.6H3.1V9.3Zm6 0h3.4v1.6h.05c.48-.9 1.65-1.85 3.4-1.85 3.63 0 4.3 2.35 4.3 5.4v6.45h-3.6v-5.72c0-1.36-.02-3.12-1.92-3.12-1.92 0-2.22 1.48-2.22 3.02v5.82H9.1V9.3Z"/></svg></a>
         <a href="#" class="icon-btn" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
         <a href="#contact" class="icon-btn" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2.4" y="4.6" width="19.2" height="14.8" rx="2.4"/><path d="m3.2 6.4 8.8 6.6 8.8-6.6"/></svg></a>
+        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle dark/light mode" title="Chuyển chế độ Sáng / Tối">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
       </div>
     </nav>
   </header>
@@ -544,8 +668,6 @@ body.is-embedded .foot{
   <section id="sketchbook" class="hero">
     <img class="botany l" src="meng-to-sketchbook/botany-left.png" alt="" aria-hidden="true">
     <img class="botany r" src="meng-to-sketchbook/botany-right.png" alt="" aria-hidden="true">
-
-    <p class="hero-kicker">FF · Sổ Tay Ký Họa Ẩm Thực Ba Miền @ FOODFAST</p>
 
     <div class="sb-wrap" id="sbWrap">
       <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1207,6 +1329,31 @@ function startIntro(){
   }
   setTimeout(sendAutoHeight, 500);
   setTimeout(sendAutoHeight, 1500);
+
+  // Đồng bộ 2 chiều Theme Dark / Light ("Candlelit Studio")
+  function applyTheme(mode, notifyParent) {
+    const isDark = mode === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.dataset.theme = mode;
+    try { localStorage.setItem('foodfast-theme', mode); } catch(e){}
+    if (notifyParent !== false && window.parent !== window) {
+      window.parent.postMessage({ type: 'foodfast-theme-change', theme: mode }, '*');
+    }
+  }
+
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'foodfast-theme-change' && e.data.theme) {
+      applyTheme(e.data.theme, false);
+    }
+  });
+
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      applyTheme(isCurrentlyDark ? 'light' : 'dark', true);
+    });
+  }
 })();
 </script>
 </body>

@@ -1767,26 +1767,26 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               {v.is_banner ? (
                                 <div className="space-y-1">
-                                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-950 font-bold border border-orange-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-900 dark:text-orange-200 font-extrabold border border-orange-300 dark:border-orange-800 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
                                     <Flame className="w-3 h-3 text-orange-600 fill-orange-600 animate-pulse" /> Banner Popup #{v.banner_order || 1}
                                   </span>
-                                  <span className="text-[10px] text-[#2b2721]/70 block font-medium">
+                                  <span className="text-[10px] text-[#2b2721]/80 dark:text-[#ede6d8]/80 block font-medium">
                                     {v.issuer_type === 'STORE' ? (v.store_id?.name || 'Voucher Quán') : 'Voucher Sàn (Admin)'}
                                   </span>
                                 </div>
                               ) : v.issuer_type === 'STORE' ? (
                                 <div>
-                                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-bold border border-amber-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-extrabold border border-amber-300 dark:border-amber-800 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
                                     <Store className="w-3 h-3 text-amber-700" /> Voucher Quán
                                   </span>
                                   {v.store_id?.name && (
-                                    <div className="text-[10px] text-[#2b2721]/70 mt-1 truncate max-w-[150px] font-medium" title={v.store_id.name}>
+                                    <div className="text-[10px] text-[#2b2721]/80 dark:text-[#ede6d8]/80 mt-1 truncate max-w-[150px] font-medium" title={v.store_id.name}>
                                       {v.store_id.name}
                                     </div>
                                   )}
                                 </div>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 font-bold border border-blue-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-extrabold border border-blue-300 dark:border-blue-800 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
                                   <ShieldCheck className="w-3 h-3 text-blue-700" /> Voucher Sàn (Admin)
                                 </span>
                               )}
@@ -1816,24 +1816,24 @@ export default function AdminDashboard() {
                             {/* Cột 4: Phạm vi áp dụng */}
                             <td className="py-3 px-4">
                               {v.city_code === 'hcm' ? (
-                                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-950 border border-emerald-300 text-[10px] font-bold shadow-2xs">
+                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 text-[10px] font-extrabold shadow-2xs">
                                   TP. Hồ Chí Minh
                                 </span>
                               ) : v.city_code === 'hn' ? (
-                                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-950 border border-blue-300 text-[10px] font-bold shadow-2xs">
+                                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 border border-blue-300 dark:border-blue-800 text-[10px] font-extrabold shadow-2xs">
                                   Hà Nội
                                 </span>
                               ) : v.city_code === 'dn' ? (
-                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-bold shadow-2xs">
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 text-[10px] font-extrabold shadow-2xs">
                                   Đà Nẵng
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-950 border border-purple-300 text-[10px] font-bold shadow-2xs">
+                                <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-800 text-[10px] font-extrabold shadow-2xs">
                                   Toàn sàn (Toàn quốc)
                                 </span>
                               )}
                               {v.store_id?.name && (
-                                <div className="text-[10px] text-[#2b2721]/70 mt-1 truncate max-w-[140px] font-medium">
+                                <div className="text-[10px] text-[#2b2721]/80 dark:text-[#ede6d8]/80 mt-1 truncate max-w-[140px] font-medium">
                                   Chỉ quán: {v.store_id.name}
                                 </div>
                               )}
@@ -1879,14 +1879,14 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               <button
                                 onClick={() => handleToggleVoucher(v._id)}
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1.5 ${
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border transition-all flex items-center gap-1.5 ${
                                   v.is_active
-                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
-                                    : 'bg-[#f2ece1] text-[#2b2721]/60 border-[rgba(43,39,33,0.15)] hover:bg-[#ebdcc8]'
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                                    : 'bg-[#f2ece1] dark:bg-stone-800 text-[#2b2721]/70 dark:text-[#ede6d8]/70 border-[rgba(43,39,33,0.15)] dark:border-stone-700 hover:bg-[#ebdcc8]'
                                 }`}
                                 title={v.is_active ? 'Bấm để tạm dừng voucher' : 'Bấm để bật kích hoạt voucher'}
                               >
-                                <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-600 animate-pulse' : 'bg-stone-400'}`} />
+                                <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-600 dark:bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
                                 {v.is_active ? 'ACTIVE' : 'DISABLED'}
                               </button>
                             </td>

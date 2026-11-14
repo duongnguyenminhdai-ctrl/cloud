@@ -8,6 +8,7 @@
   /* =========================================================================
      HỆ MÀU SỔ TAY KÝ HỌA ẨM THỰC FOODFAST (FF SKETCHBOOK DESIGN SYSTEM)
      ========================================================================= */
+  --app-bg: #ece7dc;
   --paper: #ece7dc;
   --ink: #2b2721;
   --ink-soft: rgba(43, 39, 33, 0.58);
@@ -16,6 +17,20 @@
   --earth: #9a6a3e;
   --display: 'Playfair Display', 'Lora', Georgia, serif;
   --font: 'Lora', 'Playfair Display', Georgia, serif;
+}
+
+:root.dark, html.dark {
+  --app-bg: #161412;
+  --paper: #161412;
+  --ink: #ede6d8;
+  --ink-soft: rgba(237, 230, 216, 0.65);
+  --ink-faint: rgba(237, 230, 216, 0.40);
+  --hairline: rgba(240, 234, 224, 0.12);
+  --earth: #b5814c;
+}
+
+html, body, #root, .shader-frame {
+  background-color: var(--app-bg);
 }
 
 @layer base {
@@ -484,4 +499,218 @@
 }
 .leaflet-pane {
   z-index: 1 !important;
+}
+
+/* =============================================================================
+   CANDLELIT STUDIO DARK MODE TỔNG THỂ CHO PANEL, CARD & DASHBOARD
+   ============================================================================= */
+html.dark body,
+.dark #root {
+  background-color: #161412 !important;
+  color: #ede6d8 !important;
+}
+
+.dark .sketch-panel {
+  background-color: rgba(28, 25, 22, 0.96) !important;
+  border-color: rgba(240, 234, 224, 0.12) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
+  color: #ede6d8 !important;
+}
+
+.dark .sketch-card {
+  background-color: rgba(28, 25, 22, 0.94) !important;
+  border-color: rgba(240, 234, 224, 0.11) !important;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.3) !important;
+  color: #ede6d8 !important;
+}
+
+.dark .sketch-subcard {
+  background-color: #26211c !important;
+  border-color: rgba(240, 234, 224, 0.10) !important;
+  color: #ede6d8 !important;
+}
+
+.dark .sketch-input {
+  background-color: #24201b !important;
+  border-color: rgba(240, 234, 224, 0.18) !important;
+  color: #ede6d8 !important;
+}
+.dark .sketch-input:focus {
+  border-color: #b5814c !important;
+  box-shadow: 0 0 0 3px rgba(181, 129, 76, 0.25) !important;
+}
+
+.dark .sketch-btn-secondary {
+  background-color: #2b2520 !important;
+  color: #e5b887 !important;
+  border-color: rgba(181, 129, 76, 0.3) !important;
+}
+.dark .sketch-btn-secondary:hover {
+  background-color: #383029 !important;
+}
+
+.dark .sketch-title {
+  color: #ede6d8 !important;
+}
+
+/* Dark mode cho Admin & Merchant Dashboard */
+.dark .admin-sketchbook-theme,
+.dark .merchant-sketchbook-theme {
+  color: #ede6d8 !important;
+}
+
+.dark .admin-sketchbook-theme header,
+.dark .admin-sketchbook-theme .bg-slate-800\/90,
+.dark .merchant-sketchbook-theme header,
+.dark .merchant-sketchbook-theme .bg-slate-800\/90 {
+  background-color: rgba(24, 21, 18, 0.96) !important;
+  border-color: rgba(240, 234, 224, 0.12) !important;
+  color: #ede6d8 !important;
+}
+
+.dark .admin-sketchbook-theme .bg-slate-800,
+.dark .admin-sketchbook-theme .bg-slate-800\/80,
+.dark .admin-sketchbook-theme .bg-slate-800\/60,
+.dark .admin-sketchbook-theme .bg-slate-950,
+.dark .admin-sketchbook-theme .bg-slate-900\/90,
+.dark .merchant-sketchbook-theme .bg-slate-800,
+.dark .merchant-sketchbook-theme .bg-slate-800\/80,
+.dark .merchant-sketchbook-theme .bg-slate-800\/60,
+.dark .merchant-sketchbook-theme .bg-slate-950,
+.dark .merchant-sketchbook-theme .bg-slate-900\/90,
+.dark .admin-sketchbook-theme .fixed .bg-slate-900,
+.dark .merchant-sketchbook-theme .fixed .bg-slate-900,
+.dark .admin-sketchbook-theme .fixed.inset-0 > div,
+.dark .merchant-sketchbook-theme .fixed.inset-0 > div {
+  background-color: rgba(28, 25, 22, 0.97) !important;
+  border-color: rgba(240, 234, 224, 0.12) !important;
+  color: #ede6d8 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .admin-sketchbook-theme .bg-slate-700,
+.dark .admin-sketchbook-theme .bg-slate-700\/50,
+.dark .admin-sketchbook-theme .bg-slate-700\/60,
+.dark .merchant-sketchbook-theme .bg-slate-700,
+.dark .merchant-sketchbook-theme .bg-slate-700\/50,
+.dark .merchant-sketchbook-theme .bg-slate-700\/60 {
+  background-color: #26211c !important;
+  border-color: rgba(240, 234, 224, 0.10) !important;
+  color: #ede6d8 !important;
+}
+
+.dark .admin-sketchbook-theme .text-white,
+.dark .merchant-sketchbook-theme .text-white,
+.dark .admin-sketchbook-theme h1,
+.dark .admin-sketchbook-theme h2,
+.dark .admin-sketchbook-theme h3,
+.dark .merchant-sketchbook-theme h1,
+.dark .merchant-sketchbook-theme h2,
+.dark .merchant-sketchbook-theme h3,
+.dark .admin-sketchbook-theme .text-slate-100,
+.dark .admin-sketchbook-theme .text-slate-200,
+.dark .merchant-sketchbook-theme .text-slate-100,
+.dark .merchant-sketchbook-theme .text-slate-200 {
+  color: #ede6d8 !important;
+}
+
+.dark .admin-sketchbook-theme .text-slate-300,
+.dark .admin-sketchbook-theme .text-slate-400,
+.dark .merchant-sketchbook-theme .text-slate-300,
+.dark .merchant-sketchbook-theme .text-slate-400,
+.dark .admin-sketchbook-theme td .text-slate-400,
+.dark .merchant-sketchbook-theme td .text-slate-400,
+.dark .admin-sketchbook-theme td .text-slate-300,
+.dark .merchant-sketchbook-theme td .text-slate-300 {
+  color: rgba(237, 230, 216, 0.70) !important;
+}
+
+.dark .admin-sketchbook-theme .border-slate-700,
+.dark .admin-sketchbook-theme .border-slate-700\/60,
+.dark .admin-sketchbook-theme .border-slate-700\/80,
+.dark .admin-sketchbook-theme .border-slate-800,
+.dark .merchant-sketchbook-theme .border-slate-700,
+.dark .merchant-sketchbook-theme .border-slate-700\/60,
+.dark .merchant-sketchbook-theme .border-slate-700\/80,
+.dark .merchant-sketchbook-theme .border-slate-800 {
+  border-color: rgba(240, 234, 224, 0.12) !important;
+}
+
+.dark .admin-sketchbook-theme input,
+.dark .admin-sketchbook-theme select,
+.dark .admin-sketchbook-theme textarea,
+.dark .merchant-sketchbook-theme input,
+.dark .merchant-sketchbook-theme select,
+.dark .merchant-sketchbook-theme textarea {
+  background-color: #24201b !important;
+  border-color: rgba(240, 234, 224, 0.18) !important;
+  color: #ede6d8 !important;
+}
+
+/* Badge tương phản cao chuẩn cho Dark Mode */
+.dark .admin-sketchbook-theme .text-purple-300,
+.dark .admin-sketchbook-theme .text-purple-400,
+.dark .merchant-sketchbook-theme .text-purple-300,
+.dark .merchant-sketchbook-theme .text-purple-400,
+.dark .text-purple-300 {
+  color: #d8b4fe !important;
+}
+
+.dark .admin-sketchbook-theme .bg-purple-500\/20,
+.dark .merchant-sketchbook-theme .bg-purple-500\/20,
+.dark .bg-purple-500\/20 {
+  background-color: rgba(147, 51, 234, 0.25) !important;
+  border-color: rgba(192, 132, 252, 0.4) !important;
+  color: #f3e8ff !important;
+}
+
+.dark .admin-sketchbook-theme .text-emerald-300,
+.dark .admin-sketchbook-theme .text-emerald-400,
+.dark .merchant-sketchbook-theme .text-emerald-300,
+.dark .merchant-sketchbook-theme .text-emerald-400,
+.dark .text-emerald-300,
+.dark .text-emerald-400 {
+  color: #6ee7b7 !important;
+}
+
+.dark .admin-sketchbook-theme .bg-emerald-500\/20,
+.dark .merchant-sketchbook-theme .bg-emerald-500\/20,
+.dark .bg-emerald-500\/20 {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+  border-color: rgba(110, 231, 183, 0.4) !important;
+  color: #d1fae5 !important;
+}
+
+.dark .admin-sketchbook-theme .text-red-300,
+.dark .admin-sketchbook-theme .text-red-400,
+.dark .merchant-sketchbook-theme .text-red-300,
+.dark .merchant-sketchbook-theme .text-red-400,
+.dark .text-red-300,
+.dark .text-red-400 {
+  color: #fca5a5 !important;
+}
+
+.dark .admin-sketchbook-theme .bg-red-500\/20,
+.dark .merchant-sketchbook-theme .bg-red-500\/20,
+.dark .bg-red-500\/20 {
+  background-color: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(252, 165, 165, 0.4) !important;
+  color: #fee2e2 !important;
+}
+
+.dark .admin-sketchbook-theme .text-orange-300,
+.dark .admin-sketchbook-theme .text-orange-400,
+.dark .merchant-sketchbook-theme .text-orange-300,
+.dark .merchant-sketchbook-theme .text-orange-400,
+.dark .text-orange-300 {
+  color: #fdba74 !important;
+}
+
+.dark .admin-sketchbook-theme .bg-orange-500\/20,
+.dark .merchant-sketchbook-theme .bg-orange-500\/20,
+.dark .bg-orange-500\/20,
+.dark .admin-sketchbook-theme .bg-gradient-to-r.from-orange-500\/30.to-amber-500\/30 {
+  background: rgba(249, 115, 22, 0.25) !important;
+  border-color: rgba(253, 186, 116, 0.4) !important;
+  color: #ffedd5 !important;
 }

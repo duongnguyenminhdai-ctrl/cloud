@@ -164,10 +164,10 @@ export default function PromotionPopupModal() {
 
           {/* Tiêu đề & Mô tả */}
           <div className="text-center space-y-1">
-            <h3 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] tracking-tight">
+            <h3 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] dark:text-[#ede6d8] tracking-tight">
               {currentBanner.banner_title || currentBanner.title || 'Đại Tiệc FoodFast - Giảm 50%'}
             </h3>
-            <p className="text-xs text-[#2b2721]/65 leading-relaxed line-clamp-2">
+            <p className="text-xs text-[#2b2721]/65 dark:text-[#ede6d8]/70 leading-relaxed line-clamp-2">
               {currentBanner.banner_description ||
                 (currentBanner.discount_type === 'PERCENTAGE'
                   ? `Giảm ${currentBanner.discount_value}% tối đa ${currentBanner.max_discount_amount?.toLocaleString('vi-VN')}đ cho mọi đơn hàng!`
@@ -188,7 +188,7 @@ export default function PromotionPopupModal() {
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     idx === currentIndex
                       ? 'w-6 bg-[#9a6a3e]'
-                      : 'w-1.5 bg-[#dfd7ca] hover:bg-[#9a6a3e]/50'
+                      : 'w-1.5 bg-[#dfd7ca] dark:bg-stone-700 hover:bg-[#9a6a3e]/50'
                   }`}
                   aria-label={`Trang ${idx + 1}`}
                 />
@@ -197,14 +197,14 @@ export default function PromotionPopupModal() {
           )}
 
           {/* Hộp mã Voucher */}
-          <div className="p-3 bg-[#f2ece1] rounded-2xl border-2 border-dashed border-[rgba(154,106,62,0.3)] flex items-center justify-between gap-2">
+          <div className="p-3 bg-[#f2ece1] dark:bg-[#26211c] rounded-2xl border-2 border-dashed border-[rgba(154,106,62,0.3)] dark:border-[rgba(240,234,224,0.18)] flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-[#9a6a3e] text-white flex items-center justify-center shrink-0">
                 <Tag className="w-4 h-4" />
               </div>
               <div className="text-left min-w-0 truncate">
-                <p className="text-[10px] font-bold text-[#2b2721]/50 uppercase">Mã giảm giá</p>
-                <p className="font-mono font-black text-sm text-[#845831] tracking-wider truncate">
+                <p className="text-[10px] font-bold text-[#2b2721]/50 dark:text-[#ede6d8]/50 uppercase">Mã giảm giá</p>
+                <p className="font-mono font-black text-sm text-[#845831] dark:text-[#e5b887] tracking-wider truncate">
                   {promoCode}
                 </p>
               </div>
@@ -215,7 +215,7 @@ export default function PromotionPopupModal() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
                 isCopied
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-[#fffdfa] text-[#845831] border border-[rgba(154,106,62,0.3)] hover:bg-[#ebdcc8]'
+                  : 'bg-[#fffdfa] dark:bg-[#1f1b17] text-[#845831] dark:text-[#e5b887] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(240,234,224,0.18)] hover:bg-[#ebdcc8] dark:hover:bg-[#2b2520]'
               }`}
             >
               {isCopied ? (
