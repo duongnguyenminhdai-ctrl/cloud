@@ -282,7 +282,7 @@ export default function FlashlightAuthCard({
   const confirmCharsArray = Array.from(confirmPasswordValue || '');
 
   return (
-    <div className={`flashlight-container ${nightMode ? 'night' : ''} ${flashlightActive ? 'flashlight-active' : ''}`}>
+    <div className={`flashlight-container flex-1 w-full ${nightMode ? 'night' : ''} ${flashlightActive ? 'flashlight-active' : ''}`}>
       {/* Background Parallax Landscape */}
       <div className="page-landscape scene-day" />
       <div className="page-landscape scene-night" />
