@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Star,
   MapPin,
@@ -20,7 +20,7 @@ import {
   Heart,
   BookOpen
 } from 'lucide-react';
-import { restaurantApi } from '../api/client';
+import { restaurantApi, voucherApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useLocationCity } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
@@ -489,10 +489,12 @@ function matchDistrict(res, targetDistrict) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { selectedCity, setSelectedCity } = useLocationCity();
   const { user, isAuthenticated } = useAuth();
   const [restaurants, setRestaurants] = useState([]);
+  const [systemVouchers, setSystemVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
@@ -630,6 +632,25 @@ export default function Home() {
     return () => unsubscribe();
   }, [selectedCity?.code]);
 
+  // Nạp danh sách mã giảm giá / voucher thực tế từ hệ thống
+  useEffect(() => {
+    let isMounted = true;
+    const fetchVouchers = async () => {
+      try {
+        const res = await voucherApi.getAvailable({ all: 'true' });
+        if (isMounted && res.data?.success && Array.isArray(res.data?.data)) {
+          setSystemVouchers(res.data.data);
+        }
+      } catch (err) {
+        console.warn('[Home] Không thể tải danh sách voucher thực tế:', err.message);
+      }
+    };
+    fetchVouchers();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCity?.code]);
+
   const handleCopyVoucher = (code) => {
     navigator.clipboard?.writeText(code);
     setCopiedVoucher(code);
@@ -642,6 +663,82 @@ export default function Home() {
     if (selectedCity?.code === 'hcm' || !selectedCity?.code) return DEFAULT_FOODFAST_STORES;
     return [];
   }, [restaurants, selectedCity?.code]);
+
+  // Danh sách các nhà hàng thực sự đang có mã giảm giá trong hệ thống (Ưu đãi hôm nay)
+  const todayDeals = useMemo(() => {
+    if (!storeList || storeList.length === 0) return [];
+
+    // Lọc các voucher đang hoạt động và chưa hết hạn
+    const activeVouchers = (systemVouchers || []).filter(
+      (v) => v.is_active && (!v.end_date || new Date(v.end_date) >= new Date())
+    );
+
+    const deals = [];
+    const usedStoreIds = new Set();
+
+    // 1. Quán có voucher riêng của Quán (STORE)
+    activeVouchers
+      .filter((v) => v.issuer_type === 'STORE' && v.store_id)
+      .forEach((v) => {
+        const storeIdStr = String(v.store_id?._id || v.store_id);
+        const matchedStore = storeList.find((s) => String(s._id) === storeIdStr);
+        if (matchedStore && !usedStoreIds.has(String(matchedStore._id))) {
+          usedStoreIds.add(String(matchedStore._id));
+          const dealText =
+            v.discount_type === 'PERCENTAGE'
+              ? `Giảm ${v.discount_value}%`
+              : `Giảm ${v.discount_value >= 1000 ? `${Math.round(v.discount_value / 1000)}k` : `${v.discount_value}đ`}`;
+          deals.push({
+            restaurantId: matchedStore._id,
+            restaurantName: matchedStore.name,
+            image: matchedStore.image || matchedStore.coverImage,
+            dealText,
+            code: v.code,
+            voucher: v
+          });
+        }
+      });
+
+    // 2. Nhà hàng thực tế được áp dụng voucher Sàn (PLATFORM: QUANNGON20, FREESHIP50, FOODFAST10, FREESHIP50K)
+    const platformVouchers = activeVouchers.filter((v) => v.issuer_type === 'PLATFORM');
+    const availableVouchers = platformVouchers.length > 0 ? platformVouchers : [
+      { code: 'QUANNGON20', discount_type: 'PERCENTAGE', discount_value: 20 },
+      { code: 'FOODFAST10', discount_type: 'FIXED_AMOUNT', discount_value: 10000 },
+      { code: 'FREESHIP50', discount_type: 'FIXED_AMOUNT', discount_value: 15000, title: 'Freeship' }
+    ];
+
+    // Lấy các quán ăn chất lượng cao hàng đầu trong danh sách thật để gán voucher thật
+    const candidateStores = storeList
+      .filter((s) => !usedStoreIds.has(String(s._id)))
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.completed_orders || 0) - (a.completed_orders || 0));
+
+    candidateStores.forEach((store, idx) => {
+      if (deals.length >= 6) return; // Lấy tối đa 6 ưu đãi hấp dẫn
+      const voucher = availableVouchers[idx % availableVouchers.length];
+      if (voucher) {
+        usedStoreIds.add(String(store._id));
+        let dealText;
+        if (voucher.discount_type === 'PERCENTAGE') {
+          dealText = `Mã giảm ${voucher.discount_value}%`;
+        } else if (voucher.code?.includes('FREESHIP') || voucher.title?.toLowerCase().includes('freeship')) {
+          dealText = `Freeship ${voucher.discount_value >= 1000 ? `${Math.round(voucher.discount_value / 1000)}k` : `${voucher.discount_value}đ`}`;
+        } else {
+          dealText = `Giảm ${voucher.discount_value >= 1000 ? `${Math.round(voucher.discount_value / 1000)}k` : `${voucher.discount_value}đ`}`;
+        }
+
+        deals.push({
+          restaurantId: store._id,
+          restaurantName: store.name,
+          image: store.image || store.coverImage,
+          dealText: store.promo || dealText,
+          code: voucher.code,
+          voucher
+        });
+      }
+    });
+
+    return deals;
+  }, [storeList, systemVouchers]);
 
   // Trích xuất danh sách quận/huyện có sẵn theo tỉnh thành (loại bỏ trùng lặp chuẩn hóa)
   const availableDistricts = useMemo(() => {
@@ -927,44 +1024,38 @@ export default function Home() {
                   <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
                   <span>Ưu đãi hôm nay</span>
                 </div>
-                <span className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('foodfast-restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer bg-transparent border-0 p-0"
+                >
                   Xem tất cả
-                </span>
+                </button>
               </div>
 
-              {/* 3 Thẻ món ăn ưu đãi mini (Nhấp để chép mã Voucher) */}
+              {/* 3 Thẻ quán ăn thực tế đang có mã giảm giá trong hệ thống */}
               <div className="grid grid-cols-3 gap-2">
-                {[
-                  {
-                    name: 'Cơm Tấm Sài Gòn',
-                    deal: 'Mã giảm 20%',
-                    code: 'QUANNGON20',
-                    img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80'
-                  },
-                  {
-                    name: 'Trà Sữa Trân Châu',
-                    deal: 'Giảm 10k',
-                    code: 'FOODFAST10',
-                    img: 'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=300&q=80'
-                  },
-                  {
-                    name: 'Bún Bò Huế Cay',
-                    deal: 'Freeship 50k',
-                    code: 'FREESHIP50',
-                    img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=300&q=80'
-                  }
-                ].map((item, idx) => (
+                {todayDeals.slice(0, 3).map((item, idx) => (
                   <div
-                    key={idx}
-                    onClick={() => handleCopyVoucher(item.code)}
-                    className="group/item flex flex-col space-y-1.5 cursor-pointer hover:opacity-95 transition-all"
-                    title={`Bấm để sao chép mã ${item.code}`}
+                    key={item.restaurantId || idx}
+                    className="group/item flex flex-col space-y-1.5 transition-all text-left"
+                    title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán & sao chép mã ${item.code}`}
                   >
-                    <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
+                    <div
+                      onClick={() => navigate(`/restaurant/${item.restaurantId}`)}
+                      className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative cursor-pointer"
+                    >
                       <img
-                        src={item.img}
-                        alt={item.name}
+                        src={item.image}
+                        alt={item.restaurantName}
                         className="w-full h-full object-cover group-hover/item:scale-105 transition-transform"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80';
+                        }}
                       />
                       {copiedVoucher === item.code && (
                         <div className="absolute inset-0 bg-black/75 flex items-center justify-center text-[10px] text-emerald-400 font-bold">
@@ -972,10 +1063,24 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <p className="text-[11px] font-bold text-gray-800 line-clamp-1">{item.name}</p>
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit group-hover/item:bg-red-100 transition-colors">
-                      <Tag className="w-2.5 h-2.5" /> {item.deal}
-                    </span>
+                    <p
+                      onClick={() => navigate(`/restaurant/${item.restaurantId}`)}
+                      className="text-[11px] font-bold text-gray-800 line-clamp-1 hover:text-orange-600 cursor-pointer transition-colors"
+                    >
+                      {item.restaurantName}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyVoucher(item.code);
+                      }}
+                      className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                      title={`Bấm để sao chép mã ${item.code}`}
+                    >
+                      <Tag className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate max-w-[82px]">{item.dealText}</span>
+                    </button>
                   </div>
                 ))}
               </div>
