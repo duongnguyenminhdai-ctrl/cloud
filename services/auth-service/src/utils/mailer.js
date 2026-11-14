@@ -3,7 +3,13 @@ const nodemailer = require('nodemailer');
 const EMAIL_USER = process.env.EMAIL_USER || 'nguyenminhdaiduongtest1@gmail.com';
 const EMAIL_PASS = process.env.EMAIL_APP_PASS || process.env.EMAIL_APP_PASSWORD || 'nlqn ezsz ggjt wmnj';
 
-// Khởi tạo Transporter Gmail SMTP với cổng 465 (SSL) và cấu hình Timeout chống treo server
+// Google Apps Script Webhook URL (Gửi mail qua HTTPS cổng 443, vượt qua 100% tường lửa chặn SMTP của Render Cloud)
+const GOOGLE_SCRIPT_WEBHOOK_URL =
+  process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
+  'https://script.google.com/macros/s/AKfycbyUtcbl17f-PSv0JglBaL5O-fOyPEV6d1Hf2sUHwxpbLe3HtXTu-V-HA2FrdBdjRHYF/exec';
+const GOOGLE_SCRIPT_SECRET = process.env.GOOGLE_SCRIPT_SECRET || 'foodfast_otp_secret_key_2026';
+
+// Khởi tạo Transporter Gmail SMTP dự phòng với cổng 465 (SSL)
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -15,7 +21,7 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
-  connectionTimeout: 4000, // 4s timeout nếu cổng SMTP bị chặn bởi cloud firewall
+  connectionTimeout: 4000,
   greetingTimeout: 4000,
   socketTimeout: 5000
 });
@@ -110,16 +116,51 @@ async function sendOTPEmail(email, otp, type = 'REGISTER') {
     html: htmlContent
   };
 
+  // 1. Ưu tiên gửi qua Google Apps Script Webhook (Chạy HTTPS cổng 443, Render không bao giờ chặn)
+  if (GOOGLE_SCRIPT_WEBHOOK_URL) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+
+      const response = await fetch(GOOGLE_SCRIPT_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: GOOGLE_SCRIPT_SECRET,
+          email: email.trim(),
+          subject: subject,
+          html: htmlContent,
+          otp: otp,
+          type: type
+        }),
+        redirect: 'follow',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json().catch(() => ({ success: true }));
+        if (result && result.success !== false) {
+          console.log(`[Mailer] 📧 [Google Webhook HTTPS] Đã gửi mã OTP [${otp}] tới [${email}] (Loại: ${type})`);
+          return { success: true, via: 'google_apps_script' };
+        }
+      }
+    } catch (webhookErr) {
+      console.warn(`[Mailer] ⚠️ Gửi qua Google Apps Script Webhook thất bại, chuyển sang SMTP dự phòng:`, webhookErr.message);
+    }
+  }
+
+  // 2. Dự phòng: Gửi qua Nodemailer SMTP nếu Webhook gặp sự cố
   try {
-    // Giới hạn thời gian gửi mail tối đa 4.5s để chống treo request khi cổng SMTP bị chặn
     const info = await Promise.race([
       transporter.sendMail(mailOptions),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('SMTP_TIMEOUT: Cloud firewall blocked outbound SMTP connection')), 4500)
       )
     ]);
-    console.log(`[Mailer] 📧 Đã gửi mã OTP [${otp}] tới [${email}] (Loại: ${type}) - MessageId: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    console.log(`[Mailer] 📧 [SMTP 465] Đã gửi mã OTP [${otp}] tới [${email}] (Loại: ${type}) - MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId, via: 'smtp' };
   } catch (err) {
     console.warn(`[Mailer] ⚠️ Không thể kết nối SMTP để gửi email tới [${email}]: ${err.message}`);
     return { success: false, error: err.message };
