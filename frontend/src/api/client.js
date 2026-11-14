@@ -256,14 +256,14 @@ export const authApi = {
       throw err;
     }
   },
-  verifyFirebasePhone: async ({ idToken, purpose = 'PROFILE' }) => {
+  verifyFirebasePhone: async ({ idToken, purpose = 'PROFILE', phone }) => {
     try {
-      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/phone/verify-firebase'), { idToken, purpose });
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/phone/verify-firebase'), { idToken, purpose, phone });
     } catch (err) {
       if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
         const token = localStorage.getItem('token');
         try {
-          return await axios.post('http://localhost:3005/api/v1/auth/phone/verify-firebase', { idToken, purpose }, {
+          return await axios.post('http://localhost:3005/api/v1/auth/phone/verify-firebase', { idToken, purpose, phone }, {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
           });
         } catch {}
