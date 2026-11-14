@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const checkInController = require('../controllers/checkInController');
 const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 // 1. Gửi mã OTP (đăng ký hoặc quên mật khẩu)
@@ -218,6 +219,32 @@ router.delete(
   ['/addresses/:id', '/auth/addresses/:id', '/api/auth/addresses/:id', '/api/v1/auth/addresses/:id'],
   verifyToken,
   authController.deleteAddress
+);
+
+// -----------------------------------------------------------------------------
+// ĐIỂM DANH HÀNG NGÀY & NHẬN QUÀ THEO MỐC (DAILY CHECK-IN)
+// -----------------------------------------------------------------------------
+router.get(
+  ['/checkin/status', '/auth/checkin/status', '/api/auth/checkin/status', '/api/v1/auth/checkin/status'],
+  verifyToken,
+  checkInController.getCheckInStatus
+);
+
+router.post(
+  ['/checkin/claim-daily', '/auth/checkin/claim-daily', '/api/auth/checkin/claim-daily', '/api/v1/auth/checkin/claim-daily'],
+  verifyToken,
+  checkInController.claimDailyCheckIn
+);
+
+router.post(
+  ['/checkin/claim-milestone', '/auth/checkin/claim-milestone', '/api/auth/checkin/claim-milestone', '/api/v1/auth/checkin/claim-milestone'],
+  verifyToken,
+  checkInController.claimMilestoneReward
+);
+
+router.get(
+  ['/checkin/verify-giam30k-eligibility', '/auth/checkin/verify-giam30k-eligibility', '/api/auth/checkin/verify-giam30k-eligibility', '/api/v1/auth/checkin/verify-giam30k-eligibility'],
+  checkInController.verifyGiam30kEligibility
 );
 
 module.exports = router;

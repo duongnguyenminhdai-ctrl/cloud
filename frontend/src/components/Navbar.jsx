@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, Sun, Moon } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, Sun, Moon, Flame, CalendarDays } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { storeApi } from '../api/client';
+import { storeApi, checkInApi } from '../api/client';
 import CitySelector from './CitySelector';
 import UserProfileModal from './UserProfileModal';
 import UserAvatar from './UserAvatar';
 import NotificationBell from './NotificationBell';
+import DailyCheckInModal from './DailyCheckInModal';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -17,6 +18,20 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [checkingStore, setCheckingStore] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [isCheckedInToday, setIsCheckedInToday] = useState(false);
+
+  // Tải trạng thái điểm danh hôm nay
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    checkInApi.getCheckInStatus()
+      .then((res) => {
+        if (res.data?.success && res.data?.data) {
+          setIsCheckedInToday(Boolean(res.data.data.isCheckedInToday));
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, showCheckInModal]);
 
   // Pre-warm backend & Cập nhật cache trạng thái cửa hàng ngầm ngay khi vào web
   useEffect(() => {
@@ -161,6 +176,25 @@ export default function Navbar() {
           {/* Chuông Thông Báo Khách Hàng (Shopee Style) */}
           {isAuthenticated && <NotificationBell />}
 
+          {/* Nút Điểm danh nhận Xu (Phong cách Truy Kích & FoodFast) */}
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => setShowCheckInModal(true)}
+              className="relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/15 dark:from-amber-400/15 dark:to-orange-500/20 border border-amber-500/30 dark:border-amber-400/40 text-[#845831] dark:text-[#f5c542] hover:bg-amber-500/20 dark:hover:bg-amber-400/25 text-xs font-black transition-all shadow-2xs group cursor-pointer"
+              title="Điểm danh mỗi ngày nhận 500 - 1.000 Xu & Quà mốc tháng"
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
+              <span className="font-extrabold tracking-tight">Điểm danh</span>
+              {!isCheckedInToday && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping absolute -top-0.5 -right-0.5" />
+                  <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-0.5" />
+                </>
+              )}
+            </button>
+          )}
+
           {/* Hiển thị số Xu FoodFast tích lũy */}
           {isAuthenticated && (
             <Link
@@ -251,6 +285,12 @@ export default function Navbar() {
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         isDark={false}
+      />
+
+      {/* Modal Điểm Danh Nhận Xu (Phong cách Truy Kích & FoodFast) */}
+      <DailyCheckInModal
+        isOpen={showCheckInModal}
+        onClose={() => setShowCheckInModal(false)}
       />
     </header>
   );

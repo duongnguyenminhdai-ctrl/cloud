@@ -77,6 +77,17 @@ async function seedDefaultVouchers() {
           banner_title: 'Đại Tiệc FoodFast - Giảm 50%',
           banner_description: 'Áp dụng cho tất cả quán ăn đối tác tại TP. Hồ Chí Minh & toàn quốc. Giảm tối đa 50.000đ cho đơn hàng đầu tiên!',
           banner_order: 1
+        },
+        {
+          code: 'GIAM30K',
+          title: 'Voucher Điểm Danh 25 Ngày - Giảm 30.000đ',
+          issuer_type: 'PLATFORM',
+          discount_type: 'FIXED_AMOUNT',
+          discount_value: 30000,
+          min_order_value: 0,
+          usage_limit: 10000,
+          used_count: 0,
+          is_active: true
         }
       ];
 
@@ -84,7 +95,24 @@ async function seedDefaultVouchers() {
         await Voucher.create(v);
         await setQuota(`voucher:quota:${v.code}`, v.usage_limit);
       }
-      console.log('[Voucher] 🎫 Đã khởi tạo 4 voucher mẫu mặc định vào Database & Redis!');
+      console.log('[Voucher] 🎫 Đã khởi tạo các voucher mẫu mặc định (kèm GIAM30K điểm danh) vào Database & Redis!');
+    } else {
+      // Đảm bảo voucher GIAM30K luôn tồn tại trên hệ thống
+      const existsGiam30k = await Voucher.findOne({ code: 'GIAM30K' });
+      if (!existsGiam30k) {
+        await Voucher.create({
+          code: 'GIAM30K',
+          title: 'Voucher Điểm Danh 25 Ngày - Giảm 30.000đ',
+          issuer_type: 'PLATFORM',
+          discount_type: 'FIXED_AMOUNT',
+          discount_value: 30000,
+          min_order_value: 0,
+          usage_limit: 10000,
+          used_count: 0,
+          is_active: true
+        });
+        await setQuota('voucher:quota:GIAM30K', 10000);
+      }
     }
   } catch (err) {
     console.warn('[Voucher] Lỗi seed voucher:', err.message);
@@ -157,6 +185,37 @@ exports.applyVoucher = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: 'Mã giảm giá này chỉ áp dụng cho quán ăn phát hành.'
+        });
+      }
+    }
+
+    // 2.4.1 Kiểm tra độc quyền voucher điểm danh 25 ngày: GIAM30K
+    if (voucher.code === 'GIAM30K') {
+      const authHeader = req.headers.authorization;
+      const currentUserId = req.user?.userId || req.user?.id || req.body?.user_id;
+      let isEligible = false;
+
+      if (currentUserId) {
+        try {
+          const authUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3005';
+          const axios = require('axios');
+          const verifyRes = await axios.get(
+            `${authUrl}/api/v1/auth/checkin/verify-giam30k-eligibility?userId=${currentUserId}`,
+            {
+              headers: authHeader ? { Authorization: authHeader } : {},
+              timeout: 4000
+            }
+          );
+          isEligible = Boolean(verifyRes.data?.eligible);
+        } catch (authErr) {
+          console.warn('[Voucher] Lỗi xác thực GIAM30K qua auth-service:', authErr.message);
+        }
+      }
+
+      if (!isEligible) {
+        return res.status(403).json({
+          success: false,
+          message: 'Mã giảm giá GIAM30K là phần thưởng độc quyền từ tính năng Điểm Danh 25 Ngày. Bạn cần điểm danh đủ 25 ngày trong tháng để mở khóa mã này!'
         });
       }
     }

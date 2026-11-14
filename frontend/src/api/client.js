@@ -1105,4 +1105,52 @@ export const buildStreamUrl = (service, path, queryParams = {}) => {
   return url.toString();
 };
 
+export const checkInApi = {
+  getCheckInStatus: async () => {
+    try {
+      return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/checkin/status'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3005/api/v1/auth/checkin/status', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  claimDaily: async () => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/checkin/claim-daily'), {});
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/checkin/claim-daily', {}, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  claimMilestone: async (milestone) => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/checkin/claim-milestone'), { milestone });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/checkin/claim-milestone', { milestone }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  }
+};
+
 export default apiClient;
