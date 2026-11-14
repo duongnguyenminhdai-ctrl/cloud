@@ -947,18 +947,9 @@ export default function Home() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-transparent" />
 
-        <div className="relative z-10 p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Cột trái: Tiêu đề, Thanh tìm kiếm & Danh mục FoodFast */}
-          <div className="lg:col-span-7 space-y-5">
-            <div className="space-y-1.5">
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                Đặt Đồ ăn, giao hàng từ 20'...
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 font-medium">
-                Có {restaurants.length}+ Địa Điểm Tại {selectedCity?.name || 'TP. HCM'} & Lân Cận Từ 00:00 - 23:59
-              </p>
-            </div>
-
+        <div className="relative z-10 p-4 sm:py-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
+          {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
+          <div className="lg:col-span-7 space-y-3">
             {/* Thanh tìm kiếm món ăn / địa chỉ */}
             <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden p-1 border border-white/20 focus-within:ring-4 focus-within:ring-orange-500/30 transition-all">
               <input
@@ -966,10 +957,10 @@ export default function Home() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="Tìm địa điểm, món ăn, địa chỉ..."
-                className="w-full px-4 py-2.5 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent"
+                className="w-full px-4 py-2 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent"
               />
               <button
-                className="px-5 py-2.5 bg-[#0084ff] hover:bg-[#0073e6] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-md"
+                className="px-5 py-2 bg-[#0084ff] hover:bg-[#0073e6] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-md cursor-pointer"
                 title="Tìm kiếm"
               >
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -977,14 +968,14 @@ export default function Home() {
             </div>
 
             {/* Danh sách Tags Danh mục FoodFast */}
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {FOODFAST_CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => handleSelectFoodfastCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                       isActive
                         ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30 font-bold scale-105'
                         : 'bg-white/10 hover:bg-white/20 text-white/90 border-white/10 backdrop-blur-sm'
@@ -995,43 +986,14 @@ export default function Home() {
                 );
               })}
             </div>
-
-            {/* Badges tải App */}
-            <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3 text-xs text-slate-300 border-t border-white/10">
-              <span>Sử dụng App FoodFast để có nhiều giảm giá và trải nghiệm tốt hơn</span>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-lg bg-black/60 border border-white/20 text-[11px] font-semibold">
-                  App Store
-                </span>
-                <span className="px-3 py-1 rounded-lg bg-black/60 border border-white/20 text-[11px] font-semibold">
-                  Google Play
-                </span>
-              </div>
-            </div>
           </div>
 
-          {/* Cột phải: Trigger chọn địa chỉ & Thẻ Ưu đãi (Image 1) */}
-          <div className="lg:col-span-5 space-y-4">
-            {/* Thanh điều hướng Chọn địa chỉ giao hàng FoodFast */}
-            <button
-              onClick={() => setIsAddressModalOpen(true)}
-              className="w-full bg-white text-gray-900 p-3 sm:p-3.5 rounded-2xl shadow-xl border border-gray-100 flex items-center justify-between hover:border-orange-400 hover:shadow-orange-500/10 transition-all group"
-              title="Nhấn để đổi địa chỉ giao hàng"
-            >
-              <div className="flex items-center gap-2 min-w-0 text-xs sm:text-sm">
-                <span className="font-bold text-orange-600 shrink-0">Đồ ăn</span>
-                <span className="text-gray-300 shrink-0">→</span>
-                <span className="text-gray-700 font-semibold truncate group-hover:text-orange-600 transition-colors">
-                  {userCoord?.shortAddress || userCoord?.address || 'Chọn địa chỉ giao hàng'}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-            </button>
-
+          {/* Cột phải: Thẻ Ưu đãi hôm nay thu nhỏ vừa vặn */}
+          <div className="lg:col-span-5">
             {/* Khung thẻ Ưu đãi & Quán nổi bật thu nhỏ */}
-            <div className="bg-white rounded-3xl p-4 shadow-xl border border-gray-100 text-gray-900 space-y-3">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900">
+            <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xl border border-gray-100 text-gray-900 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-gray-900">
                   <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
                   <span>Ưu đãi hôm nay</span>
                 </div>
@@ -1046,22 +1008,20 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* 3 Thẻ quán ăn thực tế đang có mã giảm giá trong hệ thống */}
+              {/* 3 Thẻ quán ăn thực tế: click thẳng vào trang quán chọn món */}
               <div className="grid grid-cols-3 gap-2">
                 {todayDeals.slice(0, 3).map((item, idx) => (
                   <div
                     key={item.restaurantId || idx}
-                    className="group/item flex flex-col space-y-1.5 transition-all text-left"
-                    title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán & sao chép mã ${item.code}`}
+                    onClick={() => navigate(`/restaurants/${item.restaurantId}`)}
+                    className="group/item flex flex-col space-y-1 transition-all text-left cursor-pointer hover:scale-102"
+                    title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán đặt món & dùng mã ${item.code}`}
                   >
-                    <div
-                      onClick={() => navigate(`/restaurant/${item.restaurantId}`)}
-                      className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative cursor-pointer"
-                    >
+                    <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
                       <img
                         src={item.image}
                         alt={item.restaurantName}
-                        className="w-full h-full object-cover group-hover/item:scale-105 transition-transform"
+                        className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-300"
                         loading="lazy"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -1074,10 +1034,7 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <p
-                      onClick={() => navigate(`/restaurant/${item.restaurantId}`)}
-                      className="text-[11px] font-bold text-gray-800 line-clamp-1 hover:text-orange-600 cursor-pointer transition-colors"
-                    >
+                    <p className="text-[11px] font-bold text-gray-800 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
                       {item.restaurantName}
                     </p>
                     <button
@@ -1085,9 +1042,10 @@ export default function Home() {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCopyVoucher(item.code);
+                        navigate(`/restaurants/${item.restaurantId}`);
                       }}
                       className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
-                      title={`Bấm để sao chép mã ${item.code}`}
+                      title={`Bấm để sao chép mã ${item.code} và vào quán`}
                     >
                       <Tag className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate max-w-[82px]">{item.dealText}</span>
