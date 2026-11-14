@@ -20,14 +20,35 @@ export default function FlashlightAuthCard({
   emailInputRef,
   isNightMode,
   onToggleNightMode,
+  isFlashlightOn = false,
+  onToggleFlashlight,
+  hasPasswordField = true,
   children
 }) {
-  const [internalNight, setInternalNight] = useState(false);
+  // Đọc trạng thái ban ngày / ban đêm từ localStorage để luôn duy trì khi đổi trang
+  const getSavedNightMode = () => {
+    try {
+      return localStorage.getItem('foodfast_auth_night_mode') === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  const [internalNight, setInternalNight] = useState(getSavedNightMode);
   const nightMode = isNightMode !== undefined ? isNightMode : internalNight;
   const setNightMode = (val) => {
+    try {
+      localStorage.setItem('foodfast_auth_night_mode', String(val));
+    } catch {}
     if (onToggleNightMode) onToggleNightMode(val);
     else setInternalNight(val);
   };
+
+  // Đèn pin CHỈ CÓ THỂ BẬT khi trang hiện tại có trường mật khẩu và người dùng chủ động bật
+  const canHaveFlashlight = Boolean(
+    hasPasswordField && (passwordInputRef?.current || confirmPasswordInputRef?.current)
+  );
+  const flashlightActive = canHaveFlashlight && Boolean(isFlashlightOn);
 
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [angleDeg, setAngleDeg] = useState(180);
@@ -46,9 +67,9 @@ export default function FlashlightAuthCard({
   const charRefs = useRef([]);
   const confirmCharRefs = useRef([]);
 
-  // Cập nhật vị trí và góc quay của đèn pin & chùm sáng
+  // Cập nhật vị trí và góc quay của đèn pin & chùm sáng (chỉ khi đèn pin bật)
   const updatePhysics = useCallback((clientX, clientY) => {
-    if (!nightMode) return;
+    if (!flashlightActive) return;
 
     let activeBtn = passwordButtonRef?.current;
     if (activeEye === 'confirm' && confirmPasswordButtonRef?.current) {
@@ -200,18 +221,18 @@ export default function FlashlightAuthCard({
         isLit
       });
     }
-  }, [nightMode, activeEye, passwordButtonRef, passwordInputRef, confirmPasswordButtonRef, confirmPasswordInputRef, emailInputRef]);
+  }, [flashlightActive, activeEye, passwordButtonRef, passwordInputRef, confirmPasswordButtonRef, confirmPasswordInputRef, emailInputRef]);
 
   // Lắng nghe di chuột
   useEffect(() => {
     const handlePointerMove = (e) => {
-      if (!nightMode) return;
+      if (!flashlightActive) return;
       setPointer({ x: e.clientX, y: e.clientY });
       updatePhysics(e.clientX, e.clientY);
     };
 
     const handleResize = () => {
-      if (nightMode) updatePhysics(pointer.x, pointer.y);
+      if (flashlightActive) updatePhysics(pointer.x, pointer.y);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -223,11 +244,11 @@ export default function FlashlightAuthCard({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleResize, true);
     };
-  }, [nightMode, updatePhysics, pointer]);
+  }, [flashlightActive, updatePhysics, pointer]);
 
-  // Khởi tạo hướng đèn pin khi bật chế độ đêm
+  // Khởi tạo hướng đèn pin khi bật đèn pin
   useEffect(() => {
-    if (nightMode) {
+    if (flashlightActive) {
       const targetInput =
         activeEye === 'confirm'
           ? confirmPasswordInputRef?.current || passwordInputRef?.current
@@ -245,37 +266,39 @@ export default function FlashlightAuthCard({
       setOwlLight(0);
       setOwlGaze({ x: 0, y: 0, headX: 0, headY: 0, tilt: 0, isLit: false });
     }
-  }, [nightMode, activeEye, updatePhysics, passwordInputRef, confirmPasswordInputRef]);
+  }, [flashlightActive, activeEye, updatePhysics, passwordInputRef, confirmPasswordInputRef]);
 
   // Cập nhật lại vị trí và độ sáng khi passwordValue hoặc confirmPasswordValue thay đổi
   useEffect(() => {
-    if (nightMode) {
+    if (flashlightActive) {
       const raf = requestAnimationFrame(() => {
         updatePhysics(pointer.x, pointer.y);
       });
       return () => cancelAnimationFrame(raf);
     }
-  }, [passwordValue, confirmPasswordValue, activeEye, nightMode, updatePhysics, pointer]);
+  }, [passwordValue, confirmPasswordValue, activeEye, flashlightActive, updatePhysics, pointer]);
 
   const charsArray = Array.from(passwordValue || '');
   const confirmCharsArray = Array.from(confirmPasswordValue || '');
 
   return (
-    <div className={`flashlight-container ${nightMode ? 'night' : ''}`}>
+    <div className={`flashlight-container ${nightMode ? 'night' : ''} ${flashlightActive ? 'flashlight-active' : ''}`}>
       {/* Background Parallax Landscape */}
       <div className="page-landscape scene-day" />
       <div className="page-landscape scene-night" />
 
-      {/* Chùm sáng đèn pin */}
-      <div className="flash-beam" style={beamStyle} />
+      {/* Chùm sáng đèn pin & Đèn pin: CHỈ render khi có trường mật khẩu và đèn pin đang BẬT */}
+      {flashlightActive && (
+        <>
+          <div className="flash-beam" style={beamStyle} />
+          <div className="flashlight-prop" style={flashlightStyle}>
+            <img src="/flashlight-assets/flashlight.svg" alt="Flashlight" className="w-full h-full" />
+          </div>
+        </>
+      )}
 
-      {/* Đèn pin xoay theo chuột */}
-      <div className="flashlight-prop" style={flashlightStyle}>
-        <img src="/flashlight-assets/flashlight.svg" alt="Flashlight" className="w-full h-full" />
-      </div>
-
-      {/* Overlay ký tự mật khẩu chính phát sáng */}
-      {passwordInputRef?.current && (
+      {/* Overlay ký tự mật khẩu chính phát sáng khi đèn pin soi */}
+      {flashlightActive && passwordInputRef?.current && (
         <div className="password-reveal-overlay" style={overlayStyle}>
           <span>
             {charsArray.map((letter, idx) => {
@@ -296,8 +319,8 @@ export default function FlashlightAuthCard({
         </div>
       )}
 
-      {/* Overlay ký tự xác nhận mật khẩu phát sáng */}
-      {confirmPasswordInputRef?.current && (
+      {/* Overlay ký tự xác nhận mật khẩu phát sáng khi đèn pin soi */}
+      {flashlightActive && confirmPasswordInputRef?.current && (
         <div className="password-reveal-overlay" style={confirmOverlayStyle}>
           <span>
             {confirmCharsArray.map((letter, idx) => {
@@ -346,7 +369,7 @@ export default function FlashlightAuthCard({
 
         {/* Right Form Panel */}
         <div className="flashlight-form-panel">
-          {/* Nút Toggle Chế độ Ngày / Đêm ở góc trên */}
+          {/* Nút Toggle Chế độ Ngày / Đêm ở góc trên (Độc lập hoàn toàn với đèn pin) */}
           <div className="flex items-center justify-between mb-4">
             <div className="md:hidden flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md">
@@ -358,17 +381,17 @@ export default function FlashlightAuthCard({
               <button
                 type="button"
                 onClick={() => setNightMode(!nightMode)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
                   nightMode
                     ? 'bg-slate-800/90 text-amber-300 border-slate-700 hover:bg-slate-700 shadow-inner'
                     : 'bg-white/80 text-gray-700 border-gray-200/80 hover:bg-white shadow-sm'
                 }`}
-                title={nightMode ? 'Chuyển sang chế độ ban ngày' : 'Bật đèn pin soi sáng ban đêm'}
+                title={nightMode ? 'Chuyển sang chế độ ban ngày' : 'Chuyển sang chế độ ban đêm'}
               >
                 {nightMode ? (
                   <>
                     <Moon className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                    <span>Ban đêm (Đèn pin bật)</span>
+                    <span>Ban đêm</span>
                   </>
                 ) : (
                   <>

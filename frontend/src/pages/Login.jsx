@@ -11,7 +11,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
-  const [isNightMode, setIsNightMode] = useState(false);
+  const [isNightMode, setIsNightMode] = useState(() => {
+    try {
+      return localStorage.getItem('foodfast_auth_night_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [showPassword, setShowPassword] = useState(false);
 
   const passwordInputRef = useRef(null);
   const passwordButtonRef = useRef(null);
@@ -76,6 +83,9 @@ export default function Login() {
       emailInputRef={emailInputRef}
       isNightMode={isNightMode}
       onToggleNightMode={setIsNightMode}
+      isFlashlightOn={showPassword}
+      onToggleFlashlight={() => setShowPassword(!showPassword)}
+      hasPasswordField={true}
     >
       {/* Thông báo thành công từ Google */}
       {successMsg && (
@@ -167,28 +177,28 @@ export default function Login() {
             <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
             <input
               ref={passwordInputRef}
-              type={isNightMode ? 'text' : 'password'}
+              type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className={`auth-input w-full pl-10 pr-12 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
-                isNightMode ? 'auth-password-input font-mono' : ''
+                showPassword ? 'auth-password-input font-mono' : ''
               }`}
             />
             {/* Eye toggle for Flashlight */}
             <button
               ref={passwordButtonRef}
               type="button"
-              onClick={() => setIsNightMode(!isNightMode)}
+              onClick={() => setShowPassword(!showPassword)}
               className="absolute right-2 top-2 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
-              title={isNightMode ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
-              aria-pressed={isNightMode}
+              title={showPassword ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
+              aria-pressed={showPassword}
             >
               <img
                 src="/flashlight-assets/icon-eye.svg"
                 alt="Toggle Flashlight"
-                className={`w-4 h-4 transition-transform ${isNightMode ? 'scale-110 brightness-150' : 'opacity-70'}`}
+                className={`w-4 h-4 transition-transform ${showPassword ? 'scale-110 brightness-150 ring-2 ring-amber-400 rounded-full' : 'opacity-70'}`}
               />
             </button>
           </div>

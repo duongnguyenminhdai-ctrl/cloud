@@ -366,8 +366,8 @@
   transition: opacity 700ms ease, visibility 0s linear 700ms;
 }
 
-.flashlight-container.night .flash-beam,
-.flashlight-container.night .flashlight-prop {
+.flashlight-container.flashlight-active .flash-beam,
+.flashlight-container.flashlight-active .flashlight-prop {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
@@ -391,7 +391,7 @@
   transition: opacity 700ms ease, visibility 0s linear 700ms;
 }
 
-.flashlight-container.night .password-reveal-overlay {
+.flashlight-container.flashlight-active .password-reveal-overlay {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
@@ -438,6 +438,15 @@
   font-weight: bold;
 }
 
+.flashlight-container:not(.night) .password-reveal-overlay .reveal-char .plain-char {
+  color: #0f172a;
+  text-shadow: 0 0 4px rgba(249, 115, 22, 0.4);
+}
+
+.flashlight-container:not(.night) .password-reveal-overlay .reveal-char .masked-char {
+  color: #475569;
+}
+
 /* Form Fields Theming under Night Mode */
 .flashlight-container.night .auth-input {
   border-color: rgba(185, 221, 240, 0.25);
@@ -454,13 +463,13 @@
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
-.flashlight-container.night .auth-password-input {
+.flashlight-container.flashlight-active .auth-password-input {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   caret-color: #f97316 !important;
 }
 
-.flashlight-container.night .auth-password-input::placeholder {
+.flashlight-container.flashlight-active .auth-password-input::placeholder {
   -webkit-text-fill-color: #8da4b1 !important;
 }
 

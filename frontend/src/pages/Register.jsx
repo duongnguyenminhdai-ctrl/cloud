@@ -19,8 +19,14 @@ export default function Register() {
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
-  const [isNightMode, setIsNightMode] = useState(false);
-  const [activeEye, setActiveEye] = useState('password'); // 'password' | 'confirm'
+  const [isNightMode, setIsNightMode] = useState(() => {
+    try {
+      return localStorage.getItem('foodfast_auth_night_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [activeFlashlight, setActiveFlashlight] = useState(null); // 'password' | 'confirm' | null
 
   const passwordInputRef = useRef(null);
   const passwordButtonRef = useRef(null);
@@ -154,13 +160,10 @@ export default function Register() {
   };
 
   const toggleEye = (which) => {
-    if (!isNightMode) {
-      setActiveEye(which);
-      setIsNightMode(true);
-    } else if (activeEye !== which) {
-      setActiveEye(which);
+    if (activeFlashlight === which) {
+      setActiveFlashlight(null); // Tắt đèn pin
     } else {
-      setIsNightMode(false);
+      setActiveFlashlight(which); // Bật đèn pin soi trường này
     }
   };
 
@@ -183,10 +186,12 @@ export default function Register() {
       confirmPasswordValue={step === 2 ? confirmPassword : ''}
       confirmPasswordInputRef={confirmPasswordInputRef}
       confirmPasswordButtonRef={confirmPasswordButtonRef}
-      activeEye={activeEye}
+      activeEye={activeFlashlight || 'password'}
       emailInputRef={step === 1 ? emailInputRef : null}
       isNightMode={isNightMode}
       onToggleNightMode={setIsNightMode}
+      isFlashlightOn={step === 2 && Boolean(activeFlashlight)}
+      hasPasswordField={step === 2}
     >
       {/* Thông báo lỗi */}
       {error && (
@@ -373,15 +378,15 @@ export default function Register() {
               <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
               <input
                 ref={passwordInputRef}
-                type={isNightMode ? 'text' : 'password'}
+                type={activeFlashlight === 'password' ? 'text' : 'password'}
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => { if (isNightMode) setActiveEye('password'); }}
+                onFocus={() => { if (activeFlashlight) setActiveFlashlight('password'); }}
                 placeholder="••••••••"
                 className={`auth-input w-full pl-10 pr-12 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
-                  isNightMode ? 'auth-password-input font-mono' : ''
+                  activeFlashlight === 'password' ? 'auth-password-input font-mono' : ''
                 }`}
               />
               {/* Nút bật đèn pin cho Mật khẩu */}
@@ -390,17 +395,15 @@ export default function Register() {
                 type="button"
                 onClick={() => toggleEye('password')}
                 className="absolute right-2 top-2 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
-                title={isNightMode && activeEye === 'password' ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
-                aria-pressed={isNightMode && activeEye === 'password'}
+                title={activeFlashlight === 'password' ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
+                aria-pressed={activeFlashlight === 'password'}
               >
                 <img
                   src="/flashlight-assets/icon-eye.svg"
                   alt="Toggle Flashlight"
                   className={`w-4 h-4 transition-transform ${
-                    isNightMode && activeEye === 'password'
-                      ? 'scale-110 brightness-150'
-                      : isNightMode
-                      ? 'opacity-60 brightness-125'
+                    activeFlashlight === 'password'
+                      ? 'scale-110 brightness-150 ring-2 ring-amber-400 rounded-full'
                       : 'opacity-70'
                   }`}
                 />
@@ -429,15 +432,15 @@ export default function Register() {
               <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
               <input
                 ref={confirmPasswordInputRef}
-                type={isNightMode ? 'text' : 'password'}
+                type={activeFlashlight === 'confirm' ? 'text' : 'password'}
                 required
                 minLength={6}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                onFocus={() => { if (isNightMode) setActiveEye('confirm'); }}
+                onFocus={() => { if (activeFlashlight) setActiveFlashlight('confirm'); }}
                 placeholder="Nhập lại mật khẩu ở trên"
                 className={`auth-input w-full pl-10 pr-12 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
-                  isNightMode ? 'auth-password-input font-mono' : ''
+                  activeFlashlight === 'confirm' ? 'auth-password-input font-mono' : ''
                 }`}
               />
               {/* Nút bật đèn pin cho Xác nhận mật khẩu */}
@@ -446,17 +449,15 @@ export default function Register() {
                 type="button"
                 onClick={() => toggleEye('confirm')}
                 className="absolute right-2 top-2 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
-                title={isNightMode && activeEye === 'confirm' ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng xác nhận mật khẩu'}
-                aria-pressed={isNightMode && activeEye === 'confirm'}
+                title={activeFlashlight === 'confirm' ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng xác nhận mật khẩu'}
+                aria-pressed={activeFlashlight === 'confirm'}
               >
                 <img
                   src="/flashlight-assets/icon-eye.svg"
                   alt="Toggle Flashlight Confirm"
                   className={`w-4 h-4 transition-transform ${
-                    isNightMode && activeEye === 'confirm'
-                      ? 'scale-110 brightness-150'
-                      : isNightMode
-                      ? 'opacity-60 brightness-125'
+                    activeFlashlight === 'confirm'
+                      ? 'scale-110 brightness-150 ring-2 ring-amber-400 rounded-full'
                       : 'opacity-70'
                   }`}
                 />
