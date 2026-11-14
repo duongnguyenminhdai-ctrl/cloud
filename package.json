@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "node scripts/run-all-tests.js",
-    "test:all": "node scripts/run-all-tests.js"
+    "test:all": "node scripts/run-all-tests.js",
+    "check:integrity": "node scripts/check-system-integrity.js"
   },
   "keywords": [],
   "author": "",
