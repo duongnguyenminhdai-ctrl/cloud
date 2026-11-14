@@ -12,15 +12,8 @@
 <meta name="description" content="designer, creator, AI educator — Singapore">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,200..600;1,6..72,200..600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap">
 <style>
-@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:block;
-  src:url(meng-to-sketchbook/instrument-serif.woff2) format('woff2')}
-@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:block;
-  src:url(meng-to-sketchbook/instrument-serif-italic.woff2) format('woff2')}
-@font-face{font-family:'Newsreader';font-style:normal;font-weight:200 600;font-display:swap;
-  src:url(meng-to-sketchbook/newsreader.woff2) format('woff2')}
-
 :root{
   --paper:#ece7dc;
   --ink:#2b2721;
@@ -28,8 +21,8 @@
   --ink-faint:rgba(43,39,33,.36);
   --hairline:rgba(43,39,33,.14);
   --earth:#9a6a3e;
-  --display:'Instrument Serif',"New York",Georgia,'Times New Roman',serif;
-  --font:'Newsreader',"New York",Georgia,'Times New Roman',serif;
+  --display:'Playfair Display','Lora',Georgia,'Times New Roman',serif;
+  --font:'Lora',Georgia,'Times New Roman',serif;
   --track-caps:.24em;
   --track-nav:.06em;
 }
@@ -156,10 +149,13 @@ body.is-embedded #plates{
   display:none !important;
 }
 body.is-embedded .rule{
-  display:none !important;
+  display:block !important;
+  margin:clamp(16px,2.5vh,28px) auto clamp(14px,2vh,22px) !important;
+  opacity:0.35 !important;
 }
 body.is-embedded .about{
-  display:none !important;
+  display:grid !important;
+  padding-bottom:28px !important;
 }
 body.is-embedded .foot{
   display:none !important;
@@ -1191,6 +1187,20 @@ function startIntro(){
     return;
   }
   setTimeout(startIntro,220);
+
+  function sendAutoHeight() {
+    if (window.parent !== window) {
+      const h = Math.ceil(document.body.scrollHeight || document.documentElement.scrollHeight || 960);
+      window.parent.postMessage({ type: 'FOODFAST_SKETCHBOOK_HEIGHT', height: h }, '*');
+    }
+  }
+  window.addEventListener('load', sendAutoHeight);
+  window.addEventListener('resize', sendAutoHeight);
+  if (window.ResizeObserver) {
+    try { new ResizeObserver(sendAutoHeight).observe(document.body); } catch(e){}
+  }
+  setTimeout(sendAutoHeight, 500);
+  setTimeout(sendAutoHeight, 1500);
 })();
 </script>
 </body>

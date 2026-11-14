@@ -24,8 +24,10 @@ export default {
         hairline: 'rgba(43, 39, 33, 0.14)'
       },
       fontFamily: {
-        display: ['"Instrument Serif"', '"New York"', 'Georgia', 'serif'],
-        reading: ['"Newsreader"', '"New York"', 'Georgia', 'serif']
+        display: ['"Playfair Display"', 'Lora', 'Georgia', 'serif'],
+        reading: ['Lora', 'Georgia', 'serif'],
+        serif: ['Lora', 'Georgia', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
       }
     },
   },

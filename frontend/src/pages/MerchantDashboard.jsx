@@ -1465,10 +1465,10 @@ export default function MerchantDashboard() {
   // =========================================================================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-transparent text-[#2b2721]">
         <div className="flex flex-col items-center gap-3">
-          <RotateCw className="w-8 h-8 text-orange-600 animate-spin" />
-          <p className="text-sm font-semibold text-gray-600">Đang tải Cổng Đối tác Chủ Quán...</p>
+          <RotateCw className="w-8 h-8 text-[#9a6a3e] animate-spin" />
+          <p className="text-sm font-semibold text-[#2b2721]/80">Đang tải Cổng Đối tác Chủ Quán...</p>
         </div>
       </div>
     );
@@ -1476,16 +1476,16 @@ export default function MerchantDashboard() {
 
   if (errorMsg || !store) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center space-y-4 border border-gray-100">
-          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+      <div className="min-h-screen flex items-center justify-center bg-transparent p-4">
+        <div className="bg-[#fffdfa]/95 p-8 rounded-3xl shadow-xl max-w-md w-full text-center space-y-4 border border-[rgba(43,39,33,0.14)] text-[#2b2721]">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-200">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Không thể tải thông tin quán</h2>
-          <p className="text-sm text-gray-600">{errorMsg || 'Vui lòng kiểm tra lại tài khoản hoặc kết nối mạng.'}</p>
+          <h2 className="text-xl font-bold text-[#2b2721] font-serif">Không thể tải thông tin quán</h2>
+          <p className="text-sm text-[#2b2721]/70">{errorMsg || 'Vui lòng kiểm tra lại tài khoản hoặc kết nối mạng.'}</p>
           <button
             onClick={() => navigate('/merchant/status')}
-            className="w-full py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-colors shadow-md shadow-orange-600/20"
+            className="w-full py-3 bg-[#9a6a3e] hover:bg-[#845831] text-white rounded-xl font-bold transition-colors shadow-md shadow-[#9a6a3e]/20"
           >
             Kiểm tra trạng thái hồ sơ
           </button>
@@ -1499,7 +1499,7 @@ export default function MerchantDashboard() {
   const isStoreBusy = !isStoreBanned && Boolean(store.operatingStatus?.isBusy);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-16">
+    <div className="min-h-screen merchant-sketchbook-theme pb-16 text-[#2b2721]">
       {/* Toast thông báo thành công */}
       {successToast && (
         <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-fadeIn border border-emerald-400/30">

@@ -1403,31 +1403,31 @@ export default function AdminDashboard() {
             </div>
 
             {/* Cấu hình Bảo mật: Bật/Tắt xác minh số điện thoại SMS OTP */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-800 via-slate-800 to-slate-850 border border-slate-700/80 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#fffdfa]/95 border border-[rgba(43,39,33,0.14)] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
                   phoneVerifConfig.required
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-700'
                 }`}>
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">
+                    <h3 className="text-sm font-bold text-[#2b2721]">
                       Xác thực số điện thoại qua SMS OTP (Firebase Phone Auth)
                     </h3>
                     {phoneVerifConfig.required ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                         <CheckCircle2 className="w-3.5 h-3.5" /> ĐANG BẬT
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
                         <AlertTriangle className="w-3.5 h-3.5" /> ĐANG TẮT — Chế độ kiểm thử
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  <p className="text-xs text-[#2b2721]/70 mt-1 max-w-2xl leading-relaxed">
                     {phoneVerifConfig.required
                       ? 'Hệ thống đang bắt buộc người dùng xác thực mã OTP gửi về SMS điện thoại khi đăng ký tài khoản mới để chống SĐT rác.'
                       : 'Chế độ kiểm thử đang bật: Người dùng có thể nhập số điện thoại và đăng ký tài khoản trực tiếp mà không cần mã OTP SMS Firebase.'}
@@ -1436,7 +1436,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex items-center gap-3 self-end md:self-center shrink-0 pt-2 md:pt-0">
-                <span className="text-xs font-semibold text-slate-300">
+                <span className="text-xs font-semibold text-[#2b2721]/80">
                   {phoneVerifConfig.required ? 'Bắt buộc OTP' : 'Bỏ qua OTP'}
                 </span>
                 <button
@@ -1445,8 +1445,8 @@ export default function AdminDashboard() {
                   onClick={handleTogglePhoneVerification}
                   title={phoneVerifConfig.required ? 'Nhấn để tắt xác minh SĐT (chế độ kiểm thử)' : 'Nhấn để bật bắt buộc xác minh SĐT'}
                   aria-label="Chuyển đổi trạng thái xác minh số điện thoại"
-                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${
-                    phoneVerifConfig.required ? 'bg-orange-600' : 'bg-slate-700'
+                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/50 ${
+                    phoneVerifConfig.required ? 'bg-[#9a6a3e]' : 'bg-[#d8cfbe]'
                   } ${togglingPhoneVerif || phoneVerifConfig.loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <span

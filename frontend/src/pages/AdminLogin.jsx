@@ -35,78 +35,86 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-[#ece7dc] text-[#2b2721] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Lớp nền Wash màu nước nghệ thuật */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-40 bg-cover bg-top"
+        style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90" aria-hidden="true" />
+
+      <div className="max-w-md w-full relative z-10">
         {/* Logo Card */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 mx-auto flex items-center justify-center text-white shadow-xl shadow-orange-500/20 mb-3">
-            <ShieldCheck className="w-9 h-9" />
+          <div className="w-16 h-16 rounded-full overflow-hidden mx-auto shadow-md mb-3 border border-[rgba(43,39,33,0.14)] bg-[#fbf9f4]">
+            <img src="/foodfast-logo.png" alt="FoodFast Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-black text-white">FoodFast Portal</h1>
-          <p className="text-xs text-slate-400 mt-1">Đăng nhập dành cho Quản trị viên hệ thống (Admin)</p>
+          <h1 className="text-2xl font-black text-[#2b2721] font-serif">FoodFast Admin Portal</h1>
+          <p className="text-xs text-[#2b2721]/70 mt-1">Đăng nhập dành cho Quản trị viên hệ thống (Admin)</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        <div className="bg-[#fffdfa]/95 border border-[rgba(43,39,33,0.14)] rounded-3xl p-6 sm:p-8 shadow-xl text-[#2b2721]">
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-950/80 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Email Quản trị viên</label>
+              <label className="block text-xs font-bold text-[#2b2721]/80 mb-1.5">Email Quản trị viên</label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2b2721]/40" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@foodfast.vn"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#fffdfa] border border-[rgba(43,39,33,0.18)] rounded-xl text-xs text-[#2b2721] placeholder-[#2b2721]/40 focus:outline-none focus:border-[#9a6a3e] focus:ring-2 focus:ring-[#9a6a3e]/15"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Mật khẩu bảo mật</label>
+              <label className="block text-xs font-bold text-[#2b2721]/80 mb-1.5">Mật khẩu bảo mật</label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2b2721]/40" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#fffdfa] border border-[rgba(43,39,33,0.18)] rounded-xl text-xs text-[#2b2721] placeholder-[#2b2721]/40 focus:outline-none focus:border-[#9a6a3e] focus:ring-2 focus:ring-[#9a6a3e]/15"
                   required
                 />
               </div>
             </div>
 
             {/* Hint Box */}
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400">
-              <span className="font-bold text-orange-400">Tài khoản mặc định:</span>
-              <div className="mt-0.5">Email: <code className="text-slate-300">admin@foodfast.vn</code></div>
-              <div>Mật khẩu: <code className="text-slate-300">Admin@123456</code></div>
+            <div className="p-3 rounded-xl bg-[#f2ece1] border border-[rgba(43,39,33,0.12)] text-[11px] text-[#2b2721]/75">
+              <span className="font-bold text-[#9a6a3e]">Tài khoản mặc định:</span>
+              <div className="mt-0.5">Email: <code className="text-[#2b2721] font-semibold">admin@foodfast.vn</code></div>
+              <div>Mật khẩu: <code className="text-[#2b2721] font-semibold">Admin@123456</code></div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-[#9a6a3e]/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Đang xác thực...' : 'Đăng nhập Quản Trị'}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+          <div className="mt-6 pt-4 border-t border-[rgba(43,39,33,0.12)] text-center">
             <Link
               to="/"
-              className="text-xs text-slate-400 hover:text-orange-400 inline-flex items-center gap-1 transition-colors"
+              className="text-xs text-[#2b2721]/60 hover:text-[#9a6a3e] inline-flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Về trang khách hàng FoodFast
             </Link>
