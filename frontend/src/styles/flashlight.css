@@ -465,6 +465,34 @@
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
+/* ==========================================================================
+   Browser Autofill Overrides (Brave, Chrome, Edge, Safari WebKit)
+   Prevents bright white/yellow autofill background in Night and Day modes
+   ========================================================================== */
+.flashlight-container.night input:-webkit-autofill,
+.flashlight-container.night input:-webkit-autofill:hover,
+.flashlight-container.night input:-webkit-autofill:focus,
+.flashlight-container.night input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0a1a2b inset !important;
+  box-shadow: 0 0 0 1000px #0a1a2b inset !important;
+  -webkit-text-fill-color: #f5f8fa !important;
+  border-color: rgba(185, 221, 240, 0.25) !important;
+  caret-color: #f97316 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.flashlight-container:not(.night) input:-webkit-autofill,
+.flashlight-container:not(.night) input:-webkit-autofill:hover,
+.flashlight-container:not(.night) input:-webkit-autofill:focus,
+.flashlight-container:not(.night) input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.88) inset !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.88) inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  border-color: rgba(209, 213, 219, 0.8) !important;
+  caret-color: #ea580c !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .flashlight-container.flashlight-active .auth-password-input {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
@@ -473,6 +501,55 @@
 
 .flashlight-container.flashlight-active .auth-password-input::placeholder {
   -webkit-text-fill-color: #8da4b1 !important;
+}
+
+.flashlight-container.flashlight-active .auth-password-input:-webkit-autofill,
+.flashlight-container.flashlight-active .auth-password-input:-webkit-autofill:hover,
+.flashlight-container.flashlight-active .auth-password-input:-webkit-autofill:focus,
+.flashlight-container.flashlight-active .auth-password-input:-webkit-autofill:active {
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+/* ==========================================================================
+   Google Auth Button Theming & Hover Fix
+   ========================================================================== */
+.google-auth-btn {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(229, 231, 235, 0.85);
+  color: #374151;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.google-auth-btn:hover {
+  background-color: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.google-auth-btn:active {
+  background-color: #f3f4f6;
+  transform: translateY(1px);
+}
+
+.flashlight-container.night .google-auth-btn {
+  background-color: rgba(15, 23, 42, 0.75) !important;
+  border-color: rgba(51, 65, 85, 0.7) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.flashlight-container.night .google-auth-btn:hover {
+  background-color: rgba(30, 41, 59, 0.95) !important;
+  border-color: rgba(100, 116, 139, 0.8) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.flashlight-container.night .google-auth-btn:active {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  transform: translateY(1px);
 }
 
 /* Responsive adjustments */
