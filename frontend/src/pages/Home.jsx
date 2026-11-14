@@ -562,14 +562,25 @@ export default function Home() {
     }
   };
 
-  // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM - Đồng bộ 100% với Tỉnh/Thành phố)
+  // Vị trí giao hàng (Địa chỉ thực tế + Tọa độ OSRM - Đồng bộ 100% với Tỉnh/Thành phố & Profile)
   const {
     location: userCoord,
     refreshLocation,
     setManualLocation,
+    saveAndSyncDefaultAddress,
     resetDeliveryLocation,
+    hasUserAddress,
     loading: locationLoading
   } = useUserLocation();
+
+  // Xử lý khi người dùng chọn và xác nhận địa chỉ từ AddressPickerModal
+  const handleSelectLocation = async (newLoc) => {
+    if (saveAndSyncDefaultAddress) {
+      await saveAndSyncDefaultAddress(newLoc);
+    } else {
+      setManualLocation(newLoc);
+    }
+  };
 
   // Đảm bảo dọn dẹp địa chỉ giao hàng bị kẹt khi người dùng đã đăng xuất
   useEffect(() => {
@@ -1199,11 +1210,23 @@ export default function Home() {
       </div>
 
       {/* ===================================================================== */}
-      {/* 2. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Chuẩn Tên Đường - Không hiện IP) */}
+      {/* 2. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Đồng bộ chặt chẽ với Profile) */}
       {/* ===================================================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 bg-orange-50/70 border border-orange-200/70 rounded-2xl shadow-sm">
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all ${
+          isAuthenticated && !hasUserAddress
+            ? 'bg-amber-50/90 border-amber-300'
+            : 'bg-orange-50/70 border-orange-200/70'
+        }`}
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
+          <div
+            className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md ${
+              isAuthenticated && !hasUserAddress
+                ? 'bg-amber-600 shadow-amber-600/20'
+                : 'bg-orange-500 shadow-orange-500/20'
+            }`}
+          >
             <MapPin className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -1214,33 +1237,60 @@ export default function Home() {
               <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
                 {selectedCity?.shortName || 'TP. HCM'}
               </span>
+              {isAuthenticated && hasUserAddress && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                  Mặc định
+                </span>
+              )}
             </div>
-            {/* Hiển thị địa chỉ có nghĩa của con người (Không phải dãy số GPS/IP) */}
-            <p
-              onClick={() => setIsAddressModalOpen(true)}
-              className="text-sm sm:text-base font-bold text-gray-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
-              title={userCoord?.address}
-            >
-              {userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
-            </p>
+
+            {/* Hiển thị địa chỉ */}
+            {isAuthenticated && !hasUserAddress ? (
+              <p
+                onClick={() => setIsAddressModalOpen(true)}
+                className="text-sm sm:text-base font-bold text-amber-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
+                title="Bấm để thiết lập địa chỉ nhận hàng"
+              >
+                Chưa có địa chỉ nhận hàng (Bấm để thiết lập)
+              </p>
+            ) : (
+              <p
+                onClick={() => setIsAddressModalOpen(true)}
+                className="text-sm sm:text-base font-bold text-gray-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
+                title={userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
+              >
+                {userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Nút thao tác nhanh với vị trí */}
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <button
-            onClick={() => setIsAddressModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-white hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
-            title="Mở bản đồ chọn địa chỉ giao hàng"
-          >
-            <Compass className="w-4 h-4 text-orange-600" />
-            <span>Đổi địa chỉ</span>
-          </button>
+          {isAuthenticated && !hasUserAddress ? (
+            <button
+              onClick={() => setIsAddressModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Mở bản đồ nhập và chọn địa chỉ giao hàng"
+            >
+              <Compass className="w-4 h-4 text-white" />
+              <span>+ Thiết lập địa chỉ</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAddressModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Mở bản đồ chọn địa chỉ giao hàng"
+            >
+              <Compass className="w-4 h-4 text-orange-600" />
+              <span>Đổi địa chỉ</span>
+            </button>
+          )}
 
           <button
             onClick={refreshLocation}
             disabled={locationLoading}
-            className="p-2 rounded-xl bg-white hover:bg-orange-100 text-gray-600 hover:text-orange-600 border border-orange-200 text-xs font-semibold shadow-sm transition-all"
+            className="p-2 rounded-xl bg-white hover:bg-orange-100 text-gray-600 hover:text-orange-600 border border-orange-200 text-xs font-semibold shadow-sm transition-all cursor-pointer"
             title="Định vị lại GPS của bạn"
           >
             <Crosshair className={`w-4 h-4 ${locationLoading ? 'animate-spin text-orange-600' : ''}`} />
@@ -1587,10 +1637,10 @@ export default function Home() {
         onClose={() => setIsAddressModalOpen(false)}
         currentLocation={
           userCoord?.isDefault && selectedCity
-            ? { ...userCoord, lat: selectedCity.lat, lng: selectedCity.lng, shortAddress: selectedCity.name }
+            ? { ...userCoord, lat: userCoord.lat || selectedCity.lat, lng: userCoord.lng || selectedCity.lng, shortAddress: userCoord.shortAddress || selectedCity.name }
             : userCoord
         }
-        onSelectLocation={setManualLocation}
+        onSelectLocation={handleSelectLocation}
       />
       {/* Modal Popup Khuyến mãi Deal sốc đầu ứng dụng (FoodFast Flash Sale Popup) */}
       <PromotionPopupModal />

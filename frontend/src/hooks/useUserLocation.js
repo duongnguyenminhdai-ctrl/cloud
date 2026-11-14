@@ -20,9 +20,11 @@ export function useUserLocation() {
   const {
     deliveryLocation: location,
     setDeliveryLocation: setManualLocation,
+    saveAndSyncDefaultAddress,
     resetDeliveryLocation,
     selectedCity,
-    changeCity
+    changeCity,
+    hasUserAddress
   } = useLocationCity();
 
   const [loading, setLoading] = useState(false);
@@ -97,12 +99,14 @@ export function useUserLocation() {
   return {
     location,
     setManualLocation,
+    saveAndSyncDefaultAddress,
     resetDeliveryLocation,
     requestLocation,
     refreshLocation: requestLocation,
     loading,
     error,
     selectedCity,
-    changeCity
+    changeCity,
+    hasUserAddress
   };
 }

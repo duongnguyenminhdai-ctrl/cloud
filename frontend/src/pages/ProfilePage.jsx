@@ -262,15 +262,18 @@ export default function ProfilePage() {
           const def = updatedList.find((a) => a.isDefault);
           if (def) {
             setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
-            updateUserProfile({ ...user, address: def.fullAddress });
+            updateUserProfile({ ...user, address: def.fullAddress, addresses: updatedList });
             if (setDeliveryLocation) {
               setDeliveryLocation({
                 lat: def.latitude || 10.7769,
                 lng: def.longitude || 106.7009,
                 address: def.fullAddress,
-                shortAddress: def.label || 'Địa chỉ'
+                shortAddress: def.label || 'Địa chỉ',
+                isDefault: true,
+                hasUserAddress: true
               });
             }
+            window.dispatchEvent(new CustomEvent('foodfast:default_address_changed', { detail: def }));
           }
           setShowAddressModal(false);
           showMsg('success', 'Cập nhật địa chỉ nhận hàng thành công!');
@@ -285,15 +288,18 @@ export default function ProfilePage() {
           const def = updatedList.find((a) => a.isDefault);
           if (def) {
             setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
-            updateUserProfile({ ...user, address: def.fullAddress });
+            updateUserProfile({ ...user, address: def.fullAddress, addresses: updatedList });
             if (setDeliveryLocation) {
               setDeliveryLocation({
                 lat: def.latitude || 10.7769,
                 lng: def.longitude || 106.7009,
                 address: def.fullAddress,
-                shortAddress: def.label || 'Địa chỉ'
+                shortAddress: def.label || 'Địa chỉ',
+                isDefault: true,
+                hasUserAddress: true
               });
             }
+            window.dispatchEvent(new CustomEvent('foodfast:default_address_changed', { detail: def }));
           }
           setShowAddressModal(false);
           showMsg('success', 'Thêm địa chỉ nhận hàng mới thành công!');
@@ -316,13 +322,16 @@ export default function ProfilePage() {
         const updatedList = res.data.data || [];
         setAddresses(updatedList);
         setProfileForm((prev) => ({ ...prev, address: addr.fullAddress }));
-        updateUserProfile({ ...user, address: addr.fullAddress });
+        updateUserProfile({ ...user, address: addr.fullAddress, addresses: updatedList });
         if (setDeliveryLocation) {
           setDeliveryLocation({
             lat: addr.latitude || 10.7769,
             lng: addr.longitude || 106.7009,
             address: addr.fullAddress,
-            shortAddress: addr.label || 'Địa chỉ'
+            shortAddress: addr.label || 'Địa chỉ mặc định',
+            isDefault: true,
+            addressId: addr._id,
+            hasUserAddress: true
           });
         }
         if (setManualLocation) {
@@ -330,9 +339,21 @@ export default function ProfilePage() {
             lat: addr.latitude || 10.7769,
             lng: addr.longitude || 106.7009,
             address: addr.fullAddress,
-            shortAddress: addr.label || 'Địa chỉ'
+            shortAddress: addr.label || 'Địa chỉ mặc định',
+            isDefault: true,
+            addressId: addr._id,
+            hasUserAddress: true
           });
         }
+        // Phát sự kiện toàn cục để trang chủ nhận diện và cập nhật địa chỉ thứ 2 ngay lập tức
+        window.dispatchEvent(
+          new CustomEvent('foodfast:default_address_changed', {
+            detail: {
+              ...addr,
+              isDefault: true
+            }
+          })
+        );
         showMsg('success', `Đã chọn "${addr.label}" làm địa chỉ nhận hàng mặc định!`);
       } else {
         showMsg('error', res.data?.message || 'Không thể đặt làm mặc định.');
@@ -357,7 +378,37 @@ export default function ProfilePage() {
         const def = updatedList.find((a) => a.isDefault);
         if (def) {
           setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
-          updateUserProfile({ ...user, address: def.fullAddress });
+          updateUserProfile({ ...user, address: def.fullAddress, addresses: updatedList });
+          if (setDeliveryLocation) {
+            setDeliveryLocation({
+              lat: def.latitude || 10.7769,
+              lng: def.longitude || 106.7009,
+              address: def.fullAddress,
+              shortAddress: def.label || 'Địa chỉ mặc định',
+              isDefault: true,
+              addressId: def._id,
+              hasUserAddress: true
+            });
+          }
+          window.dispatchEvent(
+            new CustomEvent('foodfast:default_address_changed', {
+              detail: def
+            })
+          );
+        } else if (updatedList.length === 0) {
+          setProfileForm((prev) => ({ ...prev, address: '' }));
+          updateUserProfile({ ...user, address: '', addresses: [] });
+          if (setDeliveryLocation) {
+            setDeliveryLocation({
+              lat: selectedCity?.lat || 10.7769,
+              lng: selectedCity?.lng || 106.7009,
+              address: '',
+              shortAddress: '',
+              isDefault: false,
+              addressId: null,
+              hasUserAddress: false
+            });
+          }
         }
         showMsg('success', 'Đã xóa địa chỉ thành công!');
       } else {
