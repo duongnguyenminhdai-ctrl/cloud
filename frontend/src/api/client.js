@@ -271,6 +271,82 @@ export const authApi = {
       throw err;
     }
   },
+  // Quản lý Sổ địa chỉ nhận hàng (Multi-address & Default picker)
+  getAddresses: async () => {
+    try {
+      return await apiClient.get(buildUrl(AUTH_SERVICE_URL, '/auth/addresses'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3005/api/v1/auth/addresses', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  addAddress: async (addressData) => {
+    try {
+      return await apiClient.post(buildUrl(AUTH_SERVICE_URL, '/auth/addresses'), addressData);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3005/api/v1/auth/addresses', addressData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  updateAddress: async (id, addressData) => {
+    try {
+      return await apiClient.put(buildUrl(AUTH_SERVICE_URL, `/auth/addresses/${id}`), addressData);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.put(`http://localhost:3005/api/v1/auth/addresses/${id}`, addressData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  setDefaultAddress: async (id) => {
+    try {
+      return await apiClient.patch(buildUrl(AUTH_SERVICE_URL, `/auth/addresses/${id}/default`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.patch(`http://localhost:3005/api/v1/auth/addresses/${id}/default`, {}, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  deleteAddress: async (id) => {
+    try {
+      return await apiClient.delete(buildUrl(AUTH_SERVICE_URL, `/auth/addresses/${id}`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !AUTH_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.delete(`http://localhost:3005/api/v1/auth/addresses/${id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
 };
 
 // -----------------------------------------------------------------------------

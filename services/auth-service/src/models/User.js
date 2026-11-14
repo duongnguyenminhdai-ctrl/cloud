@@ -65,6 +65,42 @@ const userSchema = new mongoose.Schema(
       default: '',
       trim: true
     },
+    addresses: [
+      {
+        label: {
+          type: String,
+          default: 'Nhà riêng',
+          trim: true
+        },
+        receiverName: {
+          type: String,
+          default: '',
+          trim: true
+        },
+        receiverPhone: {
+          type: String,
+          default: '',
+          trim: true
+        },
+        fullAddress: {
+          type: String,
+          required: [true, 'Địa chỉ không được để trống'],
+          trim: true
+        },
+        latitude: {
+          type: Number,
+          default: null
+        },
+        longitude: {
+          type: Number,
+          default: null
+        },
+        isDefault: {
+          type: Boolean,
+          default: false
+        }
+      }
+    ],
     role: {
       type: String,
       enum: {

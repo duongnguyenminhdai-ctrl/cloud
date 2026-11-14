@@ -29,6 +29,7 @@ const formatAuthUser = (user) => ({
   phoneVerifiedAt: user.phoneVerifiedAt || null,
   birthYear: user.birthYear || null,
   address: user.address || '',
+  addresses: Array.isArray(user.addresses) ? user.addresses : [],
   coins: Number(user.coins) || 0,
   createdAt: user.createdAt
 });
@@ -987,9 +988,26 @@ exports.updateProfile = async (req, res) => {
             });
           }
           user.phone = norm.local;
-          user.phoneVerified = false;
-          user.phoneVerifiedAt = null;
-          user.firebasePhoneUid = null;
+
+          const isPhoneVerificationRequired = await getPhoneVerificationSetting();
+          if (!isPhoneVerificationRequired) {
+            user.phoneVerified = true;
+            user.phoneVerifiedAt = new Date();
+            user.firebasePhoneUid = 'test_mode_' + norm.local;
+          } else {
+            user.phoneVerified = false;
+            user.phoneVerifiedAt = null;
+            user.firebasePhoneUid = null;
+          }
+        } else {
+          const isPhoneVerificationRequired = await getPhoneVerificationSetting();
+          if (!isPhoneVerificationRequired && !user.phoneVerified && user.phone) {
+            user.phoneVerified = true;
+            user.phoneVerifiedAt = new Date();
+            if (!user.firebasePhoneUid) {
+              user.firebasePhoneUid = 'test_mode_' + norm.local;
+            }
+          }
         }
       }
     }
@@ -1091,10 +1109,26 @@ exports.verifyFirebasePhone = async (req, res) => {
       });
     }
 
-    const verified = await verifyFirebasePhoneToken(idToken);
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người dùng.' });
+    }
+
+    const isPhoneVerificationRequired = await getPhoneVerificationSetting();
+    let verified;
+    if (!isPhoneVerificationRequired && (!idToken || idToken === 'TEST_MODE_BYPASS' || req.body.phone)) {
+      const rawPhone = String(req.body.phone || user.phone || '').trim();
+      const norm = normalizeVietnamPhone(rawPhone);
+      if (!norm.valid) {
+        return res.status(400).json({ success: false, message: norm.reason || 'Số điện thoại không hợp lệ.' });
+      }
+      verified = {
+        phoneNumber: norm.e164,
+        localPhone: norm.local,
+        uid: 'test_phone_' + norm.local
+      };
+    } else {
+      verified = await verifyFirebasePhoneToken(idToken);
     }
 
     const dupPhoneUser = await User.findOne({
@@ -1362,5 +1396,213 @@ exports.deductCoins = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi sử dụng xu: ' + error.message });
+  }
+};
+
+// =============================================================================
+// QUẢN LÝ SỔ ĐỊA CHỈ GIAO HÀNG (MULTI-ADDRESS MANAGEMENT & DEFAULT PICKER)
+// =============================================================================
+
+// 1. Lấy danh sách địa chỉ nhận hàng của user (GET /api/v1/auth/addresses)
+exports.getAddresses = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    // Nếu user chưa có mảng addresses nhưng có address đơn cũ, tự động migrate
+    if ((!user.addresses || user.addresses.length === 0) && user.address && user.address.trim()) {
+      user.addresses = [
+        {
+          label: 'Nhà riêng',
+          receiverName: user.name || '',
+          receiverPhone: user.phone || '',
+          fullAddress: user.address.trim(),
+          isDefault: true
+        }
+      ];
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: user.addresses || []
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy danh sách địa chỉ: ' + error.message });
+  }
+};
+
+// 2. Thêm địa chỉ nhận hàng mới (POST /api/v1/auth/addresses)
+exports.addAddress = async (req, res) => {
+  try {
+    const { label, receiverName, receiverPhone, fullAddress, latitude, longitude, isDefault } = req.body;
+
+    if (!fullAddress || !fullAddress.trim()) {
+      return res.status(400).json({ success: false, message: 'Địa chỉ nhận hàng không được để trống' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
+    }
+
+    const shouldBeDefault = Boolean(isDefault) || user.addresses.length === 0;
+
+    if (shouldBeDefault) {
+      user.addresses.forEach((addr) => {
+        addr.isDefault = false;
+      });
+      user.address = fullAddress.trim();
+    }
+
+    const newAddress = {
+      label: (label || 'Nhà riêng').trim(),
+      receiverName: (receiverName || user.name || '').trim(),
+      receiverPhone: (receiverPhone || user.phone || '').trim(),
+      fullAddress: fullAddress.trim(),
+      latitude: Number(latitude) || null,
+      longitude: Number(longitude) || null,
+      isDefault: shouldBeDefault
+    };
+
+    user.addresses.push(newAddress);
+    await user.save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'Đã thêm địa chỉ nhận hàng thành công!',
+      data: user.addresses,
+      address: newAddress
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi thêm địa chỉ mới: ' + error.message });
+  }
+};
+
+// 3. Cập nhật thông tin địa chỉ (PUT /api/v1/auth/addresses/:id)
+exports.updateAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { label, receiverName, receiverPhone, fullAddress, latitude, longitude, isDefault } = req.body;
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    const targetAddress = user.addresses.id(id);
+    if (!targetAddress) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy địa chỉ nhận hàng cần sửa' });
+    }
+
+    if (label !== undefined) targetAddress.label = String(label).trim();
+    if (receiverName !== undefined) targetAddress.receiverName = String(receiverName).trim();
+    if (receiverPhone !== undefined) targetAddress.receiverPhone = String(receiverPhone).trim();
+    if (fullAddress !== undefined && fullAddress.trim()) {
+      targetAddress.fullAddress = fullAddress.trim();
+    }
+    if (latitude !== undefined) targetAddress.latitude = Number(latitude) || null;
+    if (longitude !== undefined) targetAddress.longitude = Number(longitude) || null;
+
+    if (isDefault !== undefined) {
+      if (Boolean(isDefault)) {
+        user.addresses.forEach((addr) => {
+          addr.isDefault = false;
+        });
+        targetAddress.isDefault = true;
+        user.address = targetAddress.fullAddress;
+      }
+    } else if (targetAddress.isDefault) {
+      user.address = targetAddress.fullAddress;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Cập nhật địa chỉ nhận hàng thành công!',
+      data: user.addresses,
+      address: targetAddress
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật địa chỉ: ' + error.message });
+  }
+};
+
+// 4. Chọn làm địa chỉ mặc định (PATCH /api/v1/auth/addresses/:id/default)
+exports.setDefaultAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    const targetAddress = user.addresses.id(id);
+    if (!targetAddress) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy địa chỉ cần đặt mặc định' });
+    }
+
+    user.addresses.forEach((addr) => {
+      addr.isDefault = false;
+    });
+    targetAddress.isDefault = true;
+    user.address = targetAddress.fullAddress;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã chọn [${targetAddress.label || 'Địa chỉ'}] làm địa chỉ mặc định!`,
+      data: user.addresses,
+      defaultAddress: targetAddress
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi đặt địa chỉ mặc định: ' + error.message });
+  }
+};
+
+// 5. Xóa địa chỉ nhận hàng (DELETE /api/v1/auth/addresses/:id)
+exports.deleteAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    const targetAddress = user.addresses.id(id);
+    if (!targetAddress) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy địa chỉ cần xóa' });
+    }
+
+    const wasDefault = targetAddress.isDefault;
+    user.addresses.pull({ _id: id });
+
+    // Nếu vừa xóa địa chỉ mặc định, tự động gán địa chỉ đầu tiên còn lại làm mặc định
+    if (wasDefault && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+      user.address = user.addresses[0].fullAddress;
+    } else if (user.addresses.length === 0) {
+      user.address = '';
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã xóa địa chỉ thành công!',
+      data: user.addresses
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa địa chỉ: ' + error.message });
   }
 };

@@ -187,4 +187,37 @@ router.post(
   authController.deductCoins
 );
 
+// -----------------------------------------------------------------------------
+// SỔ ĐỊA CHỈ GIAO HÀNG (MULTI-ADDRESS MANAGEMENT & DEFAULT PICKER)
+// -----------------------------------------------------------------------------
+router.get(
+  ['/addresses', '/auth/addresses', '/api/auth/addresses', '/api/v1/auth/addresses'],
+  verifyToken,
+  authController.getAddresses
+);
+
+router.post(
+  ['/addresses', '/auth/addresses', '/api/auth/addresses', '/api/v1/auth/addresses'],
+  verifyToken,
+  authController.addAddress
+);
+
+router.put(
+  ['/addresses/:id', '/auth/addresses/:id', '/api/auth/addresses/:id', '/api/v1/auth/addresses/:id'],
+  verifyToken,
+  authController.updateAddress
+);
+
+router.patch(
+  ['/addresses/:id/default', '/auth/addresses/:id/default', '/api/auth/addresses/:id/default', '/api/v1/auth/addresses/:id/default'],
+  verifyToken,
+  authController.setDefaultAddress
+);
+
+router.delete(
+  ['/addresses/:id', '/auth/addresses/:id', '/api/auth/addresses/:id', '/api/v1/auth/addresses/:id'],
+  verifyToken,
+  authController.deleteAddress
+);
+
 module.exports = router;

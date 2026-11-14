@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Info
+  Info,
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import { authApi } from '../api/client';
 import {
@@ -22,6 +24,7 @@ import {
 /**
  * Component dùng chung để xác thực SĐT bằng SMS OTP qua Firebase Phone Auth
  * Dùng cho: Register, ProfilePage, MerchantRegister và Checkout
+ * Tự động nhận diện Chế độ kiểm thử (Bỏ qua OTP) khi Admin tắt xác minh SĐT
  */
 export default function PhoneVerificationBox({
   phone = '',
@@ -34,10 +37,15 @@ export default function PhoneVerificationBox({
   placeholder = 'VD: 0969535231',
   disabled = false,
   compact = false,
-  stacked = false
+  stacked = false,
+  required: propRequired = null
 }) {
   const reactId = useId().replace(/:/g, '_');
   const recaptchaId = `foodfast_recaptcha_${purpose.toLowerCase()}_${reactId}`;
+
+  // Cấu hình kiểm soát OTP từ Backend (Chế độ kiểm thử)
+  const [requireOtp, setRequireOtp] = useState(() => (propRequired !== null ? propRequired : true));
+  const [checkingConfig, setCheckingConfig] = useState(propRequired === null);
 
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [otpCode, setOtpCode] = useState('');
@@ -46,6 +54,33 @@ export default function PhoneVerificationBox({
   const [countdown, setCountdown] = useState(0);
   const [localError, setLocalError] = useState('');
   const [localSuccess, setLocalSuccess] = useState('');
+
+  // Tự động kiểm tra cấu hình xác minh SĐT từ hệ thống
+  useEffect(() => {
+    if (propRequired !== null) {
+      setRequireOtp(Boolean(propRequired));
+      setCheckingConfig(false);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchConfig = async () => {
+      try {
+        const res = await authApi.getPhoneConfigStatus();
+        if (isMounted && res.data?.success) {
+          setRequireOtp(Boolean(res.data.required));
+        }
+      } catch (err) {
+        console.warn('[PhoneVerificationBox] Lỗi lấy cấu hình OTP:', err.message);
+      } finally {
+        if (isMounted) setCheckingConfig(false);
+      }
+    };
+    fetchConfig();
+    return () => {
+      isMounted = false;
+    };
+  }, [propRequired]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -107,6 +142,54 @@ export default function PhoneVerificationBox({
     }
   };
 
+  const handleBypassPhoneVerification = async () => {
+    setLocalError('');
+    setLocalSuccess('');
+
+    const cleanLocal = normalizeVNPhone(phone);
+    if (!isValidVNPhone(cleanLocal)) {
+      setLocalError('Số điện thoại phải là số di động Việt Nam hợp lệ (10 số, đầu 03, 05, 07, 08 hoặc 09).');
+      return;
+    }
+
+    setConfirmingOtp(true);
+    try {
+      if (syncWithBackend) {
+        const res = await authApi.verifyFirebasePhone({
+          idToken: 'TEST_MODE_BYPASS',
+          phone: cleanLocal,
+          purpose
+        });
+        if (!res.data?.success) {
+          throw new Error(res.data?.message || 'Lưu số điện thoại thất bại.');
+        }
+        setLocalSuccess(`Đã lưu và xác nhận SĐT ${cleanLocal} thành công (Chế độ kiểm thử - Bỏ qua OTP)!`);
+        if (typeof onVerified === 'function') {
+          onVerified({
+            phone: res.data.phone || cleanLocal,
+            idToken: 'TEST_MODE_BYPASS',
+            storePhoneProofToken: res.data.storePhoneProofToken || null,
+            token: res.data.token || null,
+            user: res.data.user || null
+          });
+        }
+      } else {
+        setLocalSuccess(`Đã chọn số điện thoại ${cleanLocal} (Chế độ kiểm thử - Bỏ qua OTP).`);
+        if (typeof onVerified === 'function') {
+          onVerified({
+            phone: cleanLocal,
+            idToken: 'TEST_MODE_BYPASS',
+            uid: 'test_' + cleanLocal
+          });
+        }
+      }
+    } catch (err) {
+      setLocalError(err.response?.data?.message || err.message || 'Lỗi lưu số điện thoại.');
+    } finally {
+      setConfirmingOtp(false);
+    }
+  };
+
   const handleConfirmSmsOtp = async () => {
     setLocalError('');
     setLocalSuccess('');
@@ -160,7 +243,11 @@ export default function PhoneVerificationBox({
         <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
           <span>{label}</span>
         </label>
-        {isVerified ? (
+        {!requireOtp ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5" /> Chế độ kiểm thử (Bỏ qua OTP)
+          </span>
+        ) : isVerified ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
             <ShieldCheck className="w-3.5 h-3.5" /> Đã xác thực SMS
           </span>
@@ -185,32 +272,63 @@ export default function PhoneVerificationBox({
           />
         </div>
 
-        <button
-          type="button"
-          onClick={handleSendSmsOtp}
-          disabled={disabled || sendingOtp || countdown > 0 || !phone || !isFirebasePhoneConfigured}
-          className={`${stacked ? 'w-full justify-center' : 'w-full sm:w-auto justify-center'} px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer`}
-        >
-          {sendingOtp ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang gửi...
-            </>
-          ) : countdown > 0 ? (
-            `Gửi lại (${countdown}s)`
-          ) : isVerified ? (
-            <>
-              <Send className="w-3.5 h-3.5" /> Đổi / Xác thực lại
-            </>
-          ) : (
-            <>
-              <Send className="w-3.5 h-3.5" /> Gửi OTP SMS
-            </>
-          )}
-        </button>
+        {/* Nút hành động: Nếu ở chế độ kiểm thử thì bấm lưu trực tiếp mà không cần gửi OTP */}
+        {!requireOtp ? (
+          <button
+            type="button"
+            onClick={handleBypassPhoneVerification}
+            disabled={disabled || confirmingOtp || !phone}
+            className={`${stacked ? 'w-full justify-center' : 'w-full sm:w-auto justify-center'} px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer`}
+          >
+            {confirmingOtp ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang lưu...
+              </>
+            ) : isVerified ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[3]" /> Đã lưu (Đổi số)
+              </>
+            ) : (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[3]" /> Lưu SĐT (Bỏ qua OTP)
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSendSmsOtp}
+            disabled={disabled || sendingOtp || countdown > 0 || !phone || !isFirebasePhoneConfigured}
+            className={`${stacked ? 'w-full justify-center' : 'w-full sm:w-auto justify-center'} px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer`}
+          >
+            {sendingOtp ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang gửi...
+              </>
+            ) : countdown > 0 ? (
+              `Gửi lại (${countdown}s)`
+            ) : isVerified ? (
+              <>
+                <Send className="w-3.5 h-3.5" /> Đổi / Xác thực lại
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" /> Gửi OTP SMS
+              </>
+            )}
+          </button>
+        )}
       </div>
 
-      {/* Ô nhập mã OTP 6 số khi đã gửi thành công */}
-      {confirmationResult && (
+      {/* Thông tin hỗ trợ khi ở Chế độ kiểm thử */}
+      {!requireOtp && (
+        <p className="text-[11px] text-amber-700/90 leading-tight">
+          Hệ thống đang mở chế độ kiểm thử: Bạn có thể nhập số điện thoại và lưu trực tiếp mà không cần mã OTP SMS Firebase.
+        </p>
+      )}
+
+      {/* Ô nhập mã OTP 6 số khi đã gửi thành công (chỉ khi requireOtp === true) */}
+      {requireOtp && confirmationResult && (
         <div className="p-3 rounded-xl bg-white border border-orange-200 space-y-2 animate-fadeIn">
           <p className="text-[11px] font-semibold text-gray-600">
             Nhập mã OTP 6 chữ số từ tin nhắn SMS Firebase:
@@ -241,7 +359,7 @@ export default function PhoneVerificationBox({
         </div>
       )}
 
-      {!isFirebasePhoneConfigured && (
+      {requireOtp && !isFirebasePhoneConfigured && (
         <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-[11px] flex items-start gap-2">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-600" />
           <span>
@@ -265,7 +383,7 @@ export default function PhoneVerificationBox({
       )}
 
       {/* Neo reCAPTCHA vô hình cho Firebase SDK */}
-      <div id={recaptchaId} />
+      {requireOtp && <div id={recaptchaId} />}
     </div>
   );
 }

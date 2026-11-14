@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag, CloudRain, Moon, Sun, RefreshCw, Zap, Ticket, Coins, Bike } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, CreditCard, Banknote, QrCode, MapPin, CheckCircle, AlertCircle, Compass, Tag, CloudRain, Moon, Sun, RefreshCw, Zap, Ticket, Coins, Bike, Home, Building2, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
@@ -29,6 +29,63 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('VNPAY');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Sổ địa chỉ đã lưu của khách hàng
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+  // Nạp sổ địa chỉ khi user đã đăng nhập
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadAddresses = async () => {
+        try {
+          const res = await authApi.getAddresses();
+          if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+            const list = res.data.data;
+            setSavedAddresses(list);
+            const def = list.find((a) => a.isDefault) || list[0];
+            if (def) {
+              setSelectedAddressId(def._id);
+              // Nếu địa chỉ hiện tại chưa được người dùng sửa tay thì ưu tiên địa chỉ mặc định của user
+              if (!address || address === 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh') {
+                setAddress(def.fullAddress);
+                if (def.receiverPhone && !checkoutPhone) {
+                  setCheckoutPhone(def.receiverPhone);
+                }
+                if (setManualLocation && def.latitude && def.longitude) {
+                  setManualLocation({
+                    lat: def.latitude,
+                    lng: def.longitude,
+                    address: def.fullAddress,
+                    shortAddress: def.label || 'Địa chỉ'
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Lỗi tải sổ địa chỉ tại Checkout:', e.message);
+        }
+      };
+      loadAddresses();
+    }
+  }, [isAuthenticated]);
+
+  const handleSelectSavedAddress = (addr) => {
+    setSelectedAddressId(addr._id);
+    setAddress(addr.fullAddress);
+    if (addr.receiverPhone) {
+      setCheckoutPhone(addr.receiverPhone);
+    }
+    if (setManualLocation && addr.latitude && addr.longitude) {
+      setManualLocation({
+        lat: addr.latitude,
+        lng: addr.longitude,
+        address: addr.fullAddress,
+        shortAddress: addr.label || 'Địa chỉ'
+      });
+    }
+  };
 
   // Trạng thái mã giảm giá (FoodFast Voucher & Modal)
   const [voucherCode, setVoucherCode] = useState('');
@@ -487,19 +544,71 @@ export default function Checkout() {
                 <MapPin className="w-5 h-5 text-orange-600" />
                 Địa chỉ nhận hàng
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsAddressModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold border border-orange-200 transition-colors"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Chọn trên bản đồ</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddressModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold border border-orange-200 transition-colors"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Chọn trên bản đồ</span>
+                </button>
+              </div>
             </div>
+
+            {/* Danh sách địa chỉ đã lưu (Đổi nhanh địa chỉ) */}
+            {savedAddresses.length > 0 && (
+              <div className="space-y-1.5 pt-0.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
+                  <span>Chọn nhanh từ sổ địa chỉ của bạn:</span>
+                  <Link
+                    to="/profile?tab=address"
+                    target="_blank"
+                    className="text-orange-600 hover:text-orange-700 hover:underline"
+                  >
+                    + Quản lý sổ địa chỉ
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {savedAddresses.map((addr) => {
+                    const isSelected = selectedAddressId === addr._id || address === addr.fullAddress;
+                    const LabelIcon = addr.label === 'Văn phòng' ? Building2 : addr.label === 'Nhà riêng' ? Home : MapPin;
+
+                    return (
+                      <button
+                        key={addr._id}
+                        type="button"
+                        onClick={() => handleSelectSavedAddress(addr)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold shrink-0 flex items-center gap-2 border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-orange-50/80 border-orange-500 text-orange-600 ring-1 ring-orange-200 shadow-xs'
+                            : 'bg-gray-50/80 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                        }`}
+                        title={addr.fullAddress}
+                      >
+                        <LabelIcon className="w-3.5 h-3.5 text-orange-600" />
+                        <span>{addr.label || 'Địa chỉ'}</span>
+                        {addr.isDefault && (
+                          <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded font-extrabold">
+                            Mặc định
+                          </span>
+                        )}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <textarea
               rows={2}
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                setSelectedAddressId(null);
+              }}
               className="w-full p-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               placeholder="Nhập địa chỉ nhận món..."
             />

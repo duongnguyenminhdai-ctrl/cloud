@@ -25,7 +25,12 @@ import {
   Package,
   Ticket,
   Compass,
-  Check
+  Check,
+  Plus,
+  Home,
+  Building2,
+  Edit2,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocationCity } from '../context/LocationContext';
@@ -33,6 +38,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { authApi, storeApi } from '../api/client';
 import PhoneVerificationBox from '../components/PhoneVerificationBox';
 import UserAvatar from '../components/UserAvatar';
+import AddressPickerModal from '../components/AddressPickerModal';
 import { normalizeVNPhone } from '../utils/firebase';
 import { compressAvatarFile, isValidAvatarSource } from '../utils/imageHelpers';
 
@@ -40,8 +46,8 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, updateUserProfile, loginWithToken, logout } = useAuth();
-  const { selectedCity } = useLocationCity();
-  const { location: userCoord } = useUserLocation();
+  const { selectedCity, setDeliveryLocation } = useLocationCity();
+  const { location: userCoord, setManualLocation } = useUserLocation();
 
   const tabFromQuery = searchParams.get('tab') || 'profile';
   const [activeTab, setActiveTab] = useState(tabFromQuery); // 'profile' | 'password' | 'address'
@@ -77,6 +83,25 @@ export default function ProfilePage() {
   const [showAvatarUrlInput, setShowAvatarUrlInput] = useState(false);
   const [avatarUrlInput, setAvatarUrlInput] = useState('');
   const avatarInputRef = useRef(null);
+
+  // Quản lý Danh sách Địa chỉ nhận hàng (Addresses Book)
+  const [addresses, setAddresses] = useState([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [isAddressMapOpen, setIsAddressMapOpen] = useState(false);
+  const [submittingAddress, setSubmittingAddress] = useState(false);
+  const [addressActionId, setAddressActionId] = useState(null);
+
+  const [addressForm, setAddressForm] = useState({
+    label: 'Nhà riêng',
+    receiverName: '',
+    receiverPhone: '',
+    fullAddress: '',
+    latitude: null,
+    longitude: null,
+    isDefault: false
+  });
 
   // Tự động chuyển hướng nếu chưa đăng nhập
   useEffect(() => {
@@ -156,6 +181,193 @@ export default function ProfilePage() {
     setTimeout(() => {
       setFeedback({ type: '', msg: '' });
     }, 4000);
+  };
+
+  // Nạp danh sách sổ địa chỉ nhận hàng
+  const fetchAddresses = async () => {
+    setLoadingAddresses(true);
+    try {
+      const res = await authApi.getAddresses();
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAddresses(res.data.data);
+        const def = res.data.data.find((a) => a.isDefault);
+        if (def) {
+          setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi tải danh sách địa chỉ:', err.message);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  // Tải sổ địa chỉ khi chuyển sang tab address hoặc khi user login
+  useEffect(() => {
+    if (isAuthenticated && (activeTab === 'address' || addresses.length === 0)) {
+      fetchAddresses();
+    }
+  }, [isAuthenticated, activeTab]);
+
+  const handleOpenAddAddress = () => {
+    setEditingAddressId(null);
+    setAddressForm({
+      label: 'Nhà riêng',
+      receiverName: profileForm.name || user?.name || '',
+      receiverPhone: profileForm.phone || user?.phone || '',
+      fullAddress: '',
+      latitude: userCoord?.lat || null,
+      longitude: userCoord?.lng || null,
+      isDefault: addresses.length === 0
+    });
+    setShowAddressModal(true);
+  };
+
+  const handleOpenEditAddress = (addr) => {
+    setEditingAddressId(addr._id);
+    setAddressForm({
+      label: addr.label || 'Nhà riêng',
+      receiverName: addr.receiverName || profileForm.name || '',
+      receiverPhone: addr.receiverPhone || profileForm.phone || '',
+      fullAddress: addr.fullAddress || '',
+      latitude: addr.latitude || null,
+      longitude: addr.longitude || null,
+      isDefault: !!addr.isDefault
+    });
+    setShowAddressModal(true);
+  };
+
+  const handleSubmitAddress = async (e) => {
+    e.preventDefault();
+    if (!addressForm.receiverName.trim()) {
+      showMsg('error', 'Vui lòng nhập họ tên người nhận hàng.');
+      return;
+    }
+    if (!addressForm.receiverPhone.trim()) {
+      showMsg('error', 'Vui lòng nhập số điện thoại người nhận hàng.');
+      return;
+    }
+    if (!addressForm.fullAddress.trim()) {
+      showMsg('error', 'Vui lòng nhập chi tiết địa chỉ nhận hàng.');
+      return;
+    }
+
+    setSubmittingAddress(true);
+    try {
+      if (editingAddressId) {
+        const res = await authApi.updateAddress(editingAddressId, addressForm);
+        if (res.data?.success) {
+          const updatedList = res.data.data || [];
+          setAddresses(updatedList);
+          const def = updatedList.find((a) => a.isDefault);
+          if (def) {
+            setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
+            updateUserProfile({ ...user, address: def.fullAddress });
+            if (setDeliveryLocation) {
+              setDeliveryLocation({
+                lat: def.latitude || 10.7769,
+                lng: def.longitude || 106.7009,
+                address: def.fullAddress,
+                shortAddress: def.label || 'Địa chỉ'
+              });
+            }
+          }
+          setShowAddressModal(false);
+          showMsg('success', 'Cập nhật địa chỉ nhận hàng thành công!');
+        } else {
+          showMsg('error', res.data?.message || 'Không thể cập nhật địa chỉ.');
+        }
+      } else {
+        const res = await authApi.addAddress(addressForm);
+        if (res.data?.success) {
+          const updatedList = res.data.data || [];
+          setAddresses(updatedList);
+          const def = updatedList.find((a) => a.isDefault);
+          if (def) {
+            setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
+            updateUserProfile({ ...user, address: def.fullAddress });
+            if (setDeliveryLocation) {
+              setDeliveryLocation({
+                lat: def.latitude || 10.7769,
+                lng: def.longitude || 106.7009,
+                address: def.fullAddress,
+                shortAddress: def.label || 'Địa chỉ'
+              });
+            }
+          }
+          setShowAddressModal(false);
+          showMsg('success', 'Thêm địa chỉ nhận hàng mới thành công!');
+        } else {
+          showMsg('error', res.data?.message || 'Không thể thêm địa chỉ mới.');
+        }
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.message || err.message || 'Lỗi thao tác địa chỉ.');
+    } finally {
+      setSubmittingAddress(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addr) => {
+    setAddressActionId(addr._id);
+    try {
+      const res = await authApi.setDefaultAddress(addr._id);
+      if (res.data?.success) {
+        const updatedList = res.data.data || [];
+        setAddresses(updatedList);
+        setProfileForm((prev) => ({ ...prev, address: addr.fullAddress }));
+        updateUserProfile({ ...user, address: addr.fullAddress });
+        if (setDeliveryLocation) {
+          setDeliveryLocation({
+            lat: addr.latitude || 10.7769,
+            lng: addr.longitude || 106.7009,
+            address: addr.fullAddress,
+            shortAddress: addr.label || 'Địa chỉ'
+          });
+        }
+        if (setManualLocation) {
+          setManualLocation({
+            lat: addr.latitude || 10.7769,
+            lng: addr.longitude || 106.7009,
+            address: addr.fullAddress,
+            shortAddress: addr.label || 'Địa chỉ'
+          });
+        }
+        showMsg('success', `Đã chọn "${addr.label}" làm địa chỉ nhận hàng mặc định!`);
+      } else {
+        showMsg('error', res.data?.message || 'Không thể đặt làm mặc định.');
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.message || err.message || 'Lỗi đặt địa chỉ mặc định.');
+    } finally {
+      setAddressActionId(null);
+    }
+  };
+
+  const handleDeleteAddress = async (addr) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa địa chỉ "${addr.label}: ${addr.fullAddress}"?`)) {
+      return;
+    }
+    setAddressActionId(addr._id);
+    try {
+      const res = await authApi.deleteAddress(addr._id);
+      if (res.data?.success) {
+        const updatedList = res.data.data || [];
+        setAddresses(updatedList);
+        const def = updatedList.find((a) => a.isDefault);
+        if (def) {
+          setProfileForm((prev) => ({ ...prev, address: def.fullAddress }));
+          updateUserProfile({ ...user, address: def.fullAddress });
+        }
+        showMsg('success', 'Đã xóa địa chỉ thành công!');
+      } else {
+        showMsg('error', res.data?.message || 'Không thể xóa địa chỉ.');
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.message || err.message || 'Lỗi khi xóa địa chỉ.');
+    } finally {
+      setAddressActionId(null);
+    }
   };
 
   // Lưu ảnh đại diện ngay lên Backend & đồng bộ Navbar/AuthContext
@@ -650,7 +862,7 @@ export default function ProfilePage() {
                       )}
                       purpose="PROFILE"
                       syncWithBackend={true}
-                      label="Số điện thoại liên hệ (Xác thực SMS Firebase)"
+                      label="Số điện thoại liên hệ"
                       placeholder={linkedStoreInfo?.phone || 'VD: 0987654321'}
                       compact={true}
                       onVerified={({ phone, token: newToken, user: updatedUser }) => {
@@ -660,7 +872,7 @@ export default function ProfilePage() {
                         } else if (updatedUser) {
                           updateUserProfile(updatedUser);
                         }
-                        showMsg('success', `Đã xác thực SMS thành công cho số ${phone}!`);
+                        showMsg('success', `Đã lưu số điện thoại ${phone} thành công!`);
                       }}
                     />
                     {linkedStoreInfo?.phone && (
@@ -871,47 +1083,312 @@ export default function ProfilePage() {
           {/* TAB 3: ĐỊA CHỈ NHẬN HÀNG */}
           {activeTab === 'address' && (
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h2 className="text-lg sm:text-xl font-black text-gray-900">Địa Chỉ Nhận Hàng</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                  Địa chỉ này sẽ được ưu tiên điền tự động khi bạn đặt đồ ăn tại FoodFast.
-                </p>
-              </div>
-
-              <div className="p-4 sm:p-5 rounded-2xl bg-orange-50/70 border border-orange-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-5">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-orange-600" />
-                    <span className="font-extrabold text-gray-900 text-sm">Địa chỉ giao hàng mặc định:</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
-                    Mặc định
-                  </span>
+                    <span>Sổ Địa Chỉ Nhận Hàng</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    Lưu nhiều địa chỉ (nhà riêng, công ty...) và click chọn địa chỉ mặc định để đổi nhanh khi đặt món.
+                  </p>
                 </div>
-
-                <p className="text-sm font-semibold text-gray-800 pl-7">
-                  {profileForm.address || userCoord?.address || 'Chưa thiết lập địa chỉ mặc định'}
-                </p>
-
-                <div className="pl-7 pt-2 flex items-center gap-3">
-                  <button
-                    onClick={() => handleTabChange('profile')}
-                    className="px-4 py-2 rounded-xl bg-white hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-bold transition-all shadow-xs cursor-pointer"
-                  >
-                    Chỉnh sửa địa chỉ
-                  </button>
-                  <Link
-                    to="/"
-                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold transition-all shadow-xs"
-                  >
-                    Bắt đầu đặt món
-                  </Link>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddAddress}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm Địa Chỉ Mới</span>
+                </button>
               </div>
+
+              {/* Danh sách địa chỉ */}
+              {loadingAddresses ? (
+                <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+                  <p className="text-xs sm:text-sm font-semibold">Đang tải danh sách địa chỉ nhận hàng...</p>
+                </div>
+              ) : addresses.length === 0 ? (
+                <div className="py-12 px-4 rounded-3xl bg-gray-50 border border-dashed border-gray-200 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base">Chưa có địa chỉ nhận hàng</h3>
+                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                    Hãy thêm địa chỉ nhận hàng của bạn để FoodFast gợi ý món ăn gần bạn và giao hàng nhanh chóng nhất.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenAddAddress}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Thêm địa chỉ ngay</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {addresses.map((addr) => {
+                    const isDefault = !!addr.isDefault;
+                    const isOperating = addressActionId === addr._id;
+
+                    // Icon theo loại địa chỉ
+                    const LabelIcon = addr.label === 'Văn phòng' ? Building2 : addr.label === 'Nhà riêng' ? Home : MapPin;
+
+                    return (
+                      <div
+                        key={addr._id}
+                        className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                          isDefault
+                            ? 'bg-orange-50/60 border-orange-300 ring-1 ring-orange-200 shadow-xs'
+                            : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-xs'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          {/* Thông tin địa chỉ */}
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center flex-wrap gap-2">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-800 text-xs font-bold">
+                                <LabelIcon className="w-3.5 h-3.5 text-orange-600" />
+                                <span>{addr.label || 'Địa chỉ'}</span>
+                              </span>
+
+                              {isDefault && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-600 text-white text-[11px] font-extrabold shadow-xs">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                  <span>Mặc định</span>
+                                </span>
+                              )}
+
+                              <div className="h-3 w-px bg-gray-300 hidden sm:block" />
+
+                              <span className="text-xs sm:text-sm font-black text-gray-900">
+                                {addr.receiverName || profileForm.name || 'Người nhận'}
+                              </span>
+
+                              <span className="text-xs text-gray-500 font-medium">
+                                ({addr.receiverPhone || profileForm.phone || 'Chưa có SĐT'})
+                              </span>
+                            </div>
+
+                            <p className="text-xs sm:text-sm text-gray-800 font-medium leading-relaxed">
+                              {addr.fullAddress}
+                            </p>
+                          </div>
+
+                          {/* Hành động */}
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0">
+                            {!isDefault ? (
+                              <button
+                                type="button"
+                                disabled={isOperating}
+                                onClick={() => handleSetDefaultAddress(addr)}
+                                className="px-3 py-1.5 rounded-xl border border-orange-500 text-orange-600 hover:bg-orange-600 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                title="Click để chọn làm địa chỉ giao hàng mặc định"
+                              >
+                                {isOperating ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                )}
+                                <span>Thiết lập mặc định</span>
+                              </button>
+                            ) : (
+                              <span className="text-xs font-bold text-orange-700 bg-orange-100/70 px-2.5 py-1 rounded-xl">
+                                Đang chọn giao
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditAddress(addr)}
+                              className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                              title="Chỉnh sửa địa chỉ"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isOperating}
+                              onClick={() => handleDeleteAddress(addr)}
+                              className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
+                              title="Xóa địa chỉ"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* MODAL THÊM / CHỈNH SỬA ĐỊA CHỈ NHẬN HÀNG */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-600" />
+                <span>{editingAddressId ? 'Cập Nhật Địa Chỉ Nhận Hàng' : 'Thêm Địa Chỉ Nhận Hàng Mới'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddressModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitAddress} className="space-y-4">
+              {/* Chọn nhãn / loại địa chỉ */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-700">Loại địa chỉ:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'Nhà riêng', icon: Home },
+                    { id: 'Văn phòng', icon: Building2 },
+                    { id: 'Khác', icon: MapPin }
+                  ].map((lbl) => {
+                    const Icon = lbl.icon;
+                    const isSelected = addressForm.label === lbl.id;
+                    return (
+                      <button
+                        key={lbl.id}
+                        type="button"
+                        onClick={() => setAddressForm({ ...addressForm, label: lbl.id })}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-orange-50 border-orange-500 text-orange-600 shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{lbl.id}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tên và SĐT người nhận */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700">Tên người nhận (*):</label>
+                  <input
+                    type="text"
+                    required
+                    value={addressForm.receiverName}
+                    onChange={(e) => setAddressForm({ ...addressForm, receiverName: e.target.value })}
+                    placeholder="VD: Nguyễn Văn A"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700">Số điện thoại (*):</label>
+                  <input
+                    type="tel"
+                    required
+                    value={addressForm.receiverPhone}
+                    onChange={(e) => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
+                    placeholder="VD: 0912345678"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Chi tiết địa chỉ & Nút chọn trên bản đồ */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-700">Địa chỉ chi tiết (*):</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressMapOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    <span>Chọn trên bản đồ</span>
+                  </button>
+                </div>
+                <textarea
+                  rows={3}
+                  required
+                  value={addressForm.fullAddress}
+                  onChange={(e) => setAddressForm({ ...addressForm, fullAddress: e.target.value })}
+                  placeholder="VD: Số 49A, Hẻm 36 Đường Số 53, Phường Hiệp Bình Chánh, TP. Thủ Đức, TP. Hồ Chí Minh"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium resize-none"
+                />
+              </div>
+
+              {/* Tùy chọn đặt làm mặc định */}
+              <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                  className="w-4 h-4 rounded text-orange-600 focus:ring-0 cursor-pointer"
+                />
+                <span className="text-xs sm:text-sm font-bold text-gray-700">
+                  Đặt làm địa chỉ nhận hàng mặc định
+                </span>
+              </label>
+
+              {/* Nút Submit */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddressModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingAddress}
+                  className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-extrabold shadow-md shadow-orange-500/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {submittingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>{editingAddressId ? 'Lưu Thay Đổi' : 'Thêm Địa Chỉ'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* AddressPickerModal Leaflet chọn toạ độ & địa chỉ */}
+      {isAddressMapOpen && (
+        <AddressPickerModal
+          isOpen={isAddressMapOpen}
+          onClose={() => setIsAddressMapOpen(false)}
+          currentLocation={{
+            lat: addressForm.latitude || userCoord?.lat || 10.7769,
+            lng: addressForm.longitude || userCoord?.lng || 106.7009,
+            address: addressForm.fullAddress || userCoord?.address || ''
+          }}
+          onSelectLocation={(loc) => {
+            if (loc?.address) {
+              setAddressForm((prev) => ({
+                ...prev,
+                fullAddress: loc.address,
+                latitude: loc.lat,
+                longitude: loc.lng
+              }));
+            }
+            setIsAddressMapOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
