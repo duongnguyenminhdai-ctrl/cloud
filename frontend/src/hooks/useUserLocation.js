@@ -20,6 +20,7 @@ export function useUserLocation() {
   const {
     deliveryLocation: location,
     setDeliveryLocation: setManualLocation,
+    resetDeliveryLocation,
     selectedCity,
     changeCity
   } = useLocationCity();
@@ -96,6 +97,7 @@ export function useUserLocation() {
   return {
     location,
     setManualLocation,
+    resetDeliveryLocation,
     requestLocation,
     refreshLocation: requestLocation,
     loading,

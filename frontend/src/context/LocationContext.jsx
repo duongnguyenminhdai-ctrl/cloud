@@ -21,6 +21,19 @@ export function LocationProvider({ children }) {
 
   // 2. Vị trí / Địa chỉ giao hàng hiện tại của người dùng
   const [deliveryLocation, setDeliveryLocationState] = useState(() => {
+    const hasToken = Boolean(localStorage.getItem('token'));
+    const savedCode = localStorage.getItem(STORAGE_KEY_CITY);
+    const initialCity = getCityByCode(savedCode || 'hcm');
+
+    // Nếu không có token đăng nhập (khách vãng lai / đã đăng xuất),
+    // dọn sạch địa chỉ riêng tư còn sót lại trong localStorage và trả về địa chỉ mặc định của Thành phố
+    if (!hasToken) {
+      try {
+        localStorage.removeItem(STORAGE_KEY_LOCATION);
+      } catch {}
+      return getDefaultCityAddress(initialCity);
+    }
+
     try {
       const savedLoc = localStorage.getItem(STORAGE_KEY_LOCATION);
       if (savedLoc) {
@@ -30,9 +43,24 @@ export function LocationProvider({ children }) {
         }
       }
     } catch {}
-    const initialCity = getCityByCode(localStorage.getItem(STORAGE_KEY_CITY) || 'hcm');
     return getDefaultCityAddress(initialCity);
   });
+
+  // Lắng nghe sự kiện đăng xuất toàn cục để dọn sạch địa chỉ giao hàng và đưa về mặc định
+  useEffect(() => {
+    const handleLogout = () => {
+      try {
+        localStorage.removeItem(STORAGE_KEY_LOCATION);
+      } catch {}
+      const targetCity = selectedCity || DEFAULT_CITY;
+      setDeliveryLocationState(getDefaultCityAddress(targetCity));
+    };
+
+    window.addEventListener('foodfast:logout', handleLogout);
+    return () => {
+      window.removeEventListener('foodfast:logout', handleLogout);
+    };
+  }, [selectedCity]);
 
   // Đồng bộ hai chiều khi khởi tạo nếu chưa khớp tỉnh thành
   useEffect(() => {
@@ -108,6 +136,18 @@ export function LocationProvider({ children }) {
     }
   }, []);
 
+  /**
+   * Reset địa chỉ giao hàng về mặc định của Thành phố (khi đăng xuất hoặc đổi vùng)
+   */
+  const resetDeliveryLocation = useCallback((targetCity) => {
+    const city = targetCity || selectedCity || DEFAULT_CITY;
+    const defaultAddr = getDefaultCityAddress(city);
+    setDeliveryLocationState(defaultAddr);
+    try {
+      localStorage.removeItem(STORAGE_KEY_LOCATION);
+    } catch {}
+  }, [selectedCity]);
+
   return (
     <LocationContext.Provider
       value={{
@@ -115,7 +155,8 @@ export function LocationProvider({ children }) {
         changeCity,
         allCities: VIETNAM_CITIES,
         deliveryLocation,
-        setDeliveryLocation
+        setDeliveryLocation,
+        resetDeliveryLocation
       }}
     >
       {children}

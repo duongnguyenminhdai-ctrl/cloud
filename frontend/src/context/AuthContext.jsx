@@ -93,11 +93,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('cart_items');
     localStorage.removeItem('cart_restaurant');
     localStorage.removeItem('my_orders');
+    localStorage.removeItem('foodfast_user_location');
     if (currentUserId) {
       localStorage.removeItem(`cart_items_${currentUserId}`);
       localStorage.removeItem(`cart_restaurant_${currentUserId}`);
       localStorage.removeItem(`my_orders_${currentUserId}`);
+      localStorage.removeItem(`foodfast_user_location_${currentUserId}`);
     }
+    // Phát event thông báo đăng xuất toàn cục để LocationContext và các trang reset về địa chỉ mặc định
+    window.dispatchEvent(new Event('foodfast:logout'));
   };
 
   return (

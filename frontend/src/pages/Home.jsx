@@ -565,8 +565,18 @@ export default function Home() {
     location: userCoord,
     refreshLocation,
     setManualLocation,
+    resetDeliveryLocation,
     loading: locationLoading
   } = useUserLocation();
+
+  // Đảm bảo dọn dẹp địa chỉ giao hàng bị kẹt khi người dùng đã đăng xuất
+  useEffect(() => {
+    if (!isAuthenticated && userCoord && !userCoord.isDefault) {
+      if (resetDeliveryLocation) {
+        resetDeliveryLocation(selectedCity);
+      }
+    }
+  }, [isAuthenticated, userCoord, resetDeliveryLocation, selectedCity]);
 
   // Trạng thái mở modal "Bạn muốn giao đến đâu?"
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
