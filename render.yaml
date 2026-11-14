@@ -32,9 +32,9 @@ services:
       - key: EMAIL_APP_PASS
         sync: false
       - key: GOOGLE_SCRIPT_WEBHOOK_URL
-        value: https://script.google.com/macros/s/AKfycbyUtcbl17f-PSv0JglBaL5O-fOyPEV6d1Hf2sUHwxpbLe3HtXTu-V-HA2FrdBdjRHYF/exec
+        sync: false
       - key: GOOGLE_SCRIPT_SECRET
-        value: foodfast_otp_secret_key_2026
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

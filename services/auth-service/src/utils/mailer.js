@@ -3,11 +3,9 @@ const nodemailer = require('nodemailer');
 const EMAIL_USER = process.env.EMAIL_USER || 'nguyenminhdaiduongtest1@gmail.com';
 const EMAIL_PASS = process.env.EMAIL_APP_PASS || process.env.EMAIL_APP_PASSWORD || 'nlqn ezsz ggjt wmnj';
 
-// Google Apps Script Webhook URL (Gửi mail qua HTTPS cổng 443, vượt qua 100% tường lửa chặn SMTP của Render Cloud)
-const GOOGLE_SCRIPT_WEBHOOK_URL =
-  process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
-  'https://script.google.com/macros/s/AKfycbyUtcbl17f-PSv0JglBaL5O-fOyPEV6d1Hf2sUHwxpbLe3HtXTu-V-HA2FrdBdjRHYF/exec';
-const GOOGLE_SCRIPT_SECRET = process.env.GOOGLE_SCRIPT_SECRET || 'foodfast_otp_secret_key_2026';
+// Google Apps Script Webhook URL (Bảo mật: Đọc từ biến môi trường, không lưu cứng trên Git)
+const GOOGLE_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_SCRIPT_WEBHOOK_URL;
+const GOOGLE_SCRIPT_SECRET = process.env.GOOGLE_SCRIPT_SECRET;
 
 // Khởi tạo Transporter Gmail SMTP dự phòng với cổng 465 (SSL)
 const transporter = nodemailer.createTransport({
