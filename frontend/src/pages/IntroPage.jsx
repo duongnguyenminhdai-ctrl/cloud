@@ -172,17 +172,10 @@ export default function IntroPage() {
       poster.style.animationDelay = `${(-i * 1.3).toFixed(1)}s`;
       mediaLayer.appendChild(poster);
 
-      const playBadge = document.createElement("div");
-      playBadge.className = "intro-card-play";
-      playBadge.setAttribute("aria-hidden", "true");
-      playBadge.innerHTML =
-        '<svg viewBox="0 0 12 14" width="12" height="14" fill="currentColor"><path d="M2 1.5L10.5 7L2 12.5V1.5Z"/></svg>';
-
       el.appendChild(mediaLayer);
-      el.appendChild(playBadge);
       trackEl.appendChild(el);
 
-      cards.push({ index: i, el, mediaLayer, playBadge });
+      cards.push({ index: i, el, mediaLayer });
     }
 
     let scrollOffset = 0;
@@ -216,8 +209,6 @@ export default function IntroPage() {
     function layoutCarousel() {
       const { isMobile, uPx, centerX, cyBase, frameWInU } = getMetrics();
       const cornerRadius = 15 * uPx;
-      const playMargin = 14 * uPx;
-      const playDiameter = isMobile ? 24 : 30 * uPx;
 
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
@@ -270,12 +261,6 @@ export default function IntroPage() {
         card.el.style.height = `${cardH.toFixed(2)}px`;
         card.el.style.transform = `translate3d(${leftPx.toFixed(2)}px, ${topPx.toFixed(2)}px, 0)`;
         card.el.style.clipPath = `path('${pathStr}')`;
-
-        const blY = (botL - topU) * uPx;
-        const pX = playMargin;
-        const pY = blY - playMargin - playDiameter;
-        card.playBadge.style.left = `${pX.toFixed(2)}px`;
-        card.playBadge.style.top = `${pY.toFixed(2)}px`;
       }
     }
 

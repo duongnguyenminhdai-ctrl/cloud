@@ -396,30 +396,6 @@
   100% { transform: scale(1.08) translate3d(0, -1.8%, 0); }
 }
 
-.intro-card-play {
-  position: absolute;
-  width: calc(30 * var(--ff-intro-u));
-  height: calc(30 * var(--ff-intro-u));
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #2b2721;
-  pointer-events: none;
-  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-.intro-card:hover .intro-card-play {
-  transform: scale(1.12);
-  background: rgba(255, 255, 255, 0.75);
-  color: var(--ff-intro-earth);
-}
-
 /* Primary CTA Button */
 .intro-cta-wrap {
   position: absolute;
