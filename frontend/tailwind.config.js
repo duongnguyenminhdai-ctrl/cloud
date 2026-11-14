@@ -13,7 +13,19 @@ export default {
           500: '#f97316', // Orange food primary
           600: '#ea580c',
           700: '#c2410c',
-        }
+        },
+        paper: '#ece7dc',
+        ink: {
+          DEFAULT: '#2b2721',
+          soft: 'rgba(43, 39, 33, 0.58)',
+          faint: 'rgba(43, 39, 33, 0.36)'
+        },
+        earth: '#9a6a3e',
+        hairline: 'rgba(43, 39, 33, 0.14)'
+      },
+      fontFamily: {
+        display: ['"Instrument Serif"', '"New York"', 'Georgia', 'serif'],
+        reading: ['"Newsreader"', '"New York"', 'Georgia', 'serif']
       }
     },
   },

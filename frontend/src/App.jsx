@@ -18,6 +18,7 @@ import MerchantStatus from './pages/MerchantStatus';
 import MerchantDashboard from './pages/MerchantDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
+import SketchbookPage from './pages/SketchbookPage';
 
 export default function App() {
   return (
@@ -40,6 +41,10 @@ export default function App() {
                   <Route path="/cart" element={<OrdersPage initialTab="cart" />} />
                   <Route path="/orders/:orderId" element={<OrderTracking />} />
                   <Route path="/profile" element={<ProfilePage />} />
+
+                  {/* Sổ Tay Ký Họa Ẩm Thực FoodFast (Meng To Sketchbook) */}
+                  <Route path="/sketchbook" element={<SketchbookPage />} />
+                  <Route path="/ky-hoa" element={<SketchbookPage />} />
 
                   {/* Cửa hàng của tôi (My Store & Seller Onboarding) */}
                   <Route path="/merchant/register" element={<MerchantRegister />} />

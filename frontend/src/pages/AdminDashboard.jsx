@@ -16,6 +16,7 @@ import { compressReviewImage } from '../utils/imageHelpers';
 import UserProfileModal from '../components/UserProfileModal';
 import UserAvatar from '../components/UserAvatar';
 import Pagination from '../components/Pagination';
+import { TOP_CITIES } from '../constants/vietnamLocations';
 
 const DAY_LABELS = {
   mon: 'Thứ 2',
@@ -1716,12 +1717,11 @@ export default function AdminDashboard() {
                   className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-orange-500"
                 >
                   <option value="ALL">Tất cả khu vực</option>
-                  <option value="hcm">TP. Hồ Chí Minh</option>
-                  <option value="hn">Hà Nội</option>
-                  <option value="dn">Đà Nẵng</option>
-                  <option value="ct">Cần Thơ</option>
-                  <option value="hp">Hải Phòng</option>
-                  <option value="bd">Bình Dương</option>
+                  {TOP_CITIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
 
                 <select
@@ -3714,12 +3714,11 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-orange-500"
                   >
                     <option value="ALL">Toàn quốc (Tất cả khu vực)</option>
-                    <option value="hcm">TP. Hồ Chí Minh (hcm)</option>
-                    <option value="hn">Hà Nội (hn)</option>
-                    <option value="dn">Đà Nẵng (dn)</option>
-                    <option value="ct">Cần Thơ (ct)</option>
-                    <option value="hp">Hải Phòng (hp)</option>
-                    <option value="bd">Bình Dương (bd)</option>
+                    {TOP_CITIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

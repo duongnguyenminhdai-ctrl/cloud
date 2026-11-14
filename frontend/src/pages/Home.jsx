@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Star,
   MapPin,
@@ -17,7 +17,8 @@ import {
   Flame,
   Award,
   Check,
-  Heart
+  Heart,
+  BookOpen
 } from 'lucide-react';
 import { restaurantApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
@@ -488,17 +489,27 @@ function matchDistrict(res, targetDistrict) {
 }
 
 export default function Home() {
-  const { selectedCity } = useLocationCity();
+  const [searchParams] = useSearchParams();
+  const { selectedCity, setSelectedCity } = useLocationCity();
   const { user, isAuthenticated } = useAuth();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
 
-  // Bộ lọc tìm kiếm và danh mục
-  const [searchKeyword, setSearchKeyword] = useState('');
+  // Bộ lọc tìm kiếm và danh mục (hỗ trợ đọc từ query param của Sổ Tay Ký Họa)
+  const initialSearch = searchParams.get('dish') || searchParams.get('search') || '';
+  const [searchKeyword, setSearchKeyword] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTopCatId, setSelectedTopCatId] = useState('all');
+
+  // Tự động nhận diện query params khi chuyển trang
+  useEffect(() => {
+    const dishParam = searchParams.get('dish') || searchParams.get('search');
+    if (dishParam) {
+      setSearchKeyword(dishParam);
+    }
+  }, [searchParams]);
 
   // Tabs FoodFast: 'near' (Gần tôi) | 'bestseller' (Bán chạy) | 'rating' (Đánh giá) | 'favorites' (Yêu thích)
   const [activeTab, setActiveTab] = useState('near');
@@ -960,6 +971,54 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 1.4. BANNER ĐẶC BIỆT: SỔ TAY KÝ HỌA ẨM THỰC 9 TỈNH THÀNH (FOODFAST FF) */}
+      {/* ===================================================================== */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#ece7dc] border border-[rgba(43,39,33,0.18)] p-5 sm:p-7 shadow-sm group">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2.5 text-center md:text-left max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-[rgba(43,39,33,0.12)] text-[#9a6a3e] text-xs font-serif shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#9a6a3e]" />
+              <span className="font-medium tracking-wide">Ký Họa Màu Nước Độc Bản · 9 Tỉnh Thành</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-serif text-[#2b2721] tracking-wide leading-tight font-normal">
+              Sổ Tay Ký Họa Ẩm Thực Ba Miền (FF)
+            </h3>
+            <p className="text-xs sm:text-sm text-[#2b2721]/75 font-serif leading-relaxed">
+              Trải nghiệm lật mở từng trang sách cong 3D sống động, soi kính lúp chi tiết nét vẽ 2.3x và thưởng thức tinh hoa ẩm thực: Bánh Mì Sài Gòn, Bún Thang Hà Nội, Bún Bò Huế, Mì Quảng, Chả Mực Hạ Long...
+            </p>
+            <div className="pt-1 flex flex-wrap items-center justify-center md:justify-start gap-3">
+              <Link
+                to="/sketchbook"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#9a6a3e] hover:bg-[#845831] text-white font-serif text-xs sm:text-sm shadow-md transition-all hover:scale-105"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Mở Sổ Tay & Lật Trang 3D</span>
+              </Link>
+              <span className="text-[11px] text-[#2b2721]/60 font-serif italic">
+                (Kèm kính lúp soi chi tiết & đặt món trực tiếp)
+              </span>
+            </div>
+          </div>
+
+          {/* Hình minh họa trang sách lật */}
+          <Link
+            to="/sketchbook"
+            className="relative shrink-0 w-44 sm:w-56 md:w-64 aspect-[4/3] rounded-2xl overflow-hidden shadow-md border border-[rgba(43,39,33,0.14)] bg-white/60 group-hover:scale-102 transition-transform cursor-pointer"
+            title="Nhấp để mở Sổ tay Ký họa"
+          >
+            <img
+              src="/landing-pages/meng-to-sketchbook/tphcm-banh-mi.png"
+              alt="Sổ tay ký họa ẩm thực FoodFast"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2b2721]/70 via-transparent to-transparent flex items-end p-2.5">
+              <span className="text-white text-[11px] font-serif font-medium">Bánh Mì Sài Gòn · Ký họa màu nước</span>
+            </div>
+          </Link>
         </div>
       </div>
 

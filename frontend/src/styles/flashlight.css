@@ -1,0 +1,473 @@
+/* Flashlight Authentication Theme & Physics Animations for FoodFast */
+
+.flashlight-container {
+  --celestial-drop: 260px;
+  position: relative;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: radial-gradient(circle at 50% 20%, #b2e4f4 0%, #7ec2dc 50%, #68b2ce 100%);
+  transition: background 1000ms ease;
+  overflow-x: hidden;
+}
+
+.flashlight-container.night {
+  background: radial-gradient(circle at 50% 10%, #0c1e33 0%, #06111f 60%, #02070e 100%);
+}
+
+/* Background Scene Parallax layer */
+.page-landscape {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transition: opacity 1200ms ease;
+}
+
+.page-landscape.scene-day {
+  background-image: url("/flashlight-assets/background-day.svg");
+  opacity: 0.85;
+}
+
+.flashlight-container.night .page-landscape.scene-day {
+  opacity: 0;
+}
+
+.page-landscape.scene-night {
+  background-image: url("/flashlight-assets/background-night.svg");
+  opacity: 0;
+}
+
+.flashlight-container.night .page-landscape.scene-night {
+  opacity: 0.9;
+}
+
+/* The Glassmorphism Auth Card */
+.flashlight-card {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 42% 58%;
+  width: min(940px, 100%);
+  min-height: 520px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 32px;
+  background: rgba(244, 252, 255, 0.42);
+  -webkit-backdrop-filter: blur(24px) saturate(135%);
+  backdrop-filter: blur(24px) saturate(135%);
+  box-shadow: 0 32px 90px rgba(15, 50, 69, 0.22), 0 8px 24px rgba(15, 50, 69, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: background-color 700ms ease, border-color 700ms ease, box-shadow 700ms ease;
+}
+
+.flashlight-card::before {
+  position: absolute;
+  inset: 0;
+  border-radius: 32px;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.24), transparent 35%, transparent 65%, rgba(255, 255, 255, 0.08));
+  content: "";
+  pointer-events: none;
+  transition: opacity 1400ms ease;
+}
+
+.flashlight-container.night .flashlight-card {
+  border-color: rgba(192, 228, 247, 0.16);
+  background-color: rgba(3, 11, 22, 0.76);
+  box-shadow: 0 32px 90px rgba(0, 3, 10, 0.68), 0 8px 24px rgba(0, 3, 10, 0.4), inset 0 1px 0 rgba(215, 240, 255, 0.12);
+}
+
+.flashlight-container.night .flashlight-card::before {
+  opacity: 0.2;
+}
+
+/* Left Scene Panel */
+.flashlight-scene-panel {
+  position: relative;
+  min-height: 480px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 22px;
+  background: #16374b;
+  box-shadow: 0 8px 24px rgba(6, 35, 50, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  transition: border-color 1400ms ease, box-shadow 1400ms ease;
+}
+
+.flashlight-container.night .flashlight-scene-panel {
+  border-color: rgba(169, 207, 235, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 5, 14, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.flashlight-scene-panel::after {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: linear-gradient(transparent 36%, rgba(3, 20, 34, 0.16) 53%, rgba(3, 20, 34, 0.74) 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.flashlight-landscape {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 18% 20%, rgba(242, 255, 255, 0.72), transparent 55%),
+              linear-gradient(#88c7dc, #c2e8e6 45%, #c5e1d9 72%, #8abdc9);
+}
+
+.flashlight-landscape::before {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 82% 14%, rgba(61, 89, 130, 0.16), transparent 52%),
+              linear-gradient(#020711, #091525 49%, #142638 74%, #06121f);
+  content: "";
+  opacity: 0;
+  transition: opacity 1400ms ease;
+}
+
+.flashlight-container.night .flashlight-landscape::before {
+  opacity: 1;
+}
+
+.flashlight-sky-objects {
+  clip-path: polygon(0 0, 100% 0, 100% 34.2%, 87.75% 41.4%, 70.5% 30.2%, 57% 42.2%, 39% 26%, 22.75% 41.4%, 12.75% 34.6%, 0 47%);
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+}
+
+.flashlight-sun, .flashlight-moon {
+  position: absolute;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.flashlight-sun {
+  top: 15%;
+  left: 23%;
+  border: 1px solid rgba(255, 254, 231, 0.88);
+  background: url("/flashlight-assets/sun.svg") center / cover;
+  box-shadow: inset 2px 3px 8px rgba(255, 255, 255, 0.8), inset -3px -5px 10px rgba(214, 147, 67, 0.24), 0 0 35px 12px rgba(255, 225, 148, 0.24);
+  transition: transform 1100ms cubic-bezier(0.4, 0, 0.2, 1) 300ms;
+}
+
+.flashlight-container.night .flashlight-sun {
+  transform: translate(26px, var(--celestial-drop));
+  transition-delay: 0ms;
+}
+
+.flashlight-moon {
+  top: 14%;
+  right: 19%;
+  border: 1px solid rgba(230, 251, 255, 0.84);
+  background: url("/flashlight-assets/moon.svg") center / cover;
+  box-shadow: inset 2px 3px 7px rgba(255, 255, 255, 0.7), inset -4px -5px 10px rgba(80, 122, 158, 0.28), 0 0 30px 8px rgba(198, 220, 248, 0.18);
+  transform: translate(-24px, var(--celestial-drop));
+  transition: transform 1100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flashlight-container.night .flashlight-moon {
+  transform: translate(0, 0);
+  transition-delay: 350ms;
+}
+
+.flashlight-land {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center bottom;
+  transition: opacity 1400ms ease;
+}
+
+.flashlight-land.day {
+  background-image: url("/flashlight-assets/panel-day.svg");
+  opacity: 1;
+}
+
+.flashlight-container.night .flashlight-land.day {
+  opacity: 0;
+}
+
+.flashlight-land.night {
+  background-image: url("/flashlight-assets/panel-night.svg");
+  opacity: 0;
+}
+
+.flashlight-container.night .flashlight-land.night {
+  opacity: 1;
+}
+
+/* Scene Copy Text & Branding */
+.flashlight-scene-copy {
+  position: absolute;
+  z-index: 4;
+  top: 76%;
+  left: 50%;
+  width: min(85%, 280px);
+  color: #fff;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 2px 12px rgba(0, 10, 25, 0.35);
+}
+
+.flashlight-scene-copy h2 {
+  margin: 0 0 10px;
+  font-size: clamp(20px, 2.5vw, 24px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.flashlight-scene-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Right Form Panel */
+.flashlight-form-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px clamp(24px, 4vw, 42px);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background-color 700ms ease;
+}
+
+.flashlight-container.night .flashlight-form-panel {
+  background-color: rgba(3, 10, 20, 0.36);
+}
+
+/* Owl Interaction Component */
+.email-owl-wrapper {
+  position: relative;
+}
+
+.email-owl {
+  position: absolute;
+  z-index: 20;
+  left: 14px;
+  bottom: calc(100% - 4px);
+  width: 50px;
+  height: 58px;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35));
+  transition: opacity 220ms ease;
+}
+
+.owl-art {
+  position: relative;
+  width: 96px;
+  height: 112px;
+  transform: scale(0.525);
+  transform-origin: top left;
+}
+
+.owl-art img,
+.owl-breath,
+.owl-head,
+.owl-eyes,
+.owl-gaze {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.owl-breath {
+  transform-origin: 48px 96px;
+}
+
+.owl-head {
+  transform-origin: 48px 48px;
+  transform: translate(var(--owl-head-x, 0px), var(--owl-head-y, 0px)) rotate(var(--owl-tilt, 0deg));
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.owl-gaze {
+  transform: translate(var(--owl-gaze-x, 0px), var(--owl-gaze-y, 0px));
+  transition: transform 260ms ease-out;
+}
+
+.owl-eyes {
+  transform-origin: 48px 40px;
+}
+
+.email-owl.is-lit .owl-breath {
+  animation: owl-breathe 3.6s ease-in-out infinite;
+}
+
+.email-owl.is-lit .owl-eyes {
+  animation: owl-blink 5.8s ease-in-out infinite;
+}
+
+@keyframes owl-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.018, 1.025); }
+}
+
+@keyframes owl-blink {
+  0%, 40%, 44%, 87%, 91%, 100% { transform: scaleY(1); }
+  42%, 89% { transform: scaleY(0.08); }
+}
+
+/* Flashlight & Light Beam */
+.flash-beam {
+  position: fixed;
+  z-index: 9998;
+  pointer-events: none;
+  filter: blur(12px);
+  transform-origin: 0 50%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 700ms ease, visibility 0s linear 700ms;
+}
+
+.flash-beam::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 224, 156, 0.78) 0%,
+    rgba(255, 219, 145, 0.58) 16%,
+    rgba(255, 214, 140, 0.35) 35%,
+    rgba(255, 207, 130, 0.16) 55%,
+    rgba(255, 202, 124, 0.04) 75%,
+    transparent 100%
+  );
+  clip-path: polygon(0 49%, 100% 0, 100% 100%, 0 51%);
+  content: "";
+}
+
+.flashlight-prop {
+  position: fixed;
+  z-index: 9999;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px rgba(255, 246, 157, 0.85));
+  transform-origin: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 700ms ease, visibility 0s linear 700ms;
+}
+
+.flashlight-container.night .flash-beam,
+.flashlight-container.night .flashlight-prop {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* Password Reveal Physics Overlay */
+.password-reveal-overlay {
+  position: fixed;
+  z-index: 9997;
+  overflow: hidden;
+  color: #e9fbf9;
+  font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 700ms ease, visibility 0s linear 700ms;
+}
+
+.flashlight-container.night .password-reveal-overlay {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.password-reveal-overlay > span {
+  position: absolute;
+  top: 0;
+  left: 14px;
+  display: block;
+  height: 48px;
+  line-height: 48px;
+  white-space: pre;
+}
+
+.password-reveal-overlay .reveal-char {
+  --lit: 0;
+  position: relative;
+  display: inline-block;
+  width: 1ch;
+  height: 100%;
+  vertical-align: top;
+}
+
+.password-reveal-overlay .reveal-char .masked-char,
+.password-reveal-overlay .reveal-char .plain-char {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  transition: opacity 90ms linear;
+}
+
+.password-reveal-overlay .reveal-char .masked-char {
+  opacity: calc(1 - var(--lit));
+  color: #f5f8fa;
+}
+
+.password-reveal-overlay .reveal-char .plain-char {
+  opacity: var(--lit);
+  color: #fffbcf;
+  text-shadow: 0 0 6px rgba(255, 235, 120, 0.8);
+  font-weight: bold;
+}
+
+/* Form Fields Theming under Night Mode */
+.flashlight-container.night .auth-input {
+  border-color: rgba(185, 221, 240, 0.25);
+  background-color: rgba(10, 26, 43, 0.65);
+  color: #f5f8fa;
+}
+
+.flashlight-container.night .auth-input::placeholder {
+  color: #8da4b1;
+}
+
+.flashlight-container.night .auth-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+}
+
+.flashlight-container.night .auth-password-input {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: #f97316 !important;
+}
+
+.flashlight-container.night .auth-password-input::placeholder {
+  -webkit-text-fill-color: #8da4b1 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .flashlight-card {
+    grid-template-columns: 1fr;
+    width: min(440px, 100%);
+    border-radius: 26px;
+  }
+  .flashlight-scene-panel {
+    min-height: 200px;
+  }
+  .flashlight-scene-copy {
+    top: 70%;
+  }
+}
