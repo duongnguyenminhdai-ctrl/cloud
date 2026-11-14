@@ -52,7 +52,8 @@ import {
   Upload,
   Image as ImageIcon,
   Link as LinkIcon,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { storeApi, orderApi, reviewApi, uploadApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
