@@ -889,66 +889,9 @@ export default function AdminDashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-16 admin-sketchbook-theme">
-      {/* Top Navbar Admin */}
-      <header className="bg-slate-800/90 backdrop-blur-md border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-md">
-              <img
-                src="/foodfast-logo.png"
-                alt="FoodFast Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div>
-              <span className="text-base font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
-                FoodFast Admin Portal
-              </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
-                QUẢN TRỊ VIÊN
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/profile"
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-orange-500/50 text-right transition cursor-pointer group shadow-xs"
-              title="Xem và quản lý thông tin tài khoản & Đổi mật khẩu"
-            >
-              <UserAvatar
-                src={user?.avatar}
-                name={user?.name}
-                fallbackChar="A"
-                className="w-8 h-8 rounded-full text-xs shadow-xs"
-              />
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-bold text-slate-200 group-hover:text-orange-400 transition">
-                  {user?.name || 'Quản trị viên'}
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {user?.email || 'admin@foodfast.vn'}
-                </span>
-              </div>
-            </Link>
-
-            <button
-              onClick={() => {
-                logout();
-                navigate('/admin/login');
-              }}
-              className="p-2 rounded-xl bg-slate-700/60 hover:bg-red-500/20 hover:text-red-400 text-slate-300 transition-colors"
-              title="Đăng xuất quản trị"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-transparent text-[#2b2721] pb-16 admin-sketchbook-theme">
       {/* Main Tabs Navigation */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
+      <div className="max-w-7xl mx-auto px-4 pt-6">
         {/* Toast Notification */}
         {notification.msg && (
           <div
@@ -1824,27 +1767,27 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               {v.is_banner ? (
                                 <div className="space-y-1">
-                                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-bold border border-orange-500/40 text-[10px] flex items-center gap-1 w-fit">
-                                    <Flame className="w-3 h-3 text-orange-400 fill-orange-400 animate-pulse" /> Banner Popup #{v.banner_order || 1}
+                                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-950 font-bold border border-orange-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                    <Flame className="w-3 h-3 text-orange-600 fill-orange-600 animate-pulse" /> Banner Popup #{v.banner_order || 1}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 block">
+                                  <span className="text-[10px] text-[#2b2721]/70 block font-medium">
                                     {v.issuer_type === 'STORE' ? (v.store_id?.name || 'Voucher Quán') : 'Voucher Sàn (Admin)'}
                                   </span>
                                 </div>
                               ) : v.issuer_type === 'STORE' ? (
                                 <div>
-                                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 text-[10px] flex items-center gap-1 w-fit">
-                                    <Store className="w-3 h-3 text-amber-400" /> Voucher Quán
+                                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-bold border border-amber-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                    <Store className="w-3 h-3 text-amber-700" /> Voucher Quán
                                   </span>
                                   {v.store_id?.name && (
-                                    <div className="text-[10px] text-slate-400 mt-1 truncate max-w-[150px]" title={v.store_id.name}>
+                                    <div className="text-[10px] text-[#2b2721]/70 mt-1 truncate max-w-[150px] font-medium" title={v.store_id.name}>
                                       {v.store_id.name}
                                     </div>
                                   )}
                                 </div>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 text-[10px] flex items-center gap-1 w-fit">
-                                  <ShieldCheck className="w-3 h-3 text-blue-400" /> Voucher Sàn (Admin)
+                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 font-bold border border-blue-300 text-[10px] flex items-center gap-1 w-fit shadow-2xs">
+                                  <ShieldCheck className="w-3 h-3 text-blue-700" /> Voucher Sàn (Admin)
                                 </span>
                               )}
                             </td>
@@ -1853,19 +1796,19 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               {v.discount_type === 'PERCENTAGE' ? (
                                 <div>
-                                  <span className="font-bold text-white text-xs">Giảm {v.discount_value}%</span>
+                                  <span className="font-bold text-[#2b2721] text-xs">Giảm {v.discount_value}%</span>
                                   {v.max_discount_amount && (
-                                    <span className="text-[10px] text-slate-400 block">
+                                    <span className="text-[10px] text-[#2b2721]/70 block font-medium">
                                       Tối đa: {formatVND(v.max_discount_amount)}
                                     </span>
                                   )}
                                 </div>
                               ) : (
-                                <span className="font-bold text-emerald-400 text-xs">
+                                <span className="font-bold text-emerald-800 text-xs">
                                   Giảm {formatVND(v.discount_value)}
                                 </span>
                               )}
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-[10px] text-[#2b2721]/60 mt-0.5">
                                 Đơn tối thiểu: {v.min_order_value ? formatVND(v.min_order_value) : '0đ'}
                               </div>
                             </td>
@@ -1873,24 +1816,24 @@ export default function AdminDashboard() {
                             {/* Cột 4: Phạm vi áp dụng */}
                             <td className="py-3 px-4">
                               {v.city_code === 'hcm' ? (
-                                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-950 border border-emerald-300 text-[10px] font-bold shadow-2xs">
                                   TP. Hồ Chí Minh
                                 </span>
                               ) : v.city_code === 'hn' ? (
-                                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-950 border border-blue-300 text-[10px] font-bold shadow-2xs">
                                   Hà Nội
                                 </span>
                               ) : v.city_code === 'dn' ? (
-                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-bold shadow-2xs">
                                   Đà Nẵng
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-950 border border-purple-300 text-[10px] font-bold shadow-2xs">
                                   Toàn sàn (Toàn quốc)
                                 </span>
                               )}
                               {v.store_id?.name && (
-                                <div className="text-[10px] text-slate-400 mt-1 truncate max-w-[140px]">
+                                <div className="text-[10px] text-[#2b2721]/70 mt-1 truncate max-w-[140px] font-medium">
                                   Chỉ quán: {v.store_id.name}
                                 </div>
                               )}
@@ -1899,18 +1842,18 @@ export default function AdminDashboard() {
                             {/* Cột 5: Hạn mức (Quota) */}
                             <td className="py-3 px-4 min-w-[140px]">
                               <div className="flex items-center justify-between text-[11px] font-mono">
-                                <span className="text-white font-bold">{v.used_count || 0}</span>
-                                <span className="text-slate-400">/ {v.usage_limit || 0}</span>
-                                <span className="text-orange-400 text-[10px]">({usagePercent}%)</span>
+                                <span className="text-[#2b2721] font-bold">{v.used_count || 0}</span>
+                                <span className="text-[#2b2721]/60">/ {v.usage_limit || 0}</span>
+                                <span className="text-[#9a6a3e] font-semibold text-[10px]">({usagePercent}%)</span>
                               </div>
-                              <div className="w-full bg-slate-900 rounded-full h-1.5 mt-1 overflow-hidden border border-slate-700/50">
+                              <div className="w-full bg-[#e8decb] rounded-full h-1.5 mt-1 overflow-hidden border border-[rgba(43,39,33,0.12)]">
                                 <div
                                   className={`h-1.5 rounded-full transition-all ${
                                     usagePercent >= 100
-                                      ? 'bg-red-500'
+                                      ? 'bg-red-600'
                                       : usagePercent >= 80
-                                      ? 'bg-amber-500'
-                                      : 'bg-gradient-to-r from-orange-500 to-amber-500'
+                                      ? 'bg-amber-600'
+                                      : 'bg-[#9a6a3e]'
                                   }`}
                                   style={{ width: `${usagePercent}%` }}
                                 />
@@ -1919,14 +1862,14 @@ export default function AdminDashboard() {
 
                             {/* Cột 6: Thời hạn */}
                             <td className="py-3 px-4 text-[11px]">
-                              <div className="text-slate-300">
+                              <div className="text-[#2b2721] font-semibold">
                                 {v.start_date ? new Date(v.start_date).toLocaleDateString('vi-VN') : 'Bắt đầu'}
                               </div>
-                              <div className="text-slate-400 text-[10px]">
+                              <div className="text-[#2b2721]/60 text-[10px]">
                                 Đến: {v.end_date ? new Date(v.end_date).toLocaleDateString('vi-VN') : 'Vô thời hạn'}
                               </div>
                               {isExpired && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/30 inline-block mt-0.5 font-bold">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-100 text-red-800 border border-red-300 inline-block mt-0.5 font-bold">
                                   Đã hết hạn
                                 </span>
                               )}
@@ -1938,12 +1881,12 @@ export default function AdminDashboard() {
                                 onClick={() => handleToggleVoucher(v._id)}
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1.5 ${
                                   v.is_active
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                                    : 'bg-slate-700/60 text-slate-400 border-slate-600 hover:bg-slate-700'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
+                                    : 'bg-[#f2ece1] text-[#2b2721]/60 border-[rgba(43,39,33,0.15)] hover:bg-[#ebdcc8]'
                                 }`}
                                 title={v.is_active ? 'Bấm để tạm dừng voucher' : 'Bấm để bật kích hoạt voucher'}
                               >
-                                <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                                <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-600 animate-pulse' : 'bg-stone-400'}`} />
                                 {v.is_active ? 'ACTIVE' : 'DISABLED'}
                               </button>
                             </td>

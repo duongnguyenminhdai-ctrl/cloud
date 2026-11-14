@@ -361,6 +361,117 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* =============================================================================
+   TỐI ƯU HÓA ĐỘ TƯƠNG PHẢN (HIGH CONTRAST) CHO TOÀN BỘ THEME SÁNG TRÊN HỆ THỐNG
+   Triệt tiêu hoàn toàn tình trạng chữ sáng/chói mắt không đọc được trên nền giấy ngà
+   ============================================================================= */
+.admin-sketchbook-theme .text-amber-300,
+.admin-sketchbook-theme .text-amber-400,
+.merchant-sketchbook-theme .text-amber-300,
+.merchant-sketchbook-theme .text-amber-400,
+.text-amber-300 {
+  color: #78350f !important;
+}
+
+.admin-sketchbook-theme .bg-amber-500\/20,
+.merchant-sketchbook-theme .bg-amber-500\/20,
+.bg-amber-500\/20 {
+  background-color: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #78350f !important;
+}
+
+.admin-sketchbook-theme .text-blue-300,
+.admin-sketchbook-theme .text-blue-400,
+.merchant-sketchbook-theme .text-blue-300,
+.merchant-sketchbook-theme .text-blue-400,
+.text-blue-300 {
+  color: #1e3a8a !important;
+}
+
+.admin-sketchbook-theme .bg-blue-500\/20,
+.merchant-sketchbook-theme .bg-blue-500\/20,
+.bg-blue-500\/20 {
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+  color: #1e3a8a !important;
+}
+
+.admin-sketchbook-theme .text-purple-300,
+.admin-sketchbook-theme .text-purple-400,
+.merchant-sketchbook-theme .text-purple-300,
+.merchant-sketchbook-theme .text-purple-400,
+.text-purple-300 {
+  color: #581c87 !important;
+}
+
+.admin-sketchbook-theme .bg-purple-500\/20,
+.merchant-sketchbook-theme .bg-purple-500\/20,
+.bg-purple-500\/20 {
+  background-color: #f3e8ff !important;
+  border-color: #d8b4fe !important;
+  color: #581c87 !important;
+}
+
+.admin-sketchbook-theme .text-emerald-300,
+.admin-sketchbook-theme .text-emerald-400,
+.merchant-sketchbook-theme .text-emerald-300,
+.merchant-sketchbook-theme .text-emerald-400,
+.text-emerald-300,
+.text-emerald-400 {
+  color: #065f46 !important;
+}
+
+.admin-sketchbook-theme .bg-emerald-500\/20,
+.merchant-sketchbook-theme .bg-emerald-500\/20,
+.bg-emerald-500\/20 {
+  background-color: #d1fae5 !important;
+  border-color: #6ee7b7 !important;
+  color: #065f46 !important;
+}
+
+.admin-sketchbook-theme .text-red-300,
+.admin-sketchbook-theme .text-red-400,
+.merchant-sketchbook-theme .text-red-300,
+.merchant-sketchbook-theme .text-red-400,
+.text-red-300,
+.text-red-400 {
+  color: #991b1b !important;
+}
+
+.admin-sketchbook-theme .bg-red-500\/20,
+.merchant-sketchbook-theme .bg-red-500\/20,
+.bg-red-500\/20 {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+.admin-sketchbook-theme .text-orange-300,
+.admin-sketchbook-theme .text-orange-400,
+.merchant-sketchbook-theme .text-orange-300,
+.merchant-sketchbook-theme .text-orange-400,
+.text-orange-300 {
+  color: #7c2d12 !important;
+}
+
+.admin-sketchbook-theme .bg-orange-500\/20,
+.merchant-sketchbook-theme .bg-orange-500\/20,
+.bg-orange-500\/20,
+.admin-sketchbook-theme .bg-gradient-to-r.from-orange-500\/30.to-amber-500\/30 {
+  background: #ffedd5 !important;
+  border-color: #fdba74 !important;
+  color: #7c2d12 !important;
+}
+
+/* Đảm bảo text phụ trong bảng luôn có độ tương phản cao, dễ đọc */
+.admin-sketchbook-theme td .text-slate-400,
+.merchant-sketchbook-theme td .text-slate-400,
+.admin-sketchbook-theme td .text-slate-300,
+.merchant-sketchbook-theme td .text-slate-300 {
+  color: #4a433a !important;
+}
+
 /* Leaflet compatibility with Tailwind CSS preflight */
 .leaflet-container {
   width: 100%;
