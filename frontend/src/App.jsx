@@ -42,9 +42,9 @@ export default function App() {
                   <Route path="/orders/:orderId" element={<OrderTracking />} />
                   <Route path="/profile" element={<ProfilePage />} />
 
-                  {/* Sổ Tay Ký Họa Ẩm Thực FoodFast (Meng To Sketchbook) */}
-                  <Route path="/sketchbook" element={<SketchbookPage />} />
-                  <Route path="/ky-hoa" element={<SketchbookPage />} />
+                  {/* Sổ Tay Ký Họa Ẩm Thực FoodFast giờ đây chính là Trang Chủ (Home) */}
+                  <Route path="/sketchbook" element={<Navigate to="/" replace />} />
+                  <Route path="/ky-hoa" element={<Navigate to="/" replace />} />
 
                   {/* Cửa hàng của tôi (My Store & Seller Onboarding) */}
                   <Route path="/merchant/register" element={<MerchantRegister />} />

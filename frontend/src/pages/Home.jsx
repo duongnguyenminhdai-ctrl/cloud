@@ -17,9 +17,9 @@ import {
   Flame,
   Award,
   Check,
-  Heart,
-  BookOpen
+  Heart
 } from 'lucide-react';
+import HomeSketchbookSection from '../components/HomeSketchbookSection';
 import { restaurantApi, voucherApi } from '../api/client';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useLocationCity } from '../context/LocationContext';
@@ -932,411 +932,377 @@ export default function Home() {
   const totalPages = Math.ceil(displayedRestaurants.length / PAGE_SIZE) || 1;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-      {/* ===================================================================== */}
-      {/* 1. HERO BANNER CHUẨN FOODFAST (Image 1) */}
-      {/* ===================================================================== */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-slate-800">
-        {/* Ảnh nền đêm đô thị phong cách FoodFast */}
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
-          style={{
-            backgroundImage:
-              'url("https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80")'
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-transparent" />
+    <div className="min-h-screen bg-[#ece7dc] text-[#2b2721] relative overflow-x-hidden pb-14">
+      {/* Background Wash màu nước nghệ thuật đặc trưng Sổ Tay Ký Họa */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-45 bg-cover bg-top"
+        style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90" aria-hidden="true" />
 
-        <div className="relative z-10 p-4 sm:py-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
-          {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
-          <div className="lg:col-span-7 space-y-3">
-            {/* Thanh tìm kiếm món ăn / địa chỉ */}
-            <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden p-1 border border-white/20 focus-within:ring-4 focus-within:ring-orange-500/30 transition-all">
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Tìm địa điểm, món ăn, địa chỉ..."
-                className="w-full px-4 py-2 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent"
-              />
-              <button
-                className="px-5 py-2 bg-[#0084ff] hover:bg-[#0073e6] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-md cursor-pointer"
-                title="Tìm kiếm"
-              >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-              </button>
-            </div>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-5 space-y-6 sm:space-y-7">
+        {/* ===================================================================== */}
+        {/* 1. HERO BANNER CHUẨN FOODFAST (Image 1) */}
+        {/* ===================================================================== */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-slate-800">
+          {/* Ảnh nền đêm đô thị phong cách FoodFast */}
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
+            style={{
+              backgroundImage:
+                'url("https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80")'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-transparent" />
 
-            {/* Danh sách Tags Danh mục FoodFast */}
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {FOODFAST_CATEGORIES.map((cat) => {
-                const isActive = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleSelectFoodfastCategory(cat.id)}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                      isActive
-                        ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30 font-bold scale-105'
-                        : 'bg-white/10 hover:bg-white/20 text-white/90 border-white/10 backdrop-blur-sm'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Cột phải: Thẻ Ưu đãi hôm nay thu nhỏ vừa vặn */}
-          <div className="lg:col-span-5">
-            {/* Khung thẻ Ưu đãi & Quán nổi bật thu nhỏ */}
-            <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xl border border-gray-100 text-gray-900 space-y-2.5">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
-                <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-gray-900">
-                  <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-                  <span>Ưu đãi hôm nay</span>
-                </div>
+          <div className="relative z-10 p-4 sm:py-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
+            {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
+            <div className="lg:col-span-7 space-y-3">
+              {/* Thanh tìm kiếm món ăn / địa chỉ */}
+              <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden p-1 border border-white/20 focus-within:ring-4 focus-within:ring-orange-500/30 transition-all">
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="Tìm địa điểm, món ăn, địa chỉ..."
+                  className="w-full px-4 py-2 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent"
+                />
                 <button
-                  type="button"
-                  onClick={() => {
-                    document.getElementById('foodfast-restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer bg-transparent border-0 p-0"
+                  className="px-5 py-2 bg-[#0084ff] hover:bg-[#0073e6] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-md cursor-pointer"
+                  title="Tìm kiếm"
                 >
-                  Xem tất cả
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                 </button>
               </div>
 
-              {/* 3 Thẻ quán ăn thực tế: click thẳng vào trang quán chọn món */}
-              <div className="grid grid-cols-3 gap-2">
-                {todayDeals.slice(0, 3).map((item, idx) => (
-                  <div
-                    key={item.restaurantId || idx}
-                    onClick={() => navigate(`/restaurants/${item.restaurantId}`)}
-                    className="group/item flex flex-col space-y-1 transition-all text-left cursor-pointer hover:scale-102"
-                    title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán đặt món & dùng mã ${item.code}`}
-                  >
-                    <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
-                      <img
-                        src={item.image}
-                        alt={item.restaurantName}
-                        className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-300"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80';
-                        }}
-                      />
-                      {copiedVoucher === item.code && (
-                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center text-[10px] text-emerald-400 font-bold">
-                          ✓ Đã chép mã
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[11px] font-bold text-gray-800 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
-                      {item.restaurantName}
-                    </p>
+              {/* Danh sách Tags Danh mục FoodFast */}
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {FOODFAST_CATEGORIES.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
                     <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyVoucher(item.code);
-                        navigate(`/restaurants/${item.restaurantId}`);
-                      }}
-                      className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
-                      title={`Bấm để sao chép mã ${item.code} và vào quán`}
+                      key={cat.id}
+                      onClick={() => handleSelectFoodfastCategory(cat.id)}
+                      className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                        isActive
+                          ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30 font-bold scale-105'
+                          : 'bg-white/10 hover:bg-white/20 text-white/90 border-white/10 backdrop-blur-sm'
+                      }`}
                     >
-                      <Tag className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate max-w-[82px]">{item.dealText}</span>
+                      {cat.label}
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cột phải: Thẻ Ưu đãi hôm nay thu nhỏ vừa vặn */}
+            <div className="lg:col-span-5">
+              {/* Khung thẻ Ưu đãi & Quán nổi bật thu nhỏ */}
+              <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xl border border-gray-100 text-gray-900 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-gray-900">
+                    <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
+                    <span>Ưu đãi hôm nay</span>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById('foodfast-restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer bg-transparent border-0 p-0"
+                  >
+                    Xem tất cả
+                  </button>
+                </div>
+
+                {/* 3 Thẻ quán ăn thực tế: click thẳng vào trang quán chọn món */}
+                <div className="grid grid-cols-3 gap-2">
+                  {todayDeals.slice(0, 3).map((item, idx) => (
+                    <div
+                      key={item.restaurantId || idx}
+                      onClick={() => navigate(`/restaurants/${item.restaurantId}`)}
+                      className="group/item flex flex-col space-y-1 transition-all text-left cursor-pointer hover:scale-102"
+                      title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán đặt món & dùng mã ${item.code}`}
+                    >
+                      <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
+                        <img
+                          src={item.image}
+                          alt={item.restaurantName}
+                          className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-300"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80';
+                          }}
+                        />
+                        {copiedVoucher === item.code && (
+                          <div className="absolute inset-0 bg-black/75 flex items-center justify-center text-[10px] text-emerald-400 font-bold">
+                            ✓ Đã chép mã
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-800 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
+                        {item.restaurantName}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyVoucher(item.code);
+                          navigate(`/restaurants/${item.restaurantId}`);
+                        }}
+                        className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        title={`Bấm để sao chép mã ${item.code} và vào quán`}
+                      >
+                        <Tag className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate max-w-[82px]">{item.dealText}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ===================================================================== */}
-      {/* 1.4. BANNER ĐẶC BIỆT: SỔ TAY KÝ HỌA ẨM THỰC 9 TỈNH THÀNH (FOODFAST FF) */}
-      {/* ===================================================================== */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#ece7dc] border border-[rgba(43,39,33,0.18)] p-5 sm:p-7 shadow-sm group">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2.5 text-center md:text-left max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-[rgba(43,39,33,0.12)] text-[#9a6a3e] text-xs font-serif shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#9a6a3e]" />
-              <span className="font-medium tracking-wide">Ký Họa Màu Nước Độc Bản · 9 Tỉnh Thành</span>
-            </div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-serif text-[#2b2721] tracking-wide leading-tight font-normal">
-              Sổ Tay Ký Họa Ẩm Thực Ba Miền (FF)
-            </h3>
-            <p className="text-xs sm:text-sm text-[#2b2721]/75 font-serif leading-relaxed">
-              Trải nghiệm lật mở từng trang sách cong 3D sống động, soi kính lúp chi tiết nét vẽ 2.3x và thưởng thức tinh hoa ẩm thực: Bánh Mì Sài Gòn, Bún Thang Hà Nội, Bún Bò Huế, Mì Quảng, Chả Mực Hạ Long...
-            </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center md:justify-start gap-3">
-              <Link
-                to="/sketchbook"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#9a6a3e] hover:bg-[#845831] text-white font-serif text-xs sm:text-sm shadow-md transition-all hover:scale-105"
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>Mở Sổ Tay & Lật Trang 3D</span>
-              </Link>
-              <span className="text-[11px] text-[#2b2721]/60 font-serif italic">
-                (Kèm kính lúp soi chi tiết & đặt món trực tiếp)
-              </span>
-            </div>
-          </div>
+        {/* ===================================================================== */}
+        {/* 2. SỔ TAY KÝ HỌA ẨM THỰC BA MIỀN 3D (Image 2) */}
+        {/* ===================================================================== */}
+        <HomeSketchbookSection />
 
-          {/* Hình minh họa trang sách lật */}
-          <Link
-            to="/sketchbook"
-            className="relative shrink-0 w-44 sm:w-56 md:w-64 aspect-[4/3] rounded-2xl overflow-hidden shadow-md border border-[rgba(43,39,33,0.14)] bg-white/60 group-hover:scale-102 transition-transform cursor-pointer"
-            title="Nhấp để mở Sổ tay Ký họa"
-          >
-            <img
-              src="/landing-pages/meng-to-sketchbook/tphcm-banh-mi.png"
-              alt="Sổ tay ký họa ẩm thực FoodFast"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2b2721]/70 via-transparent to-transparent flex items-end p-2.5">
-              <span className="text-white text-[11px] font-serif font-medium">Bánh Mì Sài Gòn · Ký họa màu nước</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 1.5. DANH MỤC ĐẶC TRƯNG FOODFAST (20 Icon Grid) */}
-      {/* ===================================================================== */}
-      <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-600 animate-ping" />
-            <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
-              Khám Phá Món Ngon FoodFast
-            </h2>
-          </div>
-          {selectedTopCatId !== 'all' && (
-            <button
-              onClick={() => {
-                setSelectedTopCatId('all');
-                setSelectedCategory('All');
-              }}
-              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
-            >
-              Xem tất cả
-            </button>
-          )}
-        </div>
-
-        {/* 20 Icon danh mục FoodFast dạng grid 2 hàng lướt ngang mượt mà */}
-        <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {FOODFAST_TOP_CATEGORIES.map((cat) => {
-            const isSelected = selectedTopCatId === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => handleSelectTopCategory(cat.id)}
-                className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
-                  isSelected
-                    ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
-                    : 'bg-gray-50/70 hover:bg-orange-50/60 border border-gray-100 hover:border-orange-200'
-                }`}
-              >
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center overflow-hidden mb-1 group-hover:scale-110 transition-transform">
-                  <img
-                    src={cat.icon}
-                    alt={cat.name}
-                    className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
-                    onError={(e) => {
-                      e.currentTarget.src = '/icons/nice-shop.png';
-                    }}
-                  />
-                </div>
-                <span
-                  className={`text-[11px] sm:text-xs text-center font-bold leading-tight line-clamp-1 ${
-                    isSelected ? 'text-orange-600' : 'text-gray-700 group-hover:text-orange-600'
-                  }`}
-                >
-                  {cat.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 2. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Đồng bộ chặt chẽ với Profile) */}
-      {/* ===================================================================== */}
-      <div
-        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all ${
-          isAuthenticated && !hasUserAddress
-            ? 'bg-amber-50/90 border-amber-300'
-            : 'bg-orange-50/70 border-orange-200/70'
-        }`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md ${
-              isAuthenticated && !hasUserAddress
-                ? 'bg-amber-600 shadow-amber-600/20'
-                : 'bg-orange-500 shadow-orange-500/20'
-            }`}
-          >
-            <MapPin className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
+        {/* ===================================================================== */}
+        {/* 3. DANH MỤC ĐẶC TRƯNG FOODFAST (20 Icon Grid) (Image 3) */}
+        {/* ===================================================================== */}
+        <div className="bg-[#fcfbf9]/95 rounded-3xl p-5 border border-[rgba(43,39,33,0.14)] shadow-sm space-y-3 backdrop-blur-xs">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-orange-900 uppercase tracking-wider">
-                Giao hàng đến:
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
-                {selectedCity?.shortName || 'TP. HCM'}
-              </span>
-              {isAuthenticated && hasUserAddress && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
-                  Mặc định
-                </span>
-              )}
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-600 animate-ping" />
+              <h2 className="text-base sm:text-lg font-black text-[#2b2721] tracking-tight">
+                Khám Phá Món Ngon FoodFast
+              </h2>
             </div>
-
-            {/* Hiển thị địa chỉ */}
-            {isAuthenticated && !hasUserAddress ? (
-              <p
-                onClick={() => setIsAddressModalOpen(true)}
-                className="text-sm sm:text-base font-bold text-amber-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
-                title="Bấm để thiết lập địa chỉ nhận hàng"
+            {selectedTopCatId !== 'all' && (
+              <button
+                onClick={() => {
+                  setSelectedTopCatId('all');
+                  setSelectedCategory('All');
+                }}
+                className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
               >
-                Chưa có địa chỉ nhận hàng (Bấm để thiết lập)
-              </p>
-            ) : (
-              <p
-                onClick={() => setIsAddressModalOpen(true)}
-                className="text-sm sm:text-base font-bold text-gray-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
-                title={userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
-              >
-                {userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
-              </p>
+                Xem tất cả
+              </button>
             )}
           </div>
+
+          {/* 20 Icon danh mục FoodFast dạng grid 2 hàng lướt ngang mượt mà */}
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {FOODFAST_TOP_CATEGORIES.map((cat) => {
+              const isSelected = selectedTopCatId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleSelectTopCategory(cat.id)}
+                  className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
+                    isSelected
+                      ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
+                      : 'bg-white/80 hover:bg-orange-50/70 border border-[rgba(43,39,33,0.1)] hover:border-orange-300'
+                  }`}
+                >
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center overflow-hidden mb-1 group-hover:scale-110 transition-transform">
+                    <img
+                      src={cat.icon}
+                      alt={cat.name}
+                      className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = '/icons/nice-shop.png';
+                      }}
+                    />
+                  </div>
+                  <span
+                    className={`text-[11px] sm:text-xs text-center font-bold leading-tight line-clamp-1 ${
+                      isSelected ? 'text-orange-600' : 'text-[#2b2721] group-hover:text-orange-600'
+                    }`}
+                  >
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Nút thao tác nhanh với vị trí */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          {isAuthenticated && !hasUserAddress ? (
+        {/* ===================================================================== */}
+        {/* 4. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Đồng bộ chặt chẽ với Profile) */}
+        {/* ===================================================================== */}
+        <div
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all ${
+            isAuthenticated && !hasUserAddress
+              ? 'bg-amber-50/90 border-amber-300'
+              : 'bg-[#f7f3ea]/95 border-[rgba(43,39,33,0.14)]'
+          }`}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md ${
+                isAuthenticated && !hasUserAddress
+                  ? 'bg-amber-600 shadow-amber-600/20'
+                  : 'bg-orange-500 shadow-orange-500/20'
+              }`}
+            >
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#845831] uppercase tracking-wider">
+                  Giao hàng đến:
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
+                  {selectedCity?.shortName || 'TP. HCM'}
+                </span>
+                {isAuthenticated && hasUserAddress && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                    Mặc định
+                  </span>
+                )}
+              </div>
+
+              {/* Hiển thị địa chỉ */}
+              {isAuthenticated && !hasUserAddress ? (
+                <p
+                  onClick={() => setIsAddressModalOpen(true)}
+                  className="text-sm sm:text-base font-bold text-amber-900 truncate hover:text-orange-600 cursor-pointer transition-colors"
+                  title="Bấm để thiết lập địa chỉ nhận hàng"
+                >
+                  Chưa có địa chỉ nhận hàng (Bấm để thiết lập)
+                </p>
+              ) : (
+                <p
+                  onClick={() => setIsAddressModalOpen(true)}
+                  className="text-sm sm:text-base font-bold text-[#2b2721] truncate hover:text-orange-600 cursor-pointer transition-colors"
+                  title={userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
+                >
+                  {userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Nút thao tác nhanh với vị trí */}
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            {isAuthenticated && !hasUserAddress ? (
+              <button
+                onClick={() => setIsAddressModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Mở bản đồ nhập và chọn địa chỉ giao hàng"
+              >
+                <Compass className="w-4 h-4 text-white" />
+                <span>+ Thiết lập địa chỉ</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAddressModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-white/90 hover:bg-orange-50 text-orange-600 border border-[rgba(43,39,33,0.15)] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Mở bản đồ chọn địa chỉ giao hàng"
+              >
+                <Compass className="w-4 h-4 text-orange-600" />
+                <span>Đổi địa chỉ</span>
+              </button>
+            )}
+
             <button
-              onClick={() => setIsAddressModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Mở bản đồ nhập và chọn địa chỉ giao hàng"
+              onClick={refreshLocation}
+              disabled={locationLoading}
+              className="p-2 rounded-xl bg-white/90 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border border-[rgba(43,39,33,0.15)] text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Định vị lại GPS của bạn"
             >
-              <Compass className="w-4 h-4 text-white" />
-              <span>+ Thiết lập địa chỉ</span>
+              <Crosshair className={`w-4 h-4 ${locationLoading ? 'animate-spin text-orange-600' : ''}`} />
             </button>
-          ) : (
+          </div>
+        </div>
+
+        {/* ===================================================================== */}
+        {/* 5. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
+        {/* ===================================================================== */}
+        <div id="foodfast-restaurants-section" className="flex items-center justify-between border-b border-[rgba(43,39,33,0.14)] pb-2 mb-4 scroll-mt-24">
+          {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá, Yêu thích) */}
+          <div className="flex items-center gap-6 sm:gap-8">
             <button
-              onClick={() => setIsAddressModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Mở bản đồ chọn địa chỉ giao hàng"
+              onClick={() => setActiveTab('near')}
+              className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+                activeTab === 'near'
+                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
+                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+              }`}
             >
-              <Compass className="w-4 h-4 text-orange-600" />
-              <span>Đổi địa chỉ</span>
+              Gần tôi
             </button>
-          )}
 
-          <button
-            onClick={refreshLocation}
-            disabled={locationLoading}
-            className="p-2 rounded-xl bg-white hover:bg-orange-100 text-gray-600 hover:text-orange-600 border border-orange-200 text-xs font-semibold shadow-sm transition-all cursor-pointer"
-            title="Định vị lại GPS của bạn"
-          >
-            <Crosshair className={`w-4 h-4 ${locationLoading ? 'animate-spin text-orange-600' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 3. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
-      {/* ===================================================================== */}
-      <div id="foodfast-restaurants-section" className="flex items-center justify-between border-b border-gray-100 pb-2 mb-4 scroll-mt-24">
-        {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá) - Đã bỏ Giao nhanh theo yêu cầu */}
-        <div className="flex items-center gap-6 sm:gap-8">
-          <button
-            onClick={() => setActiveTab('near')}
-            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
-              activeTab === 'near'
-                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
-                : 'text-gray-700 hover:text-gray-950 font-medium'
-            }`}
-          >
-            Gần tôi
-          </button>
-
-          <button
-            onClick={() => setActiveTab('bestseller')}
-            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
-              activeTab === 'bestseller'
-                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
-                : 'text-gray-700 hover:text-gray-950 font-medium'
-            }`}
-          >
-            Bán chạy
-          </button>
-
-          <button
-            onClick={() => setActiveTab('rating')}
-            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
-              activeTab === 'rating'
-                ? 'text-[#0084ff] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#0084ff]'
-                : 'text-gray-700 hover:text-gray-950 font-medium'
-            }`}
-          >
-            Đánh giá
-          </button>
-
-          <button
-            onClick={() => setActiveTab('favorites')}
-            className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'favorites'
-                ? 'text-red-500 font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-500'
-                : 'text-gray-700 hover:text-red-500 font-medium'
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${activeTab === 'favorites' || likedStoreIds.length > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-            <span>Yêu thích ({likedStoreIds.length})</span>
-          </button>
-        </div>
-
-        {/* Right: Nút làm mới + Dropdown "Chọn quận/ huyện ▾" */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fetchRestaurants(true)}
-            disabled={loading}
-            className="p-1.5 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition-all shadow-xs cursor-pointer"
-            title="Đồng bộ / Làm mới danh sách quán ngay lập tức"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-500' : ''}`} />
-          </button>
-
-          <div className="relative">
-            <select
-              value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0084ff]/20 focus:border-[#0084ff] cursor-pointer shadow-xs transition-all"
+            <button
+              onClick={() => setActiveTab('bestseller')}
+              className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+                activeTab === 'bestseller'
+                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
+                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+              }`}
             >
-              <option value="ALL">Chọn quận/ huyện</option>
-              {availableDistricts.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              Bán chạy
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rating')}
+              className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
+                activeTab === 'rating'
+                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
+                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+              }`}
+            >
+              Đánh giá
+            </button>
+
+            <button
+              onClick={() => setActiveTab('favorites')}
+              className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'favorites'
+                  ? 'text-red-500 font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-500'
+                  : 'text-[#2b2721]/70 hover:text-red-500 font-medium'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${activeTab === 'favorites' || likedStoreIds.length > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+              <span>Yêu thích ({likedStoreIds.length})</span>
+            </button>
+          </div>
+
+          {/* Right: Nút làm mới + Dropdown "Chọn quận/ huyện ▾" */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fetchRestaurants(true)}
+              disabled={loading}
+              className="p-1.5 rounded-lg border border-[rgba(43,39,33,0.18)] hover:border-orange-300 hover:bg-white/80 text-[#2b2721]/70 hover:text-orange-600 transition-all shadow-xs cursor-pointer"
+              title="Đồng bộ / Làm mới danh sách quán ngay lập tức"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-500' : ''}`} />
+            </button>
+
+            <div className="relative">
+              <select
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                className="appearance-none bg-white/90 border border-[rgba(43,39,33,0.18)] hover:border-gray-400 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-[#2b2721] focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/20 focus:border-[#9a6a3e] cursor-pointer shadow-xs transition-all"
+              >
+                <option value="ALL">Chọn quận/ huyện</option>
+                {availableDistricts.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
       {/* 3.1. THANH TRẠNG THÁI BỘ LỌC ĐANG HOẠT ĐỘNG (Hiển thị tức thì khi chọn danh mục) */}
       {(selectedCategory !== 'All' || selectedTopCatId !== 'all' || selectedDistrict !== 'ALL' || searchKeyword.trim()) && (
@@ -1491,7 +1457,7 @@ export default function Home() {
                 <Link
                   key={res._id}
                   to={`/restaurants/${res._id}`}
-                  className="bg-white rounded-2xl p-3 border border-gray-100 hover:border-sky-300 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative"
+                  className="bg-white/95 rounded-2xl p-3 border border-[rgba(43,39,33,0.12)] hover:border-[#9a6a3e]/60 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative backdrop-blur-xs"
                 >
                   {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 và Nút Thả tim ❤️ */}
                   <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
@@ -1534,7 +1500,7 @@ export default function Home() {
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                       )}
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-[#0084ff] transition-colors truncate">
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-orange-600 transition-colors truncate">
                         {res.name}
                       </h3>
                     </div>
@@ -1602,6 +1568,7 @@ export default function Home() {
       />
       {/* Modal Popup Khuyến mãi Deal sốc đầu ứng dụng (FoodFast Flash Sale Popup) */}
       <PromotionPopupModal />
+      </div>
     </div>
   );
 }

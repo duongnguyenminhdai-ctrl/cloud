@@ -107,6 +107,40 @@ button{font:inherit}
   min-height:100svh;overflow-anchor:none;
   padding:clamp(112px,13svh,152px) 0 clamp(72px,10svh,120px);
 }
+
+/* Embedded mode in Homepage */
+body.is-embedded{
+  background:transparent;
+  overflow-x:hidden;
+}
+body.is-embedded .wash{
+  opacity:0.4;
+}
+body.is-embedded .top{
+  display:none !important;
+}
+body.is-embedded .hero{
+  min-height:auto;
+  padding:clamp(20px,3.2vh,36px) 0 clamp(16px,2.5vh,24px);
+}
+body.is-embedded .hero-down{
+  display:none !important;
+}
+body.is-embedded .dish-actions{
+  display:none !important;
+}
+body.is-embedded #plates{
+  display:none !important;
+}
+body.is-embedded .rule.short{
+  display:none !important;
+}
+body.is-embedded .foot{
+  display:none !important;
+}
+body.is-embedded .about{
+  padding-bottom:12px;
+}
 .botany{
   position:absolute;bottom:0;width:clamp(120px,15vw,250px);opacity:.5;
   pointer-events:none;user-select:none;z-index:0;
@@ -535,30 +569,10 @@ button{font:inherit}
   <section id="about" class="about">
     <div>
       <p class="section-label" id="aboutLabel">Giới thiệu món ăn · 01 — TP. Hồ Chí Minh</p>
-      <p class="bio" id="aboutBio"><strong>Bánh mì Sài Gòn</strong> là biểu tượng ẩm thực đường phố sống động bậc nhất của <a class="bio-link" href="#sketchbook">TP. Hồ Chí Minh</a>. Lớp vỏ bánh nướng giòn rụm, ruột xốp mềm ôm trọn phần nhân đầy đặn gồm bơ trứng béo ngậy, <a class="bio-link" href="#plates">pâté gan thơm lừng</a>, thịt nguội, chả lụa, xá xíu cùng đồ chua giòn thanh, dưa leo, ngò rí và vài lát ớt đỏ cay nồng — tạo nên bản giao hưởng hương vị mặn, ngọt, béo, chua, cay hài hòa trong từng ổ bánh nóng hổi.</p>
-      <div class="dish-actions" id="dishActions">
-        <button type="button" id="orderNowBtn" class="btn-order-now">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          <span id="orderBtnText">Đặt món Bánh Mì Sài Gòn</span>
-        </button>
-        <a href="/" target="_top" id="exploreStoreBtn" class="btn-explore-stores">
-          <span>Tìm quán tại <strong id="exploreCityText">TP. Hồ Chí Minh</strong></span>
-          <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
-        </a>
-      </div>
+      <p class="bio" id="aboutBio"><strong>Bánh mì Sài Gòn</strong> là biểu tượng ẩm thực đường phố sống động bậc nhất của <a class="bio-link" href="#sketchbook">TP. Hồ Chí Minh</a>. Lớp vỏ bánh nướng giòn rụm, ruột xốp mềm ôm trọn phần nhân đầy đặn gồm bơ trứng béo ngậy, <a class="bio-link" href="#sketchbook">pâté gan thơm lừng</a>, thịt nguội, chả lụa, xá xíu cùng đồ chua giòn thanh, dưa leo, ngò rí và vài lát ớt đỏ cay nồng — tạo nên bản giao hưởng hương vị mặn, ngọt, béo, chua, cay hài hòa trong từng ổ bánh nóng hổi.</p>
     </div>
     <img class="bloom" src="meng-to-sketchbook/foodfast-logo.png" alt="FOODFAST FF Logo">
   </section>
-
-  <div class="rule short" aria-hidden="true"></div>
-
-  <section id="plates" class="plates">
-    <p class="section-label">Thực Đơn Đặc Sản 9 Tỉnh Thành</p>
-    <ol class="plate-list" id="plateList"></ol>
-  </section>
-
-  <div class="rule short" aria-hidden="true"></div>
-  <p class="foot" id="contact">FOODFAST (FF) · Sổ Tay Ẩm Thực Việt Nam · <a href="#" class="bio-link">hello@foodfast.vn</a></p>
 </main>
 
 <script>
@@ -1079,42 +1093,30 @@ const plateList=document.getElementById('plateList');
 const aboutLabel=document.getElementById('aboutLabel');
 const aboutBio=document.getElementById('aboutBio');
 let riffle=null,riffleAt=0,introOn=false;
-PAGES.forEach((p,i)=>{
-  const li=el('li');
-  const b=el('button','plate');
-  b.innerHTML='<span class="n">'+String(i+1).padStart(2,'0')+'</span>'+
-              '<span class="t"></span><span class="p"></span>';
-  b.querySelector('.t').textContent=p.title;
-  b.querySelector('.p').textContent=p.place;
-  b.onclick=()=>{goTo(i);document.getElementById('sketchbook').scrollIntoView({behavior:'smooth',block:'center'});};
-  li.appendChild(b);plateList.appendChild(li);
-});
+if(plateList){
+  PAGES.forEach((p,i)=>{
+    const li=el('li');
+    const b=el('button','plate');
+    b.innerHTML='<span class="n">'+String(i+1).padStart(2,'0')+'</span>'+
+                '<span class="t"></span><span class="p"></span>';
+    b.querySelector('.t').textContent=p.title;
+    b.querySelector('.p').textContent=p.place;
+    b.onclick=()=>{goTo(i);document.getElementById('sketchbook').scrollIntoView({behavior:'smooth',block:'center'});};
+    li.appendChild(b);plateList.appendChild(li);
+  });
+}
 function marks(){
   const cur=introOn?LAND:(turn?turn.to:idx);
-  plateList.querySelectorAll('.plate').forEach((b,i)=>b.setAttribute('aria-current',i===cur?'true':'false'));
+  if(plateList){
+    plateList.querySelectorAll('.plate').forEach((b,i)=>b.setAttribute('aria-current',i===cur?'true':'false'));
+  }
   const p=PAGES[cur];
   if(p&&aboutLabel&&aboutBio){
     aboutLabel.textContent='Giới thiệu món ăn · '+String(cur+1).padStart(2,'0')+' — '+p.place;
     aboutBio.innerHTML=p.desc;
-
-    // Cập nhật nút Đặt món ngay & Tìm quán theo tỉnh thành tương ứng
-    const orderNowBtn=document.getElementById('orderNowBtn');
-    const orderBtnText=document.getElementById('orderBtnText');
-    const exploreStoreBtn=document.getElementById('exploreStoreBtn');
-    const exploreCityText=document.getElementById('exploreCityText');
-    if(orderBtnText) orderBtnText.textContent='Đặt món '+p.title;
-    if(exploreCityText) exploreCityText.textContent=p.place;
-    const targetUrl='/?search='+encodeURIComponent(p.title)+'&city='+(p.cityCode||'hcm');
-    if(exploreStoreBtn) exploreStoreBtn.href=targetUrl;
-    if(orderNowBtn){
-      orderNowBtn.onclick=()=>{
-        if(window.parent&&window.parent!==window){
-          window.parent.postMessage({type:'FOODFAST_NAVIGATE',url:targetUrl,dish:p.title,city:p.cityCode},'*');
-        }else{
-          window.location.href=targetUrl;
-        }
-      };
-    }
+  }
+  if(window.parent&&window.parent!==window&&p){
+    window.parent.postMessage({type:'FOODFAST_SKETCHBOOK_PAGE_CHANGED',index:cur,title:p.title,place:p.place,cityCode:p.cityCode},'*');
   }
 }
 
@@ -1148,6 +1150,9 @@ function startIntro(){
 
 /* ------------------------------------------------------------- boot */
 (async function boot(){
+  if(Q.has('embed')||window.parent!==window){
+    document.body.classList.add('is-embedded');
+  }
   idx=Q.has('shot')?(parseInt(Q.get('shot'),10)||0)%M:0;
   paint();applyView();
   await Promise.all(PAGES.map(p=>{

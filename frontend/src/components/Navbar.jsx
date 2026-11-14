@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, BookOpen } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { storeApi } from '../api/client';
@@ -110,15 +110,6 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Nút Sổ Tay Ký Họa Ẩm Thực (Meng To Sketchbook) */}
-          <Link
-            to="/sketchbook"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#ece7dc]/90 hover:bg-[#ece7dc] text-[#2b2721] border border-[rgba(43,39,33,0.18)] text-xs sm:text-sm transition-all shadow-2xs hover:scale-105"
-            title="Khám phá Sổ Tay Ký Họa Ẩm Thực 9 Tỉnh Thành"
-          >
-            <BookOpen className="w-4 h-4 text-[#9a6a3e]" />
-            <span className="hidden md:inline font-serif font-medium">Sổ Tay Ký Họa</span>
-          </Link>
 
           {/* Nút "Cửa hàng của tôi" - Viền cam / chữ cam tiệp theme FoodFast (Ẩn đối với Admin) */}
           {isAuthenticated && user?.role !== 'ADMIN' && (
