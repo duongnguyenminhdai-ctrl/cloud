@@ -21,7 +21,7 @@ export default function HomeSketchbookSection({ onDishSelect }) {
   }, [onDishSelect]);
 
   return (
-    <div className="relative w-full overflow-hidden bg-transparent my-0">
+    <div className="relative w-full overflow-hidden bg-transparent my-0 -mt-3 sm:-mt-6">
       {/* Sổ tay Ký họa Ẩm thực Ba Miền & Ghi chú món ăn hòa làm 1 trực tiếp với toàn trang (Không viền hộp, không thanh cuộn) */}
       <iframe
         ref={iframeRef}
