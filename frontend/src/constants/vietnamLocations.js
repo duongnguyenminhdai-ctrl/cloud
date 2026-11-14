@@ -1,23 +1,26 @@
 /**
  * Danh mục trọn vẹn 63 Tỉnh/Thành phố truyền thống của Việt Nam
- * Ưu tiên 5 thành phố trọng điểm trực thuộc trung ương ở đầu,
- * tiếp theo là 58 tỉnh thành còn lại theo thứ tự bảng chữ cái.
+ * Ưu tiên 9 thành phố trọng điểm kinh tế & văn hóa ở đầu,
+ * tiếp theo là 54 tỉnh thành còn lại theo thứ tự bảng chữ cái.
  */
 export const VIETNAM_CITIES = [
-  // 5 Thành phố lớn trọng điểm
+  // 9 Thành phố trọng điểm
   { code: 'hcm', name: 'TP. Hồ Chí Minh', shortName: 'TP. HCM', isMajor: true, lat: 10.7769, lng: 106.7009 },
   { code: 'hn', name: 'Hà Nội', shortName: 'Hà Nội', isMajor: true, lat: 21.0285, lng: 105.8542 },
   { code: 'dn', name: 'Đà Nẵng', shortName: 'Đà Nẵng', isMajor: true, lat: 16.0544, lng: 108.2022 },
-  { code: 'ct', name: 'Cần Thơ', shortName: 'Cần Thơ', isMajor: true, lat: 10.0452, lng: 105.7469 },
   { code: 'hp', name: 'Hải Phòng', shortName: 'Hải Phòng', isMajor: true, lat: 20.8449, lng: 106.6881 },
+  { code: 'ct', name: 'Cần Thơ', shortName: 'Cần Thơ', isMajor: true, lat: 10.0452, lng: 105.7469 },
+  { code: 'hue', name: 'Thừa Thiên Huế', shortName: 'Huế', isMajor: true, lat: 16.4637, lng: 107.5909 },
+  { code: 'bacninh', name: 'Bắc Ninh', shortName: 'Bắc Ninh', isMajor: true, lat: 21.1861, lng: 106.0763 },
+  { code: 'quangninh', name: 'Quảng Ninh', shortName: 'Quảng Ninh', isMajor: true, lat: 21.0064, lng: 107.2925 },
+  { code: 'dongnai', name: 'Đồng Nai', shortName: 'Đồng Nai', isMajor: true, lat: 11.0500, lng: 107.0500 },
 
-  // 58 Tỉnh thành còn lại (theo thứ tự A - Z)
+  // 54 Tỉnh thành còn lại (theo thứ tự A - Z)
   { code: 'angiang', name: 'An Giang', shortName: 'An Giang', lat: 10.5216, lng: 105.1259 },
   { code: 'brvt', name: 'Bà Rịa - Vũng Tàu', shortName: 'Vũng Tàu', lat: 10.5425, lng: 107.2429 },
   { code: 'bacgiang', name: 'Bắc Giang', shortName: 'Bắc Giang', lat: 21.2731, lng: 106.1946 },
   { code: 'backan', name: 'Bắc Kạn', shortName: 'Bắc Kạn', lat: 22.1470, lng: 105.8348 },
   { code: 'baclieu', name: 'Bạc Liêu', shortName: 'Bạc Liêu', lat: 9.2941, lng: 105.7278 },
-  { code: 'bacninh', name: 'Bắc Ninh', shortName: 'Bắc Ninh', lat: 21.1861, lng: 106.0763 },
   { code: 'bentre', name: 'Bến Tre', shortName: 'Bến Tre', lat: 10.2434, lng: 106.3756 },
   { code: 'binhdinh', name: 'Bình Định', shortName: 'Bình Định', lat: 14.1667, lng: 109.0000 },
   { code: 'binhduong', name: 'Bình Dương', shortName: 'Bình Dương', lat: 11.1645, lng: 106.6710 },
@@ -28,7 +31,6 @@ export const VIETNAM_CITIES = [
   { code: 'daklak', name: 'Đắk Lắk', shortName: 'Đắk Lắk', lat: 12.6667, lng: 108.0500 },
   { code: 'daknong', name: 'Đắk Nông', shortName: 'Đắk Nông', lat: 12.0000, lng: 107.6833 },
   { code: 'dienbien', name: 'Điện Biên', shortName: 'Điện Biên', lat: 21.3833, lng: 103.0167 },
-  { code: 'dongnai', name: 'Đồng Nai', shortName: 'Đồng Nai', lat: 11.0500, lng: 107.0500 },
   { code: 'dongthap', name: 'Đồng Tháp', shortName: 'Đồng Tháp', lat: 10.5000, lng: 105.6833 },
   { code: 'gialai', name: 'Gia Lai', shortName: 'Gia Lai', lat: 13.9833, lng: 108.0000 },
   { code: 'hagiang', name: 'Hà Giang', shortName: 'Hà Giang', lat: 22.8233, lng: 104.9836 },
@@ -55,7 +57,6 @@ export const VIETNAM_CITIES = [
   { code: 'quangbinh', name: 'Quảng Bình', shortName: 'Quảng Bình', lat: 17.4833, lng: 106.6000 },
   { code: 'quangnam', name: 'Quảng Nam', shortName: 'Quảng Nam', lat: 15.5667, lng: 108.0000 },
   { code: 'quangngai', name: 'Quảng Ngãi', shortName: 'Quảng Ngãi', lat: 15.1205, lng: 108.7923 },
-  { code: 'quangninh', name: 'Quảng Ninh', shortName: 'Hạ Long', lat: 21.0064, lng: 107.2925 },
   { code: 'quangtri', name: 'Quảng Trị', shortName: 'Quảng Trị', lat: 16.7500, lng: 107.1833 },
   { code: 'soctrang', name: 'Sóc Trăng', shortName: 'Sóc Trăng', lat: 9.6033, lng: 105.9800 },
   { code: 'sonla', name: 'Sơn La', shortName: 'Sơn La', lat: 21.3283, lng: 103.9189 },
@@ -63,7 +64,6 @@ export const VIETNAM_CITIES = [
   { code: 'thaibinh', name: 'Thái Bình', shortName: 'Thái Bình', lat: 20.4500, lng: 106.3333 },
   { code: 'thainguyen', name: 'Thái Nguyên', shortName: 'Thái Nguyên', lat: 21.5674, lng: 105.8252 },
   { code: 'thanhhoa', name: 'Thanh Hóa', shortName: 'Thanh Hóa', lat: 19.8000, lng: 105.7667 },
-  { code: 'hue', name: 'Thừa Thiên Huế', shortName: 'Huế', lat: 16.4637, lng: 107.5909 },
   { code: 'tiengiang', name: 'Tiền Giang', shortName: 'Tiền Giang', lat: 10.4167, lng: 106.3333 },
   { code: 'travinh', name: 'Trà Vinh', shortName: 'Trà Vinh', lat: 9.9347, lng: 106.3453 },
   { code: 'tuyenquang', name: 'Tuyên Quang', shortName: 'Tuyên Quang', lat: 21.8236, lng: 105.2144 },
@@ -84,8 +84,8 @@ export function getCityByCode(code) {
   );
 }
 
-export const TOP_CITIES = VIETNAM_CITIES.slice(0, 5);
-export const OTHER_CITIES = VIETNAM_CITIES.slice(5);
+export const TOP_CITIES = VIETNAM_CITIES.slice(0, 9);
+export const OTHER_CITIES = VIETNAM_CITIES.slice(9);
 
 /**
  * Địa chỉ trung tâm mặc định cho từng Tỉnh/Thành phố
@@ -131,6 +131,38 @@ export function getDefaultCityAddress(cityObj) {
         lng: 106.6881,
         address: 'Trần Phú, Phường Lương Khánh Thiện, Quận Ngô Quyền, Hải Phòng',
         shortAddress: 'Trần Phú, Ngô Quyền',
+        isDefault: true
+      };
+    case 'hue':
+      return {
+        lat: 16.4637,
+        lng: 107.5909,
+        address: 'Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế, Thừa Thiên Huế',
+        shortAddress: 'Lê Lợi, TP. Huế',
+        isDefault: true
+      };
+    case 'bacninh':
+      return {
+        lat: 21.1861,
+        lng: 106.0763,
+        address: 'Lý Thái Tổ, Phường Suối Hoa, Thành phố Bắc Ninh, Bắc Ninh',
+        shortAddress: 'Lý Thái Tổ, TP. Bắc Ninh',
+        isDefault: true
+      };
+    case 'quangninh':
+      return {
+        lat: 20.9500,
+        lng: 107.0800,
+        address: 'Trần Hưng Đạo, Phường Trần Hưng Đạo, Thành phố Hạ Long, Quảng Ninh',
+        shortAddress: 'Trần Hưng Đạo, Hạ Long',
+        isDefault: true
+      };
+    case 'dongnai':
+      return {
+        lat: 10.9500,
+        lng: 106.8200,
+        address: 'Đồng Khởi, Phường Tân Hiệp, Thành phố Biên Hòa, Đồng Nai',
+        shortAddress: 'Đồng Khởi, Biên Hòa',
         isDefault: true
       };
     default:
@@ -180,6 +212,22 @@ export function detectCityFromAddress(address, lat, lng) {
     // 5. Hải Phòng
     if (lower.includes('hải phòng') || lower.includes('hai phong')) {
       return getCityByCode('hp');
+    }
+    // 6. Huế / Thừa Thiên Huế
+    if (lower.includes('huế') || lower.includes('hue') || lower.includes('thừa thiên')) {
+      return getCityByCode('hue');
+    }
+    // 7. Bắc Ninh
+    if (lower.includes('bắc ninh') || lower.includes('bac ninh')) {
+      return getCityByCode('bacninh');
+    }
+    // 8. Quảng Ninh / Hạ Long
+    if (lower.includes('quảng ninh') || lower.includes('quang ninh') || lower.includes('hạ long') || lower.includes('ha long')) {
+      return getCityByCode('quangninh');
+    }
+    // 9. Đồng Nai / Biên Hòa
+    if (lower.includes('đồng nai') || lower.includes('dong nai') || lower.includes('biên hòa') || lower.includes('bien hoa')) {
+      return getCityByCode('dongnai');
     }
     // 6. Các tỉnh thành khác trong danh mục 63 tỉnh thành
     for (const city of VIETNAM_CITIES) {
