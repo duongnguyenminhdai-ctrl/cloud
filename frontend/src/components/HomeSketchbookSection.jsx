@@ -17,13 +17,15 @@ export default function HomeSketchbookSection({ onDishSelect }) {
   }, [onDishSelect]);
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden border border-[rgba(43,39,33,0.16)] bg-[#ece7dc]/75 shadow-lg backdrop-blur-xs transition-all">
-      {/* Khung nhúng Sổ tay Ký họa Ẩm thực Ba Miền (Meng To 3D Sketchbook) */}
+    <div className="relative w-full overflow-hidden bg-transparent my-0">
+      {/* Sổ tay Ký họa Ẩm thực Ba Miền hòa làm 1 trực tiếp với toàn trang (Không viền hộp, không thanh cuộn) */}
       <iframe
         ref={iframeRef}
         src="/landing-pages/meng-to-sketchbook.html?embed=1"
         title="FoodFast — Sổ Tay Ký Họa Ẩm Thực Ba Miền"
-        className="w-full h-[620px] sm:h-[700px] md:h-[760px] lg:h-[800px] border-none m-0 p-0 block bg-transparent"
+        className="w-full h-[580px] sm:h-[650px] md:h-[700px] lg:h-[730px] border-none m-0 p-0 block bg-transparent"
+        style={{ border: 'none', background: 'transparent', overflow: 'hidden' }}
+        scrolling="no"
         sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
       />
     </div>

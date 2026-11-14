@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meng To</title>
+<title>FoodFast — Sổ Tay Ký Họa</title>
+<script>
+  if (location.search.includes('embed') || window.parent !== window) {
+    document.documentElement.classList.add('is-embedded');
+  }
+</script>
 <meta name="description" content="designer, creator, AI educator — Singapore">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,19 +114,37 @@ button{font:inherit}
 }
 
 /* Embedded mode in Homepage */
+html.is-embedded,
 body.is-embedded{
-  background:transparent;
-  overflow-x:hidden;
+  background:transparent !important;
+  background-color:transparent !important;
+  overflow:hidden !important;
+  overflow-x:hidden !important;
+  overflow-y:hidden !important;
+  scrollbar-width:none !important;
+  -ms-overflow-style:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  min-height:auto !important;
+}
+html.is-embedded::-webkit-scrollbar,
+body.is-embedded::-webkit-scrollbar{
+  display:none !important;
+  width:0 !important;
+  height:0 !important;
 }
 body.is-embedded .wash{
-  opacity:0.4;
+  display:none !important;
 }
 body.is-embedded .top{
   display:none !important;
 }
 body.is-embedded .hero{
-  min-height:auto;
-  padding:clamp(20px,3.2vh,36px) 0 clamp(16px,2.5vh,24px);
+  min-height:auto !important;
+  padding:clamp(12px,2vh,24px) 0 clamp(8px,1.5vh,16px) !important;
+}
+body.is-embedded .hero-kicker{
+  margin:0 0 clamp(10px,1.8vh,20px) !important;
 }
 body.is-embedded .hero-down{
   display:none !important;
@@ -132,14 +155,14 @@ body.is-embedded .dish-actions{
 body.is-embedded #plates{
   display:none !important;
 }
-body.is-embedded .rule.short{
+body.is-embedded .rule{
+  display:none !important;
+}
+body.is-embedded .about{
   display:none !important;
 }
 body.is-embedded .foot{
   display:none !important;
-}
-body.is-embedded .about{
-  padding-bottom:12px;
 }
 .botany{
   position:absolute;bottom:0;width:clamp(120px,15vw,250px);opacity:.5;
@@ -1151,6 +1174,7 @@ function startIntro(){
 /* ------------------------------------------------------------- boot */
 (async function boot(){
   if(Q.has('embed')||window.parent!==window){
+    document.documentElement.classList.add('is-embedded');
     document.body.classList.add('is-embedded');
   }
   idx=Q.has('shot')?(parseInt(Q.get('shot'),10)||0)%M:0;
