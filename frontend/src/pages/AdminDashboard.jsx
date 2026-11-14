@@ -134,7 +134,7 @@ export default function AdminDashboard() {
       if (res.data?.success && res.data?.pagination) {
         setPendingApprovalsCount(res.data.pagination.total || 0);
       }
-    } catch {}
+    } catch { }
   };
 
   const fetchStores = async ({ silent = false } = {}) => {
@@ -895,11 +895,10 @@ export default function AdminDashboard() {
         {/* Toast Notification */}
         {notification.msg && (
           <div
-            className={`mb-6 p-4 rounded-xl border flex items-center gap-2.5 text-sm ${
-              notification.type === 'success'
+            className={`mb-6 p-4 rounded-xl border flex items-center gap-2.5 text-sm ${notification.type === 'success'
                 ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
                 : 'bg-red-950/80 border-red-500/40 text-red-300'
-            }`}
+              }`}
           >
             {notification.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
@@ -914,11 +913,10 @@ export default function AdminDashboard() {
         <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-800 border border-slate-700 overflow-x-auto mb-6">
           <button
             onClick={() => setActiveTab('approvals')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'approvals'
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'approvals'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-            }`}
+              }`}
           >
             <Clock className="w-4 h-4" />
             Duyệt hồ sơ quán ({pendingApprovalsCount})
@@ -926,11 +924,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('stores')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'stores'
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'stores'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-            }`}
+              }`}
           >
             <Store className="w-4 h-4" />
             Danh sách các quán
@@ -938,11 +935,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'users'
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'users'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             Quản lý tài khoản
@@ -950,11 +946,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('vouchers')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'vouchers'
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'vouchers'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-            }`}
+              }`}
           >
             <Ticket className="w-4 h-4" />
             Quản lý Voucher
@@ -1230,8 +1225,8 @@ export default function AdminDashboard() {
                             <span>
                               {formatVND(
                                 !(st.walletTransactions?.length) &&
-                                !(st.payouts?.length) &&
-                                st.wallet?.availableBalance === 1368922
+                                  !(st.payouts?.length) &&
+                                  st.wallet?.availableBalance === 1368922
                                   ? 0
                                   : st.wallet?.availableBalance || 0
                               )}
@@ -1348,11 +1343,10 @@ export default function AdminDashboard() {
             {/* Cấu hình Bảo mật: Bật/Tắt xác minh số điện thoại SMS OTP */}
             <div className="p-4 sm:p-5 rounded-2xl bg-[#fffdfa]/95 border border-[rgba(43,39,33,0.14)] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                  phoneVerifConfig.required
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${phoneVerifConfig.required
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
                     : 'bg-amber-500/10 border-amber-500/20 text-amber-700'
-                }`}>
+                  }`}>
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -1388,14 +1382,12 @@ export default function AdminDashboard() {
                   onClick={handleTogglePhoneVerification}
                   title={phoneVerifConfig.required ? 'Nhấn để tắt xác minh SĐT (chế độ kiểm thử)' : 'Nhấn để bật bắt buộc xác minh SĐT'}
                   aria-label="Chuyển đổi trạng thái xác minh số điện thoại"
-                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/50 ${
-                    phoneVerifConfig.required ? 'bg-[#9a6a3e]' : 'bg-[#d8cfbe]'
-                  } ${togglingPhoneVerif || phoneVerifConfig.loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/50 ${phoneVerifConfig.required ? 'bg-[#9a6a3e]' : 'bg-[#d8cfbe]'
+                    } ${togglingPhoneVerif || phoneVerifConfig.loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <span
-                    className={`pointer-events-none flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      phoneVerifConfig.required ? 'translate-x-7' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${phoneVerifConfig.required ? 'translate-x-7' : 'translate-x-0'
+                      }`}
                   >
                     {togglingPhoneVerif ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-600" />
@@ -1538,40 +1530,39 @@ export default function AdminDashboard() {
                               <span className="text-slate-500">Chưa tạo quán</span>
                             )}
                           </td>
-                        <td className="py-3 px-4">
-                          <button
-                            onClick={() => handleToggleUserActive(u)}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
-                              u.isActive !== false
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
-                                : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
-                            }`}
-                          >
-                            {u.isActive !== false ? '● Đang hoạt động' : '○ Bị khóa'}
-                          </button>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <td className="py-3 px-4">
                             <button
-                              onClick={() => handleOpenEditUser(u)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-orange-400 hover:bg-slate-700"
-                              title="Sửa tài khoản"
+                              onClick={() => handleToggleUserActive(u)}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${u.isActive !== false
+                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+                                  : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
+                                }`}
                             >
-                              <Edit className="w-4 h-4" />
+                              {u.isActive !== false ? '● Đang hoạt động' : '○ Bị khóa'}
                             </button>
-                            <button
-                              disabled={u._id === user?.id}
-                              onClick={() => handleDeleteUser(u._id, u.email)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-700 disabled:opacity-20"
-                              title="Xóa tài khoản"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditUser(u)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-orange-400 hover:bg-slate-700"
+                                title="Sửa tài khoản"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled={u._id === user?.id}
+                                onClick={() => handleDeleteUser(u._id, u.email)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-700 disabled:opacity-20"
+                                title="Xóa tài khoản"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1848,13 +1839,12 @@ export default function AdminDashboard() {
                               </div>
                               <div className="w-full bg-[#e8decb] rounded-full h-1.5 mt-1 overflow-hidden border border-[rgba(43,39,33,0.12)]">
                                 <div
-                                  className={`h-1.5 rounded-full transition-all ${
-                                    usagePercent >= 100
+                                  className={`h-1.5 rounded-full transition-all ${usagePercent >= 100
                                       ? 'bg-red-600'
                                       : usagePercent >= 80
-                                      ? 'bg-amber-600'
-                                      : 'bg-[#9a6a3e]'
-                                  }`}
+                                        ? 'bg-amber-600'
+                                        : 'bg-[#9a6a3e]'
+                                    }`}
                                   style={{ width: `${usagePercent}%` }}
                                 />
                               </div>
@@ -1879,11 +1869,10 @@ export default function AdminDashboard() {
                             <td className="py-3 px-4">
                               <button
                                 onClick={() => handleToggleVoucher(v._id)}
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border transition-all flex items-center gap-1.5 ${
-                                  v.is_active
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border transition-all flex items-center gap-1.5 ${v.is_active
                                     ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900'
                                     : 'bg-[#f2ece1] dark:bg-stone-800 text-[#2b2721]/70 dark:text-[#ede6d8]/70 border-[rgba(43,39,33,0.15)] dark:border-stone-700 hover:bg-[#ebdcc8]'
-                                }`}
+                                  }`}
                                 title={v.is_active ? 'Bấm để tạm dừng voucher' : 'Bấm để bật kích hoạt voucher'}
                               >
                                 <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-600 dark:bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
@@ -1944,7 +1933,7 @@ export default function AdminDashboard() {
       {selectedStore && !showRejectModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
           <div className="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-slate-700 text-slate-200 shadow-2xl overflow-hidden relative">
-            
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-slate-700/80 bg-slate-900/40 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1954,22 +1943,21 @@ export default function AdminDashboard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base sm:text-lg font-bold text-white">Hồ sơ đăng ký: {selectedStore.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
                         ? 'bg-red-500/20 text-red-400 border-red-500/40'
                         : selectedStore.status === 'ACTIVE'
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                        : selectedStore.status === 'REJECTED'
-                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-                        : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                    }`}>
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          : selectedStore.status === 'REJECTED'
+                            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                      }`}>
                       {selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
                         ? 'ĐÃ BỊ KHÓA (BANNED)'
                         : selectedStore.status === 'ACTIVE'
-                        ? 'ACTIVE'
-                        : selectedStore.status === 'REJECTED'
-                        ? 'REJECTED'
-                        : 'PENDING'}
+                          ? 'ACTIVE'
+                          : selectedStore.status === 'REJECTED'
+                            ? 'REJECTED'
+                            : 'PENDING'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">Xem xét và đối soát từng mục theo quy trình đăng ký Đối tác FoodFast</p>
@@ -2019,15 +2007,13 @@ export default function AdminDashboard() {
                   <button
                     key={step.id}
                     onClick={() => setAdminReviewStep(step.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                      isActive
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${isActive
                         ? 'bg-orange-500/20 text-orange-400 border-orange-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border-transparent'
-                    }`}
+                      }`}
                   >
-                    <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                      isActive ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
-                    }`}>
+                    <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${isActive ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
+                      }`}>
                       {step.id}
                     </span>
                     <span>{step.shortTitle}</span>
@@ -2038,7 +2024,7 @@ export default function AdminDashboard() {
 
             {/* Tab Body (Cuộn độc lập) */}
             <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
-              
+
               {/* ========================================================= */}
               {/* MỤC 1: THÔNG TIN CƠ BẢN & VỊ TRÍ OSRM */}
               {/* ========================================================= */}
@@ -2118,13 +2104,12 @@ export default function AdminDashboard() {
                   <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
                       <h5 className="font-bold text-orange-400">Thông tin người đại diện</h5>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        selectedStore.merchantType === 'ENTERPRISE'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${selectedStore.merchantType === 'ENTERPRISE'
                           ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
                           : selectedStore.merchantType === 'HOUSEHOLD'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      }`}>
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        }`}>
                         Danh nghĩa: {selectedStore.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : selectedStore.merchantType === 'HOUSEHOLD' ? 'Hộ kinh doanh' : 'Cá nhân'}
                       </span>
                     </div>
@@ -2320,11 +2305,10 @@ export default function AdminDashboard() {
                         const isMatch = rep && holder && (rep === holder || holder.includes(rep) || rep.includes(holder));
                         return (
                           <div className="space-y-3">
-                            <div className={`p-3 rounded-xl border ${
-                              isMatch
+                            <div className={`p-3 rounded-xl border ${isMatch
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                                 : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                            }`}>
+                              }`}>
                               <div className="flex items-center gap-2 font-bold mb-1">
                                 {isMatch ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-amber-400" />}
                                 <span>{isMatch ? 'Tên chủ tài khoản TRÙNG KHỚP' : 'Tên chủ tài khoản CÓ KHÁC BIỆT'}</span>
@@ -2374,15 +2358,13 @@ export default function AdminDashboard() {
                       {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => {
                         const dayInfo = selectedStore.operatingHours?.[d] || { isOpen: true, openTime: '08:00', closeTime: '22:00' };
                         return (
-                          <div key={d} className={`p-2.5 rounded-xl border text-center ${
-                            dayInfo.isOpen
+                          <div key={d} className={`p-2.5 rounded-xl border text-center ${dayInfo.isOpen
                               ? 'bg-slate-800/80 border-slate-700 text-slate-200'
                               : 'bg-slate-950/40 border-slate-800 text-slate-500'
-                          }`}>
-                            <div className="font-bold text-xs text-white mb-1">{DAY_LABELS[d]}</div>
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mb-1 ${
-                              dayInfo.isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
                             }`}>
+                            <div className="font-bold text-xs text-white mb-1">{DAY_LABELS[d]}</div>
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mb-1 ${dayInfo.isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                              }`}>
                               {dayInfo.isOpen ? 'Mở cửa' : 'Đóng cửa'}
                             </span>
                             <div className="text-[10px] font-mono text-slate-300">
@@ -2497,11 +2479,10 @@ export default function AdminDashboard() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                     {/* Gói FREE */}
-                    <div className={`p-4 rounded-xl border transition-all ${
-                      (selectedStore.growthPackage || 'FREE') === 'FREE'
+                    <div className={`p-4 rounded-xl border transition-all ${(selectedStore.growthPackage || 'FREE') === 'FREE'
                         ? 'bg-orange-500/10 border-orange-500/50 shadow-md shadow-orange-500/10'
                         : 'bg-slate-900/60 border-slate-800 opacity-60'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-slate-200">Gói Khởi Đầu</span>
                         {(selectedStore.growthPackage || 'FREE') === 'FREE' && (
@@ -2518,11 +2499,10 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Gói GROWTH_1 */}
-                    <div className={`p-4 rounded-xl border transition-all ${
-                      selectedStore.growthPackage === 'GROWTH_1'
+                    <div className={`p-4 rounded-xl border transition-all ${selectedStore.growthPackage === 'GROWTH_1'
                         ? 'bg-orange-500/10 border-orange-500/50 shadow-md shadow-orange-500/10'
                         : 'bg-slate-900/60 border-slate-800 opacity-60'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-orange-400">Gói Tăng Trưởng</span>
                         {selectedStore.growthPackage === 'GROWTH_1' && (
@@ -2539,11 +2519,10 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Gói GROWTH_3 */}
-                    <div className={`p-4 rounded-xl border transition-all ${
-                      selectedStore.growthPackage === 'GROWTH_3'
+                    <div className={`p-4 rounded-xl border transition-all ${selectedStore.growthPackage === 'GROWTH_3'
                         ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-500/10'
                         : 'bg-slate-900/60 border-slate-800 opacity-60'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-amber-400">Gói Siêu Tăng Trưởng</span>
                         {selectedStore.growthPackage === 'GROWTH_3' && (
@@ -2567,17 +2546,16 @@ export default function AdminDashboard() {
                         {selectedStore.growthPackage === 'FREE'
                           ? 'Miễn phí kích hoạt ban đầu (FREE)'
                           : selectedStore.paymentStatus === 'PAID'
-                          ? 'Đã hoàn tất thanh toán'
-                          : 'Chưa thanh toán (Thu phí sau kích hoạt)'}
+                            ? 'Đã hoàn tất thanh toán'
+                            : 'Chưa thanh toán (Thu phí sau kích hoạt)'}
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      selectedStore.growthPackage === 'FREE'
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${selectedStore.growthPackage === 'FREE'
                         ? 'bg-slate-800 text-slate-300 border-slate-700'
                         : selectedStore.paymentStatus === 'PAID'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      }`}>
                       {selectedStore.paymentStatus || (selectedStore.growthPackage === 'FREE' ? 'FREE' : 'UNPAID')}
                     </span>
                   </div>
@@ -2655,22 +2633,21 @@ export default function AdminDashboard() {
                     <div>
                       <div className="text-slate-400 text-xs">Trạng thái phê duyệt quán hiện tại:</div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                          selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
                             ? 'bg-red-500/20 text-red-400 border-red-500/40'
                             : selectedStore.status === 'ACTIVE'
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : selectedStore.status === 'REJECTED'
-                            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                        }`}>
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : selectedStore.status === 'REJECTED'
+                                ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }`}>
                           {selectedStore.status === 'BANNED' || selectedStore.status === 'LOCKED' || selectedStore.banInfo?.isBanned
                             ? 'ĐÃ BỊ KHÓA (BANNED)'
                             : selectedStore.status === 'ACTIVE'
-                            ? 'ĐÃ DUYỆT (ACTIVE)'
-                            : selectedStore.status === 'REJECTED'
-                            ? 'BỊ TỪ CHỐI (REJECTED)'
-                            : 'CHỜ DUYỆT (PENDING)'}
+                              ? 'ĐÃ DUYỆT (ACTIVE)'
+                              : selectedStore.status === 'REJECTED'
+                                ? 'BỊ TỪ CHỐI (REJECTED)'
+                                : 'CHỜ DUYỆT (PENDING)'}
                         </span>
                         {selectedStore.rejectReason && (
                           <span className="text-xs text-red-400">Lý do từ chối: {selectedStore.rejectReason}</span>
@@ -2995,11 +2972,10 @@ export default function AdminDashboard() {
                       key={days}
                       type="button"
                       onClick={() => handleDurationDaysChange(days)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                        banDurationDays === days
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${banDurationDays === days
                           ? 'bg-red-600 text-white border-red-500 shadow-sm'
                           : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-700'
-                      }`}
+                        }`}
                     >
                       {days} ngày
                     </button>
@@ -3558,11 +3534,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setVoucherForm({ ...voucherForm, discount_type: 'PERCENTAGE' })}
-                    className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${
-                      voucherForm.discount_type === 'PERCENTAGE'
+                    className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${voucherForm.discount_type === 'PERCENTAGE'
                         ? 'bg-orange-500/20 border-orange-500 text-orange-300 shadow-sm'
                         : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
-                    }`}
+                      }`}
                   >
                     <Percent className="w-4 h-4" />
                     Giảm theo % (Phần trăm)
@@ -3570,11 +3545,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setVoucherForm({ ...voucherForm, discount_type: 'FIXED_AMOUNT' })}
-                    className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${
-                      voucherForm.discount_type === 'FIXED_AMOUNT'
+                    className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold transition ${voucherForm.discount_type === 'FIXED_AMOUNT'
                         ? 'bg-orange-500/20 border-orange-500 text-orange-300 shadow-sm'
                         : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
-                    }`}
+                      }`}
                   >
                     <DollarSign className="w-4 h-4" />
                     Giảm số tiền cố định (đ)
@@ -3971,8 +3945,8 @@ export default function AdminDashboard() {
                   {grantStore.merchantType === 'ENTERPRISE'
                     ? 'Doanh nghiệp'
                     : grantStore.merchantType === 'INDIVIDUAL'
-                    ? 'Cá nhân'
-                    : 'Hộ kinh doanh'}
+                      ? 'Cá nhân'
+                      : 'Hộ kinh doanh'}
                   )
                 </p>
               </div>
@@ -3985,8 +3959,8 @@ export default function AdminDashboard() {
                   <strong className="text-emerald-400 text-sm">
                     {formatVND(
                       !(grantStore.walletTransactions?.length) &&
-                      !(grantStore.payouts?.length) &&
-                      grantStore.wallet?.availableBalance === 1368922
+                        !(grantStore.payouts?.length) &&
+                        grantStore.wallet?.availableBalance === 1368922
                         ? 0
                         : grantStore.wallet?.availableBalance || 0
                     )}
@@ -3997,8 +3971,8 @@ export default function AdminDashboard() {
                   <strong className="text-amber-400 text-sm">
                     {formatVND(
                       !(grantStore.walletTransactions?.length) &&
-                      !(grantStore.payouts?.length) &&
-                      grantStore.wallet?.pendingBalance === 327850
+                        !(grantStore.payouts?.length) &&
+                        grantStore.wallet?.pendingBalance === 327850
                         ? 0
                         : grantStore.wallet?.pendingBalance || 0
                     )}
@@ -4012,22 +3986,20 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setGrantTarget('available')}
-                    className={`py-2 px-3 rounded-xl border font-bold transition ${
-                      grantTarget === 'available'
+                    className={`py-2 px-3 rounded-xl border font-bold transition ${grantTarget === 'available'
                         ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
                         : 'bg-slate-900 border-slate-700 text-slate-400'
-                    }`}
+                      }`}
                   >
                     Số dư khả dụng (Rút ngay)
                   </button>
                   <button
                     type="button"
                     onClick={() => setGrantTarget('pending')}
-                    className={`py-2 px-3 rounded-xl border font-bold transition ${
-                      grantTarget === 'pending'
+                    className={`py-2 px-3 rounded-xl border font-bold transition ${grantTarget === 'pending'
                         ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                         : 'bg-slate-900 border-slate-700 text-slate-400'
-                    }`}
+                      }`}
                   >
                     Số dư chờ xử lý
                   </button>
@@ -4042,11 +4014,10 @@ export default function AdminDashboard() {
                       key={preset}
                       type="button"
                       onClick={() => setGrantAmount(preset)}
-                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
-                        Number(grantAmount) === preset
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${Number(grantAmount) === preset
                           ? 'bg-emerald-600 text-white border-emerald-500'
                           : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
-                      }`}
+                        }`}
                     >
                       +{formatVND(preset)}
                     </button>

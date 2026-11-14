@@ -52,3 +52,4 @@ export function initSmoothInteractions() {
     }, 550);
   }, { passive: true });
 }
+

@@ -137,6 +137,7 @@ body.is-embedded{
   -ms-overflow-style:none !important;
   margin:0 !important;
   padding:0 !important;
+  width:100% !important;
   min-height:auto !important;
 }
 html.is-embedded::-webkit-scrollbar,
@@ -161,9 +162,11 @@ body.is-embedded .hero{
   min-height:0 !important;
   height:auto !important;
   padding:0 !important;
-  margin:0 !important;
+  margin:0 auto !important;
+  width:100% !important;
+  display:grid !important;
+  justify-items:center !important;
   align-content:start !important;
-  justify-content:start !important;
 }
 .is-embedded .hero-kicker,
 html.is-embedded .hero-kicker,
@@ -173,15 +176,30 @@ body.is-embedded .hero-kicker{
 .is-embedded .sb-wrap,
 html.is-embedded .sb-wrap,
 body.is-embedded .sb-wrap{
-  gap:4px !important;
-  margin-top:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  display:grid !important;
+  justify-items:center !important;
+  gap:8px !important;
+  margin:0 auto !important;
   padding-top:0 !important;
 }
 .is-embedded .sb-stage,
 html.is-embedded .sb-stage,
 body.is-embedded .sb-stage{
+  width:100% !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
   margin-top:0 !important;
   padding-top:0 !important;
+}
+.is-embedded .sb-3d,
+html.is-embedded .sb-3d,
+body.is-embedded .sb-3d{
+  width:100% !important;
+  max-width:900px !important;
+  flex:1 1 900px !important;
 }
 .is-embedded .hero-down,
 html.is-embedded .hero-down,
@@ -1270,6 +1288,8 @@ function marks(){
 /* ---------------------------------------------------------- the riffle */
 function endIntro(){
   introOn=false;wrap.classList.remove('intro','b2');
+  layout();
+  restLoupe();
 }
 function riffleStep(){
   const s=riffle[riffleAt];
@@ -1308,7 +1328,7 @@ function startIntro(){
     return im.decode?im.decode().catch(()=>{}):new Promise(r=>{im.onload=im.onerror=r});
   }));
   if(document.fonts&&document.fonts.ready)await document.fonts.ready.catch(()=>{});
-  syncZoom();restLoupe();
+  layout();syncZoom();restLoupe();
   document.body.dataset.ready='1';
   if(Q.has('shot')){
     if(Q.has('t')){startTurn(Q.get('dir')||'next',parseFloat(Q.get('t')));}
