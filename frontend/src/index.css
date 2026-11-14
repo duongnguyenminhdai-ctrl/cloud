@@ -14,7 +14,7 @@
   --ink-faint: rgba(43, 39, 33, 0.36);
   --hairline: rgba(43, 39, 33, 0.14);
   --earth: #9a6a3e;
-  --display: 'Instrument Serif', "New York", Georgia, 'Times New Roman', serif;
+  --display: 'Playfair Display', 'Cormorant Garamond', 'Newsreader', Georgia, 'Times New Roman', serif;
   --font: 'Newsreader', "New York", Georgia, 'Times New Roman', serif;
 }
 
@@ -104,7 +104,7 @@
 }
 
 .sketch-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   color: #2b2721;
 }
 
@@ -158,7 +158,7 @@
 .admin-sketchbook-theme h1,
 .admin-sketchbook-theme h2,
 .admin-sketchbook-theme h3 {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   color: #2b2721 !important;
   letter-spacing: -0.01em;
 }

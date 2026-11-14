@@ -137,7 +137,7 @@ function AppContent() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-['Instrument_Serif'] text-xl font-bold tracking-tight text-[#2b2721]">
+                    <span className="font-serif text-xl font-bold tracking-tight text-[#2b2721]">
                       FoodFast
                     </span>
                     <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f2ece1] text-[#9a6a3e] border border-[rgba(154,106,62,0.2)]">

@@ -74,7 +74,7 @@
   display: inline-flex;
   align-items: center;
   gap: calc(10 * var(--ff-intro-u));
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   font-size: calc(28 * var(--ff-intro-u));
   letter-spacing: -0.01em;
   color: var(--ff-intro-ink);
@@ -231,7 +231,7 @@
   top: calc(168 * var(--ff-intro-u));
   margin: 0;
   text-align: center;
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   font-weight: 400;
   font-size: calc(92 * var(--ff-intro-u));
   line-height: calc(94 * var(--ff-intro-u));
@@ -526,7 +526,7 @@
 }
 
 .intro-preview-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   font-size: 26px;
   font-weight: 400;
   margin: 0;
