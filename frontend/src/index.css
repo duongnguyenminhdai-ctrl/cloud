@@ -17,6 +17,13 @@
   --earth: #9a6a3e;
   --display: 'Playfair Display', 'Lora', Georgia, serif;
   --font: 'Lora', 'Playfair Display', Georgia, serif;
+
+  /* Timing Curves & Durations cho Smooth Micro-interactions */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.16s;
+  --dur-normal: 0.25s;
+  --dur-slow: 0.4s;
 }
 
 :root.dark, html.dark {
@@ -27,6 +34,10 @@
   --ink-faint: rgba(237, 230, 216, 0.40);
   --hairline: rgba(240, 234, 224, 0.12);
   --earth: #b5814c;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html, body, #root, .shader-frame {
@@ -101,21 +112,35 @@ html, body, #root, .shader-frame {
 .sketch-btn-primary {
   background-color: #9a6a3e !important;
   color: #ffffff !important;
-  transition: all 0.2s ease;
+  transition: transform var(--dur-normal) var(--ease-smooth),
+              box-shadow var(--dur-normal) var(--ease-smooth),
+              background-color var(--dur-normal) ease !important;
   box-shadow: 0 2px 8px rgba(154, 106, 62, 0.25);
 }
 .sketch-btn-primary:hover {
   background-color: #845831 !important;
+  transform: translateY(-1.5px);
+  box-shadow: 0 5px 16px rgba(154, 106, 62, 0.35) !important;
+}
+.sketch-btn-primary:active {
+  transform: scale(0.96) translateY(0) !important;
 }
 
 .sketch-btn-secondary {
   background-color: #f2ece1 !important;
   color: #845831 !important;
   border: 1px solid rgba(154, 106, 62, 0.25) !important;
-  transition: all 0.2s ease;
+  transition: transform var(--dur-normal) var(--ease-smooth),
+              box-shadow var(--dur-normal) var(--ease-smooth),
+              background-color var(--dur-normal) ease !important;
 }
 .sketch-btn-secondary:hover {
   background-color: #ebdcc8 !important;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(154, 106, 62, 0.15) !important;
+}
+.sketch-btn-secondary:active {
+  transform: scale(0.96) translateY(0) !important;
 }
 
 .sketch-title {
@@ -125,6 +150,207 @@ html, body, #root, .shader-frame {
 
 .sketch-handwrite {
   font-family: 'Caveat', cursive;
+}
+
+/* =============================================================================
+   HỆ THỐNG ANIMATION & HIỆU ỨNG TƯƠNG TÁC (SMOOTH HOVER & TACTILE CLICK SYSTEM)
+   ============================================================================= */
+
+/* Hiệu ứng gợn sóng mực nước (Water Ink Ripple) khi click */
+.has-foodfast-ripple {
+  overflow: hidden !important;
+}
+
+.foodfast-ink-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(0);
+  background: radial-gradient(circle, rgba(154, 106, 62, 0.32) 0%, rgba(154, 106, 62, 0.12) 50%, transparent 75%);
+  animation: ink-ripple-anim 0.52s var(--ease-smooth) forwards;
+  z-index: 40;
+}
+
+.dark .foodfast-ink-ripple {
+  background: radial-gradient(circle, rgba(229, 184, 135, 0.38) 0%, rgba(229, 184, 135, 0.12) 50%, transparent 75%);
+}
+
+@keyframes ink-ripple-anim {
+  0% {
+    transform: scale(0);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Nút bấm tương tác toàn web (Interactive Buttons): Hover lướt êm, Click đàn hồi */
+button:not(:disabled):not([aria-disabled="true"]):not(.no-motion),
+a[role="button"]:not([aria-disabled="true"]):not(.no-motion),
+.interactive-tap:not(:disabled) {
+  transition: transform var(--dur-normal) var(--ease-smooth),
+              box-shadow var(--dur-normal) var(--ease-smooth),
+              background-color var(--dur-normal) ease,
+              border-color var(--dur-normal) ease,
+              color var(--dur-normal) ease,
+              opacity var(--dur-normal) ease;
+  will-change: transform;
+}
+
+/* Hover: nâng nhẹ 1.5px và mở rộng độ mềm bóng đổ */
+button:not(:disabled):not([aria-disabled="true"]):not(.no-motion):hover,
+a[role="button"]:not([aria-disabled="true"]):not(.no-motion):hover,
+.interactive-tap:not(:disabled):hover {
+  transform: translateY(-1.5px);
+}
+
+/* Active / Click: co nhẹ lại 0.958 tạo cảm giác nút vật lý đàn hồi xúc giác chân thực */
+button:not(:disabled):not([aria-disabled="true"]):not(.no-motion):active,
+a[role="button"]:not([aria-disabled="true"]):not(.no-motion):active,
+.interactive-tap:not(:disabled):active {
+  transform: scale(0.958) translateY(0px) !important;
+  transition-duration: 0.08s !important;
+}
+
+/* Thẻ món ăn, thẻ quán ăn & Card nội dung (.sketch-card, .foodfast-card) */
+.sketch-card,
+.sketch-subcard,
+.foodfast-card {
+  transition: transform var(--dur-slow) var(--ease-smooth),
+              box-shadow var(--dur-slow) var(--ease-smooth),
+              border-color var(--dur-normal) ease,
+              background-color var(--dur-normal) ease;
+  will-change: transform, box-shadow;
+}
+
+.sketch-card:hover,
+.foodfast-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -6px rgba(43, 39, 33, 0.11), 0 4px 12px -2px rgba(43, 39, 33, 0.05);
+}
+
+.dark .sketch-card:hover,
+.dark .foodfast-card:hover {
+  box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.sketch-card:active,
+.foodfast-card:active {
+  transform: scale(0.985) translateY(-2px);
+  transition-duration: 0.1s;
+}
+
+/* Phóng to ảnh mượt mà khi rê chuột vào Card món ăn */
+.sketch-card img,
+.foodfast-card img,
+.group:hover .group-hover\:scale-105,
+.group:hover .group-hover\:scale-110 {
+  transition: transform 0.45s var(--ease-smooth) !important;
+}
+
+/* Icon Buttons trên Header & Panels (Giỏ hàng, Chuông, Sáng/Tối, Avatar) */
+.icon-action-btn,
+button.p-2,
+button.p-2\.5,
+a.p-2,
+a.p-2\.5 {
+  transition: transform var(--dur-normal) var(--ease-smooth),
+              color var(--dur-normal) ease,
+              background-color var(--dur-normal) ease;
+}
+
+.icon-action-btn:hover,
+button.p-2:hover,
+button.p-2\.5:hover,
+a.p-2:hover,
+a.p-2\.5:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.icon-action-btn:active,
+button.p-2:active,
+button.p-2\.5:active,
+a.p-2:active,
+a.p-2\.5:active {
+  transform: scale(0.92) !important;
+  transition-duration: 0.08s !important;
+}
+
+/* Ô nhập liệu Form (Input, Select, Textarea): Hover sáng nhẹ, Focus lướt êm */
+.sketch-input,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  transition: border-color var(--dur-normal) ease,
+              box-shadow var(--dur-normal) var(--ease-smooth),
+              background-color var(--dur-normal) ease,
+              transform var(--dur-fast) ease;
+}
+
+.sketch-input:hover,
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: rgba(154, 106, 62, 0.42) !important;
+}
+
+.sketch-input:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px rgba(154, 106, 62, 0.18), 0 2px 8px rgba(154, 106, 62, 0.08) !important;
+}
+
+.dark .sketch-input:hover,
+.dark input:not([type="checkbox"]):not([type="radio"]):hover,
+.dark select:hover,
+.dark textarea:hover {
+  border-color: rgba(229, 184, 135, 0.45) !important;
+}
+
+.dark .sketch-input:focus,
+.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+.dark select:focus,
+.dark textarea:focus {
+  box-shadow: 0 0 0 3px rgba(229, 184, 135, 0.22), 0 2px 10px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Hiệu ứng nhấp nhô nhẹ nhàng khi hover vào các thẻ Badge, Chip, Tab */
+.sketch-chip,
+.category-chip,
+[role="tab"] {
+  transition: transform var(--dur-normal) var(--ease-smooth),
+              box-shadow var(--dur-normal) var(--ease-smooth),
+              background-color var(--dur-normal) ease,
+              color var(--dur-normal) ease;
+}
+
+.sketch-chip:hover,
+.category-chip:hover,
+[role="tab"]:hover {
+  transform: translateY(-2px);
+}
+
+.sketch-chip:active,
+.category-chip:active,
+[role="tab"]:active {
+  transform: scale(0.95) translateY(0);
+}
+
+/* Tôn trọng cài đặt giảm chuyển động cho người nhạy cảm */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* =============================================================================
