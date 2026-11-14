@@ -827,7 +827,23 @@ export default function Home() {
     return regex.test(textPool);
   };
 
-  // Hàm xử lý khi người dùng click vào Tab Danh mục FoodFast ở Hero Banner
+  // Hàm cuộn mượt xuống thẳng danh sách quán ăn khi tìm kiếm hoặc chọn danh mục
+  const scrollToRestaurants = (behavior = 'smooth') => {
+    setTimeout(() => {
+      const elem = document.getElementById('foodfast-restaurants-section');
+      if (elem) {
+        elem.scrollIntoView({ behavior, block: 'start' });
+      }
+    }, 40);
+  };
+
+  // Hàm xử lý khi người dùng submit tìm kiếm (bấm Enter hoặc click kính lúp)
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    scrollToRestaurants('smooth');
+  };
+
+  // Hàm xử lý khi người dùng click vào Tab Danh mục FoodFast ở Hero Banner (Cơm, Bún Mì Phở, ...)
   const handleSelectFoodfastCategory = (catId) => {
     if (catId === 'All') {
       setSelectedCategory('All');
@@ -842,6 +858,8 @@ export default function Home() {
       }
     }
     if (activeTab === 'favorites') setActiveTab('near');
+    // Lập tức cuộn mượt xuống danh sách cửa hàng
+    scrollToRestaurants('smooth');
   };
 
   // Hàm xử lý khi người dùng click vào Icon Danh mục FoodFast (20 Icon Grid)
@@ -859,6 +877,8 @@ export default function Home() {
       }
     }
     if (activeTab === 'favorites') setActiveTab('near');
+    // Lập tức cuộn mượt xuống danh sách cửa hàng
+    scrollToRestaurants('smooth');
   };
 
   // Lọc và sắp xếp quán ăn theo Tab (Gần tôi / Bán chạy / Đánh giá) và Quận/Huyện
@@ -960,21 +980,30 @@ export default function Home() {
             {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
             <div className="lg:col-span-7 space-y-3">
               {/* Thanh tìm kiếm món ăn / địa chỉ */}
-              <div className="flex bg-[#fffdfa] rounded-2xl shadow-xs overflow-hidden p-1 border border-[rgba(43,39,33,0.18)] focus-within:ring-4 focus-within:ring-[#9a6a3e]/15 focus-within:border-[#9a6a3e] transition-all">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="flex bg-[#fffdfa] dark:bg-[#24201b] rounded-2xl shadow-xs overflow-hidden p-1 border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.18)] focus-within:ring-4 focus-within:ring-[#9a6a3e]/15 focus-within:border-[#9a6a3e] transition-all"
+              >
                 <input
                   type="text"
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchSubmit(e);
+                    }
+                  }}
                   placeholder="Tìm địa điểm, món ăn, địa chỉ..."
-                  className="w-full px-4 py-2 text-sm sm:text-base text-[#2b2721] placeholder-[#2b2721]/40 focus:outline-none bg-transparent font-medium"
+                  className="w-full px-4 py-2 text-sm sm:text-base text-[#2b2721] dark:text-[#ede6d8] placeholder-[#2b2721]/40 dark:placeholder-[#ede6d8]/40 focus:outline-none bg-transparent font-medium"
                 />
                 <button
+                  type="submit"
                   className="px-5 py-2 sketch-btn-primary rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
-                  title="Tìm kiếm"
+                  title="Tìm kiếm và cuộn xuống danh sách quán ăn"
                 >
                   <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                 </button>
-              </div>
+              </form>
 
               {/* Danh sách Tags Danh mục FoodFast */}
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -1137,10 +1166,11 @@ export default function Home() {
         {/* 4. THANH HIỂN THỊ ĐỊA CHỈ GIAO HÀNG (Đồng bộ chặt chẽ với Profile) */}
         {/* ===================================================================== */}
         <div
-          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all ${
+          id="foodfast-restaurants-section"
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all scroll-mt-20 sm:scroll-mt-24 ${
             isAuthenticated && !hasUserAddress
               ? 'bg-amber-50/90 border-amber-300'
-              : 'bg-[#f7f3ea]/95 border-[rgba(43,39,33,0.14)]'
+              : 'bg-[#f7f3ea]/95 dark:bg-[#1c1916]/95 border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)]'
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -1225,7 +1255,7 @@ export default function Home() {
         {/* ===================================================================== */}
         {/* 5. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
         {/* ===================================================================== */}
-        <div id="foodfast-restaurants-section" className="flex items-center justify-between border-b border-[rgba(43,39,33,0.14)] pb-2 mb-4 scroll-mt-24">
+        <div id="foodfast-restaurants-tabs" className="flex items-center justify-between border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] pb-2 mb-4 scroll-mt-24">
           {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá, Yêu thích) */}
           <div className="flex items-center gap-6 sm:gap-8">
             <button
