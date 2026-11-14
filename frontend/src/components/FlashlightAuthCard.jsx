@@ -13,6 +13,10 @@ export default function FlashlightAuthCard({
   passwordValue = '',
   passwordInputRef,
   passwordButtonRef,
+  confirmPasswordValue = '',
+  confirmPasswordInputRef,
+  confirmPasswordButtonRef,
+  activeEye = 'password',
   emailInputRef,
   isNightMode,
   onToggleNightMode,
@@ -31,6 +35,8 @@ export default function FlashlightAuthCard({
   const [flashlightStyle, setFlashlightStyle] = useState({});
   const [overlayStyle, setOverlayStyle] = useState({});
   const [litLevels, setLitLevels] = useState([]);
+  const [confirmOverlayStyle, setConfirmOverlayStyle] = useState({});
+  const [confirmLitLevels, setConfirmLitLevels] = useState([]);
 
   // Owl physics state
   const [owlLight, setOwlLight] = useState(0);
@@ -38,16 +44,24 @@ export default function FlashlightAuthCard({
 
   const angleRadRef = useRef(Math.PI);
   const charRefs = useRef([]);
+  const confirmCharRefs = useRef([]);
 
   // Cập nhật vị trí và góc quay của đèn pin & chùm sáng
   const updatePhysics = useCallback((clientX, clientY) => {
     if (!nightMode) return;
 
+    let activeBtn = passwordButtonRef?.current;
+    if (activeEye === 'confirm' && confirmPasswordButtonRef?.current) {
+      activeBtn = confirmPasswordButtonRef.current;
+    } else if (!activeBtn && confirmPasswordButtonRef?.current) {
+      activeBtn = confirmPasswordButtonRef.current;
+    }
+
     let eyeX = window.innerWidth / 2;
     let eyeY = window.innerHeight / 2;
 
-    if (passwordButtonRef?.current) {
-      const eyeRect = passwordButtonRef.current.getBoundingClientRect();
+    if (activeBtn) {
+      const eyeRect = activeBtn.getBoundingClientRect();
       eyeX = eyeRect.left + eyeRect.width / 2;
       eyeY = eyeRect.top + eyeRect.height / 2;
     }
@@ -81,8 +95,8 @@ export default function FlashlightAuthCard({
       transform: `rotate(${currentAngleDeg}deg)`
     });
 
-    // Định vị overlay password chuẩn xác khớp theo input
-    let fieldRect = { left: 0, top: 0, width: 0, height: 48 };
+    // Định vị overlay password chính
+    let fieldRect = null;
     if (passwordInputRef?.current) {
       fieldRect = passwordInputRef.current.getBoundingClientRect();
       const inputStyle = window.getComputedStyle(passwordInputRef.current);
@@ -105,6 +119,30 @@ export default function FlashlightAuthCard({
       });
     }
 
+    // Định vị overlay confirm password
+    let confirmFieldRect = null;
+    if (confirmPasswordInputRef?.current) {
+      confirmFieldRect = confirmPasswordInputRef.current.getBoundingClientRect();
+      const cStyle = window.getComputedStyle(confirmPasswordInputRef.current);
+      const cPadLeft = parseFloat(cStyle.paddingLeft) || 40;
+      const cPadRight = parseFloat(cStyle.paddingRight) || 48;
+      const cFontSize = cStyle.fontSize || '14px';
+      const cFontFamily = cStyle.fontFamily;
+      const cLetterSpacing = cStyle.letterSpacing || 'normal';
+
+      setConfirmOverlayStyle({
+        left: `${confirmFieldRect.left}px`,
+        top: `${confirmFieldRect.top}px`,
+        width: `${confirmFieldRect.width}px`,
+        height: `${confirmFieldRect.height}px`,
+        paddingLeft: `${cPadLeft}px`,
+        paddingRight: `${cPadRight}px`,
+        fontSize: cFontSize,
+        fontFamily: cFontFamily,
+        letterSpacing: cLetterSpacing
+      });
+    }
+
     // Hàm tính toán cường độ ánh sáng tại điểm (x, y)
     const getLightLevel = (x, y) => {
       const offsetX = x - originX;
@@ -118,14 +156,24 @@ export default function FlashlightAuthCard({
       return along >= 0 ? edgeFade * endFade : 0;
     };
 
-    // Tính ánh sáng cho từng ký tự mật khẩu
-    if (charRefs.current.length > 0) {
+    // Tính ánh sáng cho từng ký tự mật khẩu chính
+    if (charRefs.current.length > 0 && fieldRect) {
       const levels = charRefs.current.map((charEl) => {
         if (!charEl) return 0;
         const b = charEl.getBoundingClientRect();
         return getLightLevel(b.left + b.width / 2, fieldRect.top + fieldRect.height / 2);
       });
       setLitLevels(levels);
+    }
+
+    // Tính ánh sáng cho từng ký tự xác nhận mật khẩu
+    if (confirmCharRefs.current.length > 0 && confirmFieldRect) {
+      const cLevels = confirmCharRefs.current.map((charEl) => {
+        if (!charEl) return 0;
+        const b = charEl.getBoundingClientRect();
+        return getLightLevel(b.left + b.width / 2, confirmFieldRect.top + confirmFieldRect.height / 2);
+      });
+      setConfirmLitLevels(cLevels);
     }
 
     // Tính ánh sáng và hướng nhìn của chú cú (đậu ở góc phải trên của email input)
@@ -152,7 +200,7 @@ export default function FlashlightAuthCard({
         isLit
       });
     }
-  }, [nightMode, passwordButtonRef, passwordInputRef, emailInputRef]);
+  }, [nightMode, activeEye, passwordButtonRef, passwordInputRef, confirmPasswordButtonRef, confirmPasswordInputRef, emailInputRef]);
 
   // Lắng nghe di chuột
   useEffect(() => {
@@ -179,20 +227,27 @@ export default function FlashlightAuthCard({
 
   // Khởi tạo hướng đèn pin khi bật chế độ đêm
   useEffect(() => {
-    if (nightMode && passwordInputRef?.current) {
-      const rect = passwordInputRef.current.getBoundingClientRect();
-      angleRadRef.current = Math.PI;
-      const initX = rect.left + 20;
-      const initY = rect.top + rect.height / 2;
-      setPointer({ x: initX, y: initY });
-      setTimeout(() => updatePhysics(initX, initY), 50);
+    if (nightMode) {
+      const targetInput =
+        activeEye === 'confirm'
+          ? confirmPasswordInputRef?.current || passwordInputRef?.current
+          : passwordInputRef?.current || confirmPasswordInputRef?.current;
+
+      if (targetInput) {
+        const rect = targetInput.getBoundingClientRect();
+        angleRadRef.current = Math.PI;
+        const initX = rect.left + 20;
+        const initY = rect.top + rect.height / 2;
+        setPointer({ x: initX, y: initY });
+        setTimeout(() => updatePhysics(initX, initY), 50);
+      }
     } else {
       setOwlLight(0);
       setOwlGaze({ x: 0, y: 0, headX: 0, headY: 0, tilt: 0, isLit: false });
     }
-  }, [nightMode, updatePhysics, passwordInputRef]);
+  }, [nightMode, activeEye, updatePhysics, passwordInputRef, confirmPasswordInputRef]);
 
-  // Cập nhật lại vị trí và độ sáng khi passwordValue thay đổi
+  // Cập nhật lại vị trí và độ sáng khi passwordValue hoặc confirmPasswordValue thay đổi
   useEffect(() => {
     if (nightMode) {
       const raf = requestAnimationFrame(() => {
@@ -200,9 +255,10 @@ export default function FlashlightAuthCard({
       });
       return () => cancelAnimationFrame(raf);
     }
-  }, [passwordValue, nightMode, updatePhysics, pointer]);
+  }, [passwordValue, confirmPasswordValue, activeEye, nightMode, updatePhysics, pointer]);
 
   const charsArray = Array.from(passwordValue || '');
+  const confirmCharsArray = Array.from(confirmPasswordValue || '');
 
   return (
     <div className={`flashlight-container ${nightMode ? 'night' : ''}`}>
@@ -218,25 +274,49 @@ export default function FlashlightAuthCard({
         <img src="/flashlight-assets/flashlight.svg" alt="Flashlight" className="w-full h-full" />
       </div>
 
-      {/* Overlay ký tự mật khẩu phát sáng */}
-      <div className="password-reveal-overlay" style={overlayStyle}>
-        <span>
-          {charsArray.map((letter, idx) => {
-            const lit = litLevels[idx] || 0;
-            return (
-              <span
-                key={idx}
-                ref={(el) => (charRefs.current[idx] = el)}
-                className="reveal-char"
-                style={{ '--lit': String(lit) }}
-              >
-                <span className="masked-char">•</span>
-                <span className="plain-char">{letter}</span>
-              </span>
-            );
-          })}
-        </span>
-      </div>
+      {/* Overlay ký tự mật khẩu chính phát sáng */}
+      {passwordInputRef?.current && (
+        <div className="password-reveal-overlay" style={overlayStyle}>
+          <span>
+            {charsArray.map((letter, idx) => {
+              const lit = litLevels[idx] || 0;
+              return (
+                <span
+                  key={`pw-${idx}`}
+                  ref={(el) => (charRefs.current[idx] = el)}
+                  className="reveal-char"
+                  style={{ '--lit': String(lit) }}
+                >
+                  <span className="masked-char">•</span>
+                  <span className="plain-char">{letter}</span>
+                </span>
+              );
+            })}
+          </span>
+        </div>
+      )}
+
+      {/* Overlay ký tự xác nhận mật khẩu phát sáng */}
+      {confirmPasswordInputRef?.current && (
+        <div className="password-reveal-overlay" style={confirmOverlayStyle}>
+          <span>
+            {confirmCharsArray.map((letter, idx) => {
+              const lit = confirmLitLevels[idx] || 0;
+              return (
+                <span
+                  key={`cpw-${idx}`}
+                  ref={(el) => (confirmCharRefs.current[idx] = el)}
+                  className="reveal-char"
+                  style={{ '--lit': String(lit) }}
+                >
+                  <span className="masked-char">•</span>
+                  <span className="plain-char">{letter}</span>
+                </span>
+              );
+            })}
+          </span>
+        </div>
+      )}
 
       {/* The Central Glassmorphism Card */}
       <div className="flashlight-card">
