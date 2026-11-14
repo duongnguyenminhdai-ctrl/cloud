@@ -54,7 +54,12 @@ export default function Register() {
     try {
       const res = await authApi.sendOTP({ email: email.trim(), type: 'REGISTER' });
       if (res.data?.success) {
-        setInfoMsg(res.data.message || 'Mã OTP đã được gửi về Gmail của bạn.');
+        if (res.data.devOtp) {
+          setOtp(res.data.devOtp);
+          setInfoMsg(`Mã OTP xác thực: ${res.data.devOtp} (Đã tự động điền vào ô mã xác thực bên dưới)`);
+        } else {
+          setInfoMsg(res.data.message || 'Mã OTP đã được gửi về Gmail của bạn.');
+        }
         setCountdown(60);
       } else {
         setError(res.data?.message || 'Không thể gửi mã OTP.');
@@ -64,7 +69,7 @@ export default function Register() {
       if (remainingSec) {
         setCountdown(remainingSec);
       }
-      setError(err.response?.data?.message || 'Lỗi kết nối khi gửi email OTP.');
+      setError(err.response?.data?.message || 'Lỗi kết nối khi gửi email OTP. Vui lòng thử lại sau giây lát.');
     } finally {
       setOtpSending(false);
     }

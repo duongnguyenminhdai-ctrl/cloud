@@ -1,6 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const dns = require('dns');
+
+// Cấu hình DNS Server dự phòng cho Node.js khi resolve MongoDB Atlas SRV
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 
 // Nạp file cấu hình môi trường
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });

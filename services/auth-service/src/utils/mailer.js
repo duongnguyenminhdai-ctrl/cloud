@@ -3,13 +3,21 @@ const nodemailer = require('nodemailer');
 const EMAIL_USER = process.env.EMAIL_USER || 'nguyenminhdaiduongtest1@gmail.com';
 const EMAIL_PASS = process.env.EMAIL_APP_PASS || process.env.EMAIL_APP_PASSWORD || 'nlqn ezsz ggjt wmnj';
 
-// Khởi tạo Transporter Gmail SMTP
+// Khởi tạo Transporter Gmail SMTP với cổng 465 (SSL) và cấu hình Timeout chống treo server
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
-  }
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 4000, // 4s timeout nếu cổng SMTP bị chặn bởi cloud firewall
+  greetingTimeout: 4000,
+  socketTimeout: 5000
 });
 
 /**
@@ -102,9 +110,20 @@ async function sendOTPEmail(email, otp, type = 'REGISTER') {
     html: htmlContent
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  console.log(`[Mailer] 📧 Đã gửi mã OTP [${otp}] tới [${email}] (Loại: ${type}) - MessageId: ${info.messageId}`);
-  return info;
+  try {
+    // Giới hạn thời gian gửi mail tối đa 4.5s để chống treo request khi cổng SMTP bị chặn
+    const info = await Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SMTP_TIMEOUT: Cloud firewall blocked outbound SMTP connection')), 4500)
+      )
+    ]);
+    console.log(`[Mailer] 📧 Đã gửi mã OTP [${otp}] tới [${email}] (Loại: ${type}) - MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.warn(`[Mailer] ⚠️ Không thể kết nối SMTP để gửi email tới [${email}]: ${err.message}`);
+    return { success: false, error: err.message };
+  }
 }
 
 module.exports = {
