@@ -421,7 +421,7 @@ export default function IntroPage() {
 
           <p className="intro-subline">
             Khám phá hương vị đặc sản ba miền cùng hàng ngàn món ngon từ các đầu bếp tuyển chọn.
-            Đặt món nóng hổi, giao siêu tốc trong 15 phút với ngàn ưu đãi hấp dẫn.
+            Đặt món nóng hổi, giao siêu tốc với ngàn ưu đãi hấp dẫn.
           </p>
         </div>
 

@@ -106,7 +106,7 @@ export default function PromotionPopupModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-b from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-1 shadow-2xl text-white overflow-hidden animate-scaleUp">
+      <div className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-b from-[#9a6a3e] via-[#b88050] to-[#9a6a3e] rounded-3xl p-1 shadow-2xl text-[#2b2721] overflow-hidden animate-scaleUp">
         {/* Nút đóng */}
         <button
           onClick={() => setIsOpen(false)}
@@ -118,9 +118,9 @@ export default function PromotionPopupModal() {
         </button>
 
         {/* Nội dung Popup */}
-        <div className="relative bg-white text-gray-900 rounded-[22px] overflow-hidden p-5 sm:p-6 space-y-4">
+        <div className="relative sketch-panel rounded-[22px] overflow-hidden p-5 sm:p-6 space-y-4 text-[#2b2721]">
           {/* Banner ảnh khuyến mãi độc quyền FoodFast */}
-          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden bg-gradient-to-tr from-orange-600 to-amber-400 flex items-center justify-center shadow-inner group">
+          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#9a6a3e] to-[#c99a6b] flex items-center justify-center shadow-inner group">
             <img
               src={currentBanner.banner_image || '/popups/foodfast-promo.jpg'}
               alt={currentBanner.banner_title || currentBanner.title || 'FoodFast Flash Sale'}
@@ -129,7 +129,7 @@ export default function PromotionPopupModal() {
                 e.currentTarget.src = '/popups/foodfast-promo.jpg';
               }}
             />
-            <div className="absolute top-3 left-3 bg-red-600 text-white text-[11px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 animate-pulse z-10">
+            <div className="absolute top-3 left-3 bg-[#9a6a3e] text-white text-[11px] font-bold uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 z-10">
               <Flame className="w-3.5 h-3.5 text-white fill-white" />
               HOT DEAL HÔM NAY
             </div>
@@ -139,7 +139,7 @@ export default function PromotionPopupModal() {
               <>
                 <button
                   onClick={handlePrev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-lg cursor-pointer backdrop-blur-xs"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-[#9a6a3e] text-white flex items-center justify-center transition-all shadow-lg cursor-pointer backdrop-blur-xs"
                   title="Voucher trước"
                   aria-label="Voucher trước"
                 >
@@ -147,7 +147,7 @@ export default function PromotionPopupModal() {
                 </button>
                 <button
                   onClick={handleNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-lg cursor-pointer backdrop-blur-xs"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-[#9a6a3e] text-white flex items-center justify-center transition-all shadow-lg cursor-pointer backdrop-blur-xs"
                   title="Voucher tiếp theo"
                   aria-label="Voucher tiếp theo"
                 >
@@ -164,10 +164,10 @@ export default function PromotionPopupModal() {
 
           {/* Tiêu đề & Mô tả */}
           <div className="text-center space-y-1">
-            <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+            <h3 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] tracking-tight">
               {currentBanner.banner_title || currentBanner.title || 'Đại Tiệc FoodFast - Giảm 50%'}
             </h3>
-            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+            <p className="text-xs text-[#2b2721]/65 leading-relaxed line-clamp-2">
               {currentBanner.banner_description ||
                 (currentBanner.discount_type === 'PERCENTAGE'
                   ? `Giảm ${currentBanner.discount_value}% tối đa ${currentBanner.max_discount_amount?.toLocaleString('vi-VN')}đ cho mọi đơn hàng!`
@@ -187,8 +187,8 @@ export default function PromotionPopupModal() {
                   }}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     idx === currentIndex
-                      ? 'w-6 bg-orange-600'
-                      : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                      ? 'w-6 bg-[#9a6a3e]'
+                      : 'w-1.5 bg-[#dfd7ca] hover:bg-[#9a6a3e]/50'
                   }`}
                   aria-label={`Trang ${idx + 1}`}
                 />
@@ -197,14 +197,14 @@ export default function PromotionPopupModal() {
           )}
 
           {/* Hộp mã Voucher */}
-          <div className="p-3 bg-orange-50 rounded-2xl border-2 border-dashed border-orange-200 flex items-center justify-between gap-2">
+          <div className="p-3 bg-[#f2ece1] rounded-2xl border-2 border-dashed border-[rgba(154,106,62,0.3)] flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#9a6a3e] text-white flex items-center justify-center shrink-0">
                 <Tag className="w-4 h-4" />
               </div>
               <div className="text-left min-w-0 truncate">
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Mã giảm giá</p>
-                <p className="font-mono font-black text-sm text-orange-600 tracking-wider truncate">
+                <p className="text-[10px] font-bold text-[#2b2721]/50 uppercase">Mã giảm giá</p>
+                <p className="font-mono font-black text-sm text-[#845831] tracking-wider truncate">
                   {promoCode}
                 </p>
               </div>
@@ -215,7 +215,7 @@ export default function PromotionPopupModal() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
                 isCopied
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-white text-orange-600 border border-orange-300 hover:bg-orange-100'
+                  : 'bg-[#fffdfa] text-[#845831] border border-[rgba(154,106,62,0.3)] hover:bg-[#ebdcc8]'
               }`}
             >
               {isCopied ? (
@@ -233,7 +233,7 @@ export default function PromotionPopupModal() {
           {/* Nút Săn Deal Ngay */}
           <button
             onClick={handleClaim}
-            className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="sketch-btn-primary w-full py-3 sm:py-3.5 font-bold text-sm sm:text-base rounded-2xl shadow-md shadow-[#9a6a3e]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Săn Ngay Thôi</span>
             <ArrowRight className="w-4 h-4" />

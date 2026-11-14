@@ -39,7 +39,7 @@ function IntroGatekeeper({ children }) {
           sessionStorage.removeItem('foodfast_intro_button_clicked');
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -66,11 +66,10 @@ function AppContent() {
   return (
     <IntroGatekeeper>
       <div
-        className={`min-h-screen flex flex-col font-sans relative ${
-          isAuthPage
-            ? 'bg-transparent'
-            : 'bg-[#ece7dc] text-[#2b2721]'
-        }`}
+        className={`min-h-screen flex flex-col font-sans relative ${isAuthPage
+          ? 'bg-transparent'
+          : 'bg-[#ece7dc] text-[#2b2721]'
+          }`}
       >
         {/* Lớp nền Wash màu nước nghệ thuật Sổ Tay Ký Họa áp dụng toàn hệ thống (trừ các trang Auth) */}
         {!isAuthPage && !isIntro && (
@@ -145,13 +144,13 @@ function AppContent() {
                     </span>
                   </div>
                   <p className="text-xs text-[#2b2721]/65 font-serif italic mt-0.5">
-                    Hương vị truyền thống & ngàn món ngon giao siêu tốc 15 phút
+                    Hương vị truyền thống & ngàn món ngon giao nhanh siêu tốc
                   </p>
                 </div>
               </div>
               <div className="text-xs text-[#2b2721]/55 space-y-1 sm:text-right">
                 <p>© 2026 FoodFast. Nền tảng ẩm thực & ký họa mỹ vị Việt Nam.</p>
-                <p className="text-[11px] font-mono text-[#9a6a3e]">Mỹ vị 9 miền — Giao nhanh tận cửa</p>
+                <p className="text-[11px] font-mono text-[#9a6a3e]">Mỹ vị Việt Nam — Giao nhanh tận cửa</p>
               </div>
             </div>
           </footer>

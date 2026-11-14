@@ -100,9 +100,6 @@ export default function Navbar() {
               <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] group-hover:text-[#9a6a3e] transition-colors leading-none">
                 FoodFast
               </span>
-              <span className="hidden sm:inline-block text-[11px] font-serif font-medium px-2.5 py-0.5 ml-2 rounded-full bg-[#ece5d8] text-[#845831] border border-[rgba(43,39,33,0.12)]">
-                Giao siêu tốc 15'
-              </span>
             </div>
           </Link>
 
@@ -144,16 +141,6 @@ export default function Navbar() {
               <span className="hidden sm:inline">Quản trị</span>
             </Link>
           )}
-
-          {/* Nút Đơn hàng FoodFast */}
-          <Link
-            to="/orders?tab=history"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[#2b2721]/80 hover:text-[#9a6a3e] hover:bg-[#ece7dc]/70 font-bold text-xs sm:text-sm transition-all"
-            title="Xem đơn hàng và lịch sử đặt món"
-          >
-            <FileText className="w-4 h-4 text-[#9a6a3e]" />
-            <span className="hidden sm:inline">Đơn hàng</span>
-          </Link>
 
           {/* Cart Button: Nhấn vào hiển thị Giỏ hàng và các mục trên */}
           <Link

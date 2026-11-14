@@ -943,33 +943,33 @@ export default function Home() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-5 space-y-6 sm:space-y-7">
         {/* ===================================================================== */}
-        {/* 1. HERO BANNER CHUẨN FOODFAST (Image 1) */}
+        {/* 1. HERO BANNER CHUẨN FOODFAST (Sổ Tay Ký Họa) */}
         {/* ===================================================================== */}
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-slate-800">
-          {/* Ảnh nền đêm đô thị phong cách FoodFast */}
+        <div className="relative overflow-hidden rounded-3xl sketch-panel text-[#2b2721] shadow-sm">
+          {/* Lớp nền phong cảnh mỹ thuật đồng bộ Sổ Tay Ký Họa */}
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
+            className="absolute inset-0 bg-cover bg-center opacity-15 mix-blend-multiply"
             style={{
               backgroundImage:
-                'url("https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80")'
+                'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")'
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#fcfbf9]/95 via-[#f9f6f0]/90 to-[#f5efe4]/85" />
 
           <div className="relative z-10 p-4 sm:py-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
             {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
             <div className="lg:col-span-7 space-y-3">
               {/* Thanh tìm kiếm món ăn / địa chỉ */}
-              <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden p-1 border border-white/20 focus-within:ring-4 focus-within:ring-orange-500/30 transition-all">
+              <div className="flex bg-[#fffdfa] rounded-2xl shadow-xs overflow-hidden p-1 border border-[rgba(43,39,33,0.18)] focus-within:ring-4 focus-within:ring-[#9a6a3e]/15 focus-within:border-[#9a6a3e] transition-all">
                 <input
                   type="text"
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   placeholder="Tìm địa điểm, món ăn, địa chỉ..."
-                  className="w-full px-4 py-2 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none bg-transparent"
+                  className="w-full px-4 py-2 text-sm sm:text-base text-[#2b2721] placeholder-[#2b2721]/40 focus:outline-none bg-transparent font-medium"
                 />
                 <button
-                  className="px-5 py-2 bg-[#0084ff] hover:bg-[#0073e6] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-md cursor-pointer"
+                  className="px-5 py-2 sketch-btn-primary rounded-xl font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
                   title="Tìm kiếm"
                 >
                   <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -986,8 +986,8 @@ export default function Home() {
                       onClick={() => handleSelectFoodfastCategory(cat.id)}
                       className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                         isActive
-                          ? 'bg-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/30 font-bold scale-105'
-                          : 'bg-white/10 hover:bg-white/20 text-white/90 border-white/10 backdrop-blur-sm'
+                          ? 'bg-[#9a6a3e] text-white border-[#9a6a3e] shadow-xs font-bold scale-105'
+                          : 'bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721]/80 border-[rgba(43,39,33,0.12)]'
                       }`}
                     >
                       {cat.label}
@@ -1000,10 +1000,10 @@ export default function Home() {
             {/* Cột phải: Thẻ Ưu đãi hôm nay thu nhỏ vừa vặn */}
             <div className="lg:col-span-5">
               {/* Khung thẻ Ưu đãi & Quán nổi bật thu nhỏ */}
-              <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xl border border-gray-100 text-gray-900 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-gray-900">
-                    <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
+              <div className="sketch-card rounded-2xl p-3 sm:p-3.5 shadow-sm text-[#2b2721] space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[rgba(43,39,33,0.1)] pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-[#2b2721]">
+                    <Flame className="w-4 h-4 text-[#9a6a3e] fill-[#9a6a3e]" />
                     <span>Ưu đãi hôm nay</span>
                   </div>
                   <button
@@ -1011,7 +1011,7 @@ export default function Home() {
                     onClick={() => {
                       document.getElementById('foodfast-restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="text-[11px] font-semibold text-[#0084ff] hover:underline cursor-pointer bg-transparent border-0 p-0"
+                    className="text-[11px] font-semibold text-[#8c5d33] hover:underline cursor-pointer bg-transparent border-0 p-0"
                   >
                     Xem tất cả
                   </button>
@@ -1026,7 +1026,7 @@ export default function Home() {
                       className="group/item flex flex-col space-y-1 transition-all text-left cursor-pointer hover:scale-102"
                       title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán đặt món & dùng mã ${item.code}`}
                     >
-                      <div className="h-16 w-full rounded-xl overflow-hidden bg-gray-100 relative">
+                      <div className="h-16 w-full rounded-xl overflow-hidden bg-[#f2ece1] relative">
                         <img
                           src={item.image}
                           alt={item.restaurantName}
@@ -1038,12 +1038,12 @@ export default function Home() {
                           }}
                         />
                         {copiedVoucher === item.code && (
-                          <div className="absolute inset-0 bg-black/75 flex items-center justify-center text-[10px] text-emerald-400 font-bold">
+                          <div className="absolute inset-0 bg-[#2b2721]/85 flex items-center justify-center text-[10px] text-[#f2ece1] font-bold">
                             ✓ Đã chép mã
                           </div>
                         )}
                       </div>
-                      <p className="text-[11px] font-bold text-gray-800 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
+                      <p className="text-[11px] font-bold text-[#2b2721] line-clamp-1 group-hover/item:text-[#9a6a3e] transition-colors">
                         {item.restaurantName}
                       </p>
                       <button
@@ -1053,7 +1053,7 @@ export default function Home() {
                           handleCopyVoucher(item.code);
                           navigate(`/restaurants/${item.restaurantId}`);
                         }}
-                        className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200/60 rounded px-1.5 py-0.5 w-fit hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#845831] bg-[#f2ece1] border border-[rgba(154,106,62,0.25)] rounded px-1.5 py-0.5 w-fit hover:bg-[#ebdcc8] active:scale-95 transition-all cursor-pointer"
                         title={`Bấm để sao chép mã ${item.code} và vào quán`}
                       >
                         <Tag className="w-2.5 h-2.5 shrink-0" />
