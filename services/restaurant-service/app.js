@@ -37,6 +37,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/admin/vouchers', voucherRoutes);
 app.use('/api/admin/vouchers', voucherRoutes);
 app.use('/admin/vouchers', voucherRoutes);
+app.use('/api/v1/restaurants/admin/vouchers', voucherRoutes);
 app.use('/api/v1/vouchers', voucherRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/vouchers', voucherRoutes);

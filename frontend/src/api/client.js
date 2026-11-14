@@ -598,19 +598,66 @@ export const storeApi = {
 // -----------------------------------------------------------------------------
 export const voucherApi = {
   apply: async ({ voucher_code, cart_total, store_id }) => {
-    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/apply'), {
-      voucher_code,
-      cart_total,
-      store_id
-    });
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/apply'), {
+        voucher_code,
+        cart_total,
+        store_id
+      });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.post('http://localhost:3001/api/v1/vouchers/apply', {
+            voucher_code,
+            cart_total,
+            store_id
+          });
+        } catch {}
+      }
+      throw err;
+    }
   },
   getAvailable: async ({ store_id } = {}) => {
-    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), {
-      params: { store_id }
-    });
+    try {
+      const res = await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), {
+        params: { store_id }
+      });
+      if (typeof res.data === 'string' && res.data.includes('<!DOCTYPE')) {
+        throw new Error('Proxy HTML response');
+      }
+      return res;
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3001/api/v1/vouchers', { params: { store_id } });
+        } catch {}
+      }
+      try {
+        return await axios.get('https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/vouchers', {
+          params: { store_id }
+        });
+      } catch {}
+      throw err;
+    }
   },
   getBanners: async () => {
-    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/banners'));
+    try {
+      const res = await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/banners'));
+      if (typeof res.data === 'string' && res.data.includes('<!DOCTYPE')) {
+        throw new Error('Proxy HTML response');
+      }
+      return res;
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3001/api/v1/vouchers/banners');
+        } catch {}
+      }
+      try {
+        return await axios.get('https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/vouchers/banners');
+      } catch {}
+      throw err;
+    }
   },
   create: async (voucherData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers'), voucherData);
@@ -737,19 +784,129 @@ export const adminApi = {
   },
   // Quản trị mã giảm giá (Admin Voucher Management)
   getVouchers: async (params = {}) => {
-    return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), { params });
+    try {
+      const res = await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), { params });
+      if (typeof res.data === 'string' && res.data.includes('<!DOCTYPE')) {
+        throw new Error('Proxy HTML response');
+      }
+      return res;
+    } catch (err) {
+      try {
+        const altRes = await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/admin'), { params });
+        if (typeof altRes.data !== 'string' || !altRes.data.includes('<!DOCTYPE')) {
+          return altRes;
+        }
+      } catch {}
+      if (isLocalhost && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3001/api/v1/admin/vouchers', { params });
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token');
+        return await axios.get('https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/admin/vouchers', {
+          params,
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } catch {}
+      throw err;
+    }
   },
   createVoucher: async (voucherData) => {
-    return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), voucherData);
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/admin/vouchers'), voucherData);
+    } catch (err) {
+      try {
+        return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/vouchers/admin'), voucherData);
+      } catch {}
+      if (isLocalhost && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.post('http://localhost:3001/api/v1/admin/vouchers', voucherData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token');
+        return await axios.post('https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/admin/vouchers', voucherData, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } catch {}
+      throw err;
+    }
   },
   updateVoucher: async (id, voucherData) => {
-    return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`), voucherData);
+    try {
+      return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`), voucherData);
+    } catch (err) {
+      try {
+        return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, `/vouchers/admin/${id}`), voucherData);
+      } catch {}
+      if (isLocalhost && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.put(`http://localhost:3001/api/v1/admin/vouchers/${id}`, voucherData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token');
+        return await axios.put(`https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/admin/vouchers/${id}`, voucherData, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } catch {}
+      throw err;
+    }
   },
   toggleVoucher: async (id) => {
-    return await apiClient.patch(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}/toggle`));
+    try {
+      return await apiClient.patch(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}/toggle`));
+    } catch (err) {
+      try {
+        return await apiClient.patch(buildUrl(RESTAURANT_SERVICE_URL, `/vouchers/admin/${id}/toggle`));
+      } catch {}
+      if (isLocalhost && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.patch(`http://localhost:3001/api/v1/admin/vouchers/${id}/toggle`, {}, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token');
+        return await axios.patch(`https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/admin/vouchers/${id}/toggle`, {}, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } catch {}
+      throw err;
+    }
   },
   deleteVoucher: async (id) => {
-    return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`));
+    try {
+      return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/admin/vouchers/${id}`));
+    } catch (err) {
+      try {
+        return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/vouchers/admin/${id}`));
+      } catch {}
+      if (isLocalhost && !RESTAURANT_SERVICE_URL) {
+        try {
+          const token = localStorage.getItem('token');
+          return await axios.delete(`http://localhost:3001/api/v1/admin/vouchers/${id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token');
+        return await axios.delete(`https://food-delivery-restaurant-service-cdna.onrender.com/api/v1/admin/vouchers/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } catch {}
+      throw err;
+    }
   },
   // Cấu hình xác minh số điện thoại hệ thống (Admin System Settings)
   getPhoneVerificationConfig: async () => {

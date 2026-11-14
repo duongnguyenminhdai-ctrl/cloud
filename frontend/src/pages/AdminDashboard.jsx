@@ -676,9 +676,18 @@ export default function AdminDashboard() {
         sortOrder: voucherSortOrder
       };
       const res = await adminApi.getVouchers(params);
-      if (res.data?.success) {
-        setVouchers(res.data.data || []);
-        setVoucherTotal(res.data.pagination?.total || 0);
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setVouchers(res.data.data);
+        setVoucherTotal(res.data.pagination?.total ?? res.data.data.length);
+      } else if (Array.isArray(res.data)) {
+        setVouchers(res.data);
+        setVoucherTotal(res.data.length);
+      } else if (Array.isArray(res.data?.data)) {
+        setVouchers(res.data.data);
+        setVoucherTotal(res.data.data.length);
+      } else {
+        setVouchers([]);
+        setVoucherTotal(0);
       }
     } catch (err) {
       if (!silent) {

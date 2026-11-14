@@ -46,7 +46,7 @@ const DEFAULT_FOODFAST_STORES = [
     promo: 'Giảm món',
     latitude: 10.7769,
     longitude: 106.7009,
-    cuisineTypes: ['Burger', 'Gà rán', 'Pizza/Burger', 'Fast food', 'Đồ ăn'],
+    cuisineTypes: ['Burger', 'Gà rán', 'Pizza', 'Fast food', 'Đồ ăn'],
     serviceTypes: ['Giao hàng tiêu chuẩn', 'Món ăn nhanh'],
     specialtyDish: 'Burger Bò Big Mac & Gà Giòn Cay',
     menuItems: [
@@ -325,17 +325,20 @@ const getPromoTag = (store) => {
 
 // Các danh mục món ăn chuẩn phong cách FoodFast (Image 1)
 const FOODFAST_CATEGORIES = [
-  { id: 'All', label: 'All' },
-  { id: 'Đồ ăn', label: 'Đồ ăn' },
-  { id: 'Đồ uống', label: 'Đồ uống' },
-  { id: 'Đồ chay', label: 'Đồ chay' },
-  { id: 'Bánh kem', label: 'Bánh kem' },
-  { id: 'Tráng miệng', label: 'Tráng miệng' },
-  { id: 'Pizza/Burger', label: 'Pizza/Burger' },
+  { id: 'All', label: 'Tất cả' },
+  { id: 'Cơm hộp', label: 'Cơm' },
+  { id: 'Mì phở', label: 'Bún Mì Phở' },
+  { id: 'Đồ uống', label: 'Trà Sữa & Đồ uống' },
+  { id: 'Pizza', label: 'Pizza' },
+  { id: 'Burger', label: 'Burger' },
+  { id: 'Fast Food', label: 'Fast Food' },
+  { id: 'Gà rán', label: 'Gà Rán' },
+  { id: 'Bánh mì', label: 'Bánh Mì' },
+  { id: 'BBQ Nướng', label: 'BBQ Nướng' },
   { id: 'Món lẩu', label: 'Món lẩu' },
   { id: 'Sushi', label: 'Sushi' },
-  { id: 'Mì phở', label: 'Mì phở' },
-  { id: 'Cơm hộp', label: 'Cơm hộp' }
+  { id: 'Đồ chay', label: 'Đồ chay' },
+  { id: 'Tráng miệng', label: 'Tráng miệng' }
 ];
 
 // Bản đồ từ khóa tiếng Việt phong phú để lọc danh mục chuẩn xác ngữ nghĩa
@@ -364,13 +367,26 @@ const CATEGORY_KEYWORDS_MAP = {
     'chè', 'kem', 'tráng miệng', 'dessert', 'flan', 'tàu hũ',
     'bingsu', 'sữa chua', 'pudding', 'sâm bổ lượng', 'thạch', 'khúc bạch'
   ],
-  'Pizza/Burger': [
-    'pizza', 'burger', 'mcdonald', 'hamburger', 'fastfood',
-    'khoai tây', 'gà rán burger', 'fast food'
+  'Pizza': [
+    'pizza'
+  ],
+  'Burger': [
+    'burger', 'hamburger', 'cheeseburger', 'mcdonald'
+  ],
+  'Fast Food': [
+    'fastfood', 'fast food', 'khoai tây chiên', 'khoai tây', 'gà rán burger', 'burger', 'pizza'
+  ],
+  'Gà rán': [
+    'gà rán', 'gà giòn', 'kfc', 'jollibee', 'lotteria', 'cánh gà', 'đùi gà rán'
+  ],
+  'Bánh mì': [
+    'bánh mì', 'sandwich', 'bánh mỳ', 'subway'
+  ],
+  'BBQ Nướng': [
+    'nướng', 'bbq', 'thịt nướng', 'sườn nướng', 'bò nướng', 'k-pub'
   ],
   'Món lẩu': [
-    'lẩu', 'hotpot', 'nướng', 'bbq', 'tokbokki', 'lẩu thái',
-    'lẩu bò', 'lẩu gà', 'k-pub', 'haidilao', 'korean'
+    'lẩu', 'hotpot', 'tokbokki', 'lẩu thái', 'lẩu bò', 'lẩu gà', 'haidilao', 'manwah'
   ],
   'Sushi': [
     'sushi', 'sashimi', 'nhật', 'japan', 'hokkaido', 'tokyo',
@@ -393,7 +409,12 @@ const FOODFAST_TO_TOP_CAT_MAP = {
   'Đồ chay': 'veg',
   'Cơm hộp': 'rice',
   'Mì phở': 'bun_pho',
-  'Pizza/Burger': 'burger',
+  'Pizza': 'pizza',
+  'Burger': 'burger',
+  'Fast Food': 'fastfood',
+  'Gà rán': 'fried_chicken',
+  'Bánh mì': 'sandwich',
+  'BBQ Nướng': 'bbq',
   'Món lẩu': 'bbq',
   'Đồ ăn': 'all',
   'Sushi': 'all',
@@ -407,12 +428,15 @@ const TOP_CAT_TO_FOODFAST_MAP = {
   'veg': 'Đồ chay',
   'rice': 'Cơm hộp',
   'bun_pho': 'Mì phở',
-  'burger': 'Pizza/Burger',
-  'pizza': 'Pizza/Burger',
-  'bbq': 'Món lẩu',
-  'fastfood': 'Pizza/Burger',
-  'fried_chicken': 'Đồ ăn',
-  'sandwich': 'Đồ ăn'
+  'burger': 'Burger',
+  'pizza': 'Pizza',
+  'fastfood': 'Fast Food',
+  'fried_chicken': 'Gà rán',
+  'sandwich': 'Bánh mì',
+  'bbq': 'BBQ Nướng',
+  'korean': 'Đồ ăn',
+  'steak': 'Đồ ăn',
+  'healthy': 'Đồ chay'
 };
 
 // 20 Danh mục đặc trưng chuẩn FoodFast (Kèm Icon 3D trực quan)
@@ -423,13 +447,13 @@ const FOODFAST_TOP_CATEGORIES = [
   { id: 'bun_pho', name: 'Bún Mì Phở', icon: '/icons/bun-pho.png', keyword: 'bún|phở|mì|hủ tiếu' },
   { id: 'milk_tea', name: 'Trà Sữa', icon: '/icons/sweet-food.png', keyword: 'trà sữa|chè|nước ngọt|trà|cà phê|đồ uống' },
   { id: 'fastfood', name: 'Fast Food', icon: '/icons/fastfood.png', keyword: 'burger|gà rán|fast food|khoai tây' },
-  { id: 'bbq', name: 'BBQ Nướng', icon: '/icons/bbq.png', keyword: 'nướng|bbq|lẩu' },
+  { id: 'bbq', name: 'BBQ Nướng', icon: '/icons/bbq.png', keyword: 'nướng|bbq|thịt nướng' },
   { id: 'pizza', name: 'Pizza', icon: '/icons/Pizza.png', keyword: 'pizza' },
-  { id: 'burger', name: 'Burger', icon: '/icons/burger.png', keyword: 'burger' },
-  { id: 'fried_chicken', name: 'Gà Rán', icon: '/icons/fried-chicken.png', keyword: 'gà rán|gà' },
-  { id: 'korean', name: 'Món Hàn', icon: '/icons/korean-food.png', keyword: 'hàn|kimchi|tokbokki' },
-  { id: 'steak', name: 'Bít Tết', icon: '/icons/Steak.png', keyword: 'bò|bít tết|steak' },
-  { id: 'healthy', name: 'Sống Khỏe', icon: '/icons/salad.png', keyword: 'salad|chay|healthy' },
+  { id: 'burger', name: 'Burger', icon: '/icons/burger.png', keyword: 'burger|hamburger' },
+  { id: 'fried_chicken', name: 'Gà Rán', icon: '/icons/fried-chicken.png', keyword: 'gà rán|gà giòn|kfc|jollibee|lotteria' },
+  { id: 'korean', name: 'Món Hàn', icon: '/icons/korean-food.png', keyword: 'hàn|kimchi|tokbokki|kimbap' },
+  { id: 'steak', name: 'Bít Tết', icon: '/icons/Steak.png', keyword: 'bít tết|steak|bò né' },
+  { id: 'healthy', name: 'Sống Khỏe', icon: '/icons/salad.png', keyword: 'salad|healthy|eat clean' },
   { id: 'points', name: 'Tích Điểm', icon: '/icons/points.png', keyword: '' },
   { id: 'freeship', name: 'Freeship 0Đ', icon: '/icons/moi-moi.png', keyword: '' },
   { id: 'deal_0d', name: 'Deal 0Đ', icon: '/icons/tomato.png', keyword: '' },
@@ -723,13 +747,13 @@ export default function Home() {
         }
       }
 
-      // 2. Lọc theo danh mục đã chọn (Đồng bộ thông minh, ưu tiên FoodFast Category nếu khác All)
-      if (selectedCategory !== 'All') {
-        if (!matchCategory(res, selectedCategory)) {
+      // 2. Lọc theo danh mục đã chọn (Ưu tiên lọc chuẩn xác theo Icon đang chọn từ 20 Top Categories)
+      if (selectedTopCatId !== 'all') {
+        if (!matchTopCategory(res, selectedTopCatId)) {
           return false;
         }
-      } else if (selectedTopCatId !== 'all') {
-        if (!matchTopCategory(res, selectedTopCatId)) {
+      } else if (selectedCategory !== 'All') {
+        if (!matchCategory(res, selectedCategory)) {
           return false;
         }
       }
@@ -1141,7 +1165,22 @@ export default function Home() {
               Đang lọc:
             </span>
 
-            {selectedCategory !== 'All' && (
+            {selectedTopCatId !== 'all' ? (
+              <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
+                <span>{FOODFAST_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId)?.name || selectedCategory}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTopCatId('all');
+                    setSelectedCategory('All');
+                  }}
+                  className="hover:bg-orange-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
+                  title="Bỏ lọc danh mục này"
+                >
+                  ×
+                </button>
+              </span>
+            ) : selectedCategory !== 'All' ? (
               <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
                 <span>{selectedCategory}</span>
                 <button
@@ -1153,21 +1192,7 @@ export default function Home() {
                   ×
                 </button>
               </span>
-            )}
-
-            {selectedTopCatId !== 'all' && selectedCategory === 'All' && (
-              <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold flex items-center gap-1 shadow-xs">
-                <span>{FOODFAST_TOP_CATEGORIES.find((c) => c.id === selectedTopCatId)?.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleSelectTopCategory('all')}
-                  className="hover:bg-orange-700 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] ml-0.5 cursor-pointer"
-                  title="Bỏ lọc danh mục FoodFast"
-                >
-                  ×
-                </button>
-              </span>
-            )}
+            ) : null}
 
             {selectedDistrict !== 'ALL' && (
               <span className="px-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold flex items-center gap-1 shadow-xs">
