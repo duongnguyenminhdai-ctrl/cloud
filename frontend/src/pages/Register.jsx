@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, KeyRound, Loader2, Phone } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, KeyRound, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/client';
-import PhoneVerificationBox from '../components/PhoneVerificationBox';
-import { isFirebasePhoneConfigured, normalizeVNPhone } from '../utils/firebase';
 import FlashlightAuthCard, { InteractiveOwl } from '../components/FlashlightAuthCard';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [phone, setPhone] = useState('');
-  const [firebaseIdToken, setFirebaseIdToken] = useState('');
-  const [verifiedPhone, setVerifiedPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('CUSTOMER');
 
-  const [requirePhoneVerification, setRequirePhoneVerification] = useState(true);
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -33,25 +26,6 @@ export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // Nạp trạng thái kiểm soát xác minh SĐT từ hệ thống
-  useEffect(() => {
-    let isMounted = true;
-    const fetchPhoneConfig = async () => {
-      try {
-        const res = await authApi.getPhoneConfigStatus();
-        if (isMounted && res.data?.success) {
-          setRequirePhoneVerification(Boolean(res.data.required));
-        }
-      } catch (err) {
-        console.warn('Không thể kiểm tra cấu hình Phone Auth:', err);
-      }
-    };
-    fetchPhoneConfig();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   // Đếm ngược 60 giây cho nút Gửi OTP
   useEffect(() => {
     let timer;
@@ -63,7 +37,7 @@ export default function Register() {
 
   const handleSendOTP = async () => {
     if (!email || !email.includes('@')) {
-      setError('Vui lòng nhập email hợp lệ trước khi lấy mã OTP.');
+      setError('Vui lòng nhập địa chỉ email hợp lệ trước khi lấy mã OTP.');
       return;
     }
 
@@ -100,37 +74,19 @@ export default function Register() {
       return;
     }
 
-    let finalPhone = undefined;
-    if (phone && phone.trim()) {
-      const norm = normalizeVNPhone(phone);
-      if (!norm) {
-        setError('Số điện thoại không hợp lệ (Vui lòng nhập SĐT di động Việt Nam 10 chữ số đầu 03/05/07/08/09).');
-        return;
-      }
-      finalPhone = norm;
-    }
-
-    const isPhoneSmsVerified = Boolean(
-      firebaseIdToken &&
-      verifiedPhone &&
-      normalizeVNPhone(phone) === normalizeVNPhone(verifiedPhone)
-    );
-
-    if (requirePhoneVerification && isFirebasePhoneConfigured && !isPhoneSmsVerified) {
-      setError('Vui lòng xác thực số điện thoại qua mã OTP SMS để chống tài khoản SĐT rác.');
+    if (!password || password.length < 6) {
+      setError('Mật khẩu phải có tối thiểu 6 ký tự.');
       return;
     }
 
     setLoading(true);
 
     const result = await register({
-      name,
-      email,
+      name: name.trim(),
+      email: email.trim(),
       password,
-      role,
-      otp: otp.trim(),
-      phone: finalPhone,
-      firebaseIdToken: isPhoneSmsVerified ? firebaseIdToken : undefined
+      role: 'CUSTOMER',
+      otp: otp.trim()
     });
     setLoading(false);
 
@@ -144,9 +100,9 @@ export default function Register() {
   return (
     <FlashlightAuthCard
       title="Đăng Ký Tài Khoản"
-      subtitle="Bảo mật tự động qua Gmail OTP & Chống SĐT rác"
+      subtitle="Xác thực nhanh chóng qua Gmail OTP trong vài giây"
       sceneTitle="GIA NHẬP FOODFAST"
-      sceneDesc="Nhận ngay 1.000 Xu FoodFast khi hoàn thành đơn đầu tiên."
+      sceneDesc="Khám phá ẩm thực 9 miền & nhận 1.000 Xu FoodFast khi đặt đơn đầu tiên."
       passwordValue={password}
       passwordInputRef={passwordInputRef}
       passwordButtonRef={passwordButtonRef}
@@ -206,7 +162,7 @@ export default function Register() {
         <div className="border-t border-gray-300/40 dark:border-slate-700 w-full" />
       </div>
 
-      {/* Form */}
+      {/* Form đăng ký tinh gọn */}
       <form onSubmit={handleSubmit} className="space-y-3.5">
         {/* Họ và tên */}
         <div className="space-y-1">
@@ -221,12 +177,12 @@ export default function Register() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nguyễn Văn A"
-              className="auth-input w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
+              className="auth-input w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
             />
           </div>
         </div>
 
-        {/* Email kèm nút Gửi OTP & Chú cú Owl */}
+        {/* Địa chỉ Gmail kèm nút Gửi OTP & Chú Cú phía trên bên phải */}
         <div className="space-y-1 relative">
           <label className={`text-xs font-bold transition-colors ${isNightMode ? 'text-slate-300' : 'text-gray-700'}`}>
             Địa chỉ Gmail
@@ -241,7 +197,7 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@gmail.com"
-                className="auth-input w-full pl-10 pr-3 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
+                className="auth-input w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
               />
             </div>
 
@@ -249,7 +205,7 @@ export default function Register() {
               type="button"
               onClick={handleSendOTP}
               disabled={otpSending || countdown > 0 || !email}
-              className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:text-gray-500 shrink-0 flex items-center gap-1.5 cursor-pointer"
             >
               {otpSending ? (
                 <>
@@ -264,11 +220,11 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Ô nhập mã OTP 6 số */}
+        {/* Mã OTP 6 chữ số */}
         <div className="space-y-1">
           <div className="flex justify-between items-center">
             <label className={`text-xs font-bold transition-colors ${isNightMode ? 'text-slate-300' : 'text-gray-700'}`}>
-              Mã xác thực OTP (6 chữ số)
+              Mã xác thực OTP (6 chữ số từ Gmail)
             </label>
             <span className="text-[10px] text-gray-400 dark:text-slate-400">Hiệu lực 5 phút</span>
           </div>
@@ -281,59 +237,10 @@ export default function Register() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
-              className="auth-input w-full pl-10 pr-4 py-2 text-sm tracking-widest font-mono font-bold rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
+              className="auth-input w-full pl-10 pr-4 py-2.5 text-sm tracking-widest font-mono font-bold rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 placeholder:tracking-normal placeholder:font-sans"
             />
           </div>
         </div>
-
-        {/* Số điện thoại */}
-        {requirePhoneVerification ? (
-          <PhoneVerificationBox
-            phone={phone}
-            onPhoneChange={(val) => {
-              setPhone(val);
-              if (normalizeVNPhone(val) !== normalizeVNPhone(verifiedPhone)) {
-                setFirebaseIdToken('');
-                setVerifiedPhone('');
-              }
-            }}
-            isVerified={Boolean(
-              firebaseIdToken &&
-              verifiedPhone &&
-              normalizeVNPhone(phone) === normalizeVNPhone(verifiedPhone)
-            )}
-            purpose="REGISTER"
-            syncWithBackend={false}
-            label="Số điện thoại di động (Xác thực SMS chống SĐT rác)"
-            onVerified={({ phone: vPhone, idToken }) => {
-              setPhone(vPhone);
-              setVerifiedPhone(vPhone);
-              setFirebaseIdToken(idToken);
-              setError(null);
-            }}
-          />
-        ) : (
-          <div className="space-y-1 p-3 bg-amber-500/10 rounded-xl border border-amber-500/30">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-800 dark:text-amber-200 flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-orange-500" /> Số điện thoại di động
-              </label>
-              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full border border-amber-300/60">
-                Kiểm thử (Bỏ qua OTP)
-              </span>
-            </div>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ]/g, ''))}
-                placeholder="0912345678 (tùy chọn)"
-                className="auth-input w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
-              />
-            </div>
-          </div>
-        )}
 
         {/* Mật khẩu có đèn pin soi */}
         <div className="space-y-1">
@@ -350,7 +257,7 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className={`auth-input w-full pl-10 pr-12 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
+              className={`auth-input w-full pl-10 pr-12 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
                 isNightMode ? 'auth-password-input font-mono' : ''
               }`}
             />
@@ -359,7 +266,7 @@ export default function Register() {
               ref={passwordButtonRef}
               type="button"
               onClick={() => setIsNightMode(!isNightMode)}
-              className="absolute right-2 top-1.5 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
+              className="absolute right-2 top-2 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
               title={isNightMode ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
               aria-pressed={isNightMode}
             >
@@ -368,37 +275,6 @@ export default function Register() {
                 alt="Toggle Flashlight"
                 className={`w-4 h-4 transition-transform ${isNightMode ? 'scale-110 brightness-150' : 'opacity-70'}`}
               />
-            </button>
-          </div>
-        </div>
-
-        {/* Vai trò */}
-        <div className="space-y-1">
-          <label className={`text-xs font-bold transition-colors ${isNightMode ? 'text-slate-300' : 'text-gray-700'}`}>
-            Vai trò tài khoản
-          </label>
-          <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-            <button
-              type="button"
-              onClick={() => setRole('CUSTOMER')}
-              className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
-                role === 'CUSTOMER'
-                  ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'bg-white/70 dark:bg-slate-800/60 border-gray-200/80 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-50'
-              }`}
-            >
-              Khách hàng
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('RESTAURANT_OWNER')}
-              className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
-                role === 'RESTAURANT_OWNER'
-                  ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'bg-white/70 dark:bg-slate-800/60 border-gray-200/80 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-50'
-              }`}
-            >
-              Chủ nhà hàng
             </button>
           </div>
         </div>

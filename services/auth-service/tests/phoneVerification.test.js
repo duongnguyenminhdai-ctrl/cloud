@@ -251,13 +251,19 @@ describe('Firebase Phone Auth & Anti-Spam Phone Tests', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // REGISTRATION FLOW: ADAPTIVE PHONE VERIFICATION
+  // REGISTRATION FLOW: GMAIL OTP ONLY (PHONE ASKED AT ORDER/STORE REGISTRATION)
   // ---------------------------------------------------------------------------
-  it('POST /api/v1/auth/register: Từ chối 400 nếu REQUIRE_PHONE_VERIFICATION=true mà không có firebaseIdToken', async () => {
+  it('POST /api/v1/auth/register: Cho phép đăng ký nhanh qua Gmail OTP mà không bắt buộc SĐT SMS', async () => {
     process.env.REQUIRE_PHONE_VERIFICATION = 'true';
     clearConfigCache();
     getOTP.mockResolvedValue('123456');
     User.findOne.mockResolvedValue(null);
+    User.create.mockImplementation((userData) =>
+      Promise.resolve({
+        _id: 'user_registered_by_mail_otp',
+        ...userData
+      })
+    );
 
     const res = await request(app)
       .post('/api/v1/auth/register')
@@ -268,9 +274,10 @@ describe('Firebase Phone Auth & Anti-Spam Phone Tests', () => {
         otp: '123456'
       });
 
-    expect(res.statusCode).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toContain('Hệ thống yêu cầu xác thực số điện thoại qua mã OTP SMS');
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.token).toBeDefined();
+    expect(res.body.user.email).toBe('newuser@foodfast.vn');
   });
 
   it('POST /api/v1/auth/register: Cho phép đăng ký khi REQUIRE_PHONE_VERIFICATION=false mà không cần firebaseIdToken (Tài khoản kiểm thử)', async () => {

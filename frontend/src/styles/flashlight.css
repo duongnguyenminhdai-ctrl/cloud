@@ -257,7 +257,7 @@
 .email-owl {
   position: absolute;
   z-index: 20;
-  left: 14px;
+  right: 18px;
   bottom: calc(100% - 4px);
   width: 50px;
   height: 58px;

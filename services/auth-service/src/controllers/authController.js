@@ -220,6 +220,7 @@ exports.register = async (req, res) => {
 
     const requirePhone = await getPhoneVerificationSetting();
 
+    // Xác thực SĐT qua Firebase Phone Auth Token nếu có gửi kèm (hoặc lưu khi đặt hàng / mở quán)
     if (firebaseIdToken) {
       try {
         const fbResult = await verifyFirebasePhoneToken(firebaseIdToken);
@@ -242,12 +243,13 @@ exports.register = async (req, res) => {
           message: fbErr.message || 'Xác thực số điện thoại Firebase thất bại.'
         });
       }
-    } else if (requirePhone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Hệ thống yêu cầu xác thực số điện thoại qua mã OTP SMS trước khi đăng ký để tránh SĐT rác.'
-      });
     } else if (phone && String(phone).trim()) {
+      if (requirePhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Hệ thống yêu cầu xác thực số điện thoại qua mã OTP SMS trước khi đăng ký để tránh SĐT rác.'
+        });
+      }
       const norm = normalizeVietnamPhone(String(phone));
       if (!norm.valid) {
         return res.status(400).json({ success: false, message: norm.reason });

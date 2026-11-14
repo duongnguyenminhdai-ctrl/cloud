@@ -204,19 +204,6 @@ export default function Login() {
         </button>
       </form>
 
-      {/* Demo Accounts */}
-      <div className="mt-4 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-        <p className="font-bold flex items-center gap-1.5">
-          <span>💡</span> Tài khoản mẫu thử nghiệm:
-        </p>
-        <p>
-          Khách hàng: <code className="bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono">khachhang@test.com</code> | Pass: <code className="bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono">123456</code>
-        </p>
-        <p>
-          Chủ quán: <code className="bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono">chuquan@test.com</code> | Pass: <code className="bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono">123456</code>
-        </p>
-      </div>
-
       {/* Switch to Register */}
       <div className="text-center text-xs text-gray-500 dark:text-slate-400 pt-3 border-t border-gray-200/40 dark:border-slate-800 mt-4">
         Chưa có tài khoản?{' '}

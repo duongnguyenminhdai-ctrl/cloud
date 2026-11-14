@@ -116,10 +116,10 @@ export default function FlashlightAuthCard({
       setLitLevels(levels);
     }
 
-    // Tính ánh sáng và hướng nhìn của chú cú (đậu ở email input)
+    // Tính ánh sáng và hướng nhìn của chú cú (đậu ở góc phải trên của email input)
     if (emailInputRef?.current) {
       const emailRect = emailInputRef.current.getBoundingClientRect();
-      const owlX = emailRect.left + 35;
+      const owlX = emailRect.right - 45;
       const owlY = emailRect.top - 20;
       const light = getLightLevel(owlX, owlY);
       setOwlLight(light);
