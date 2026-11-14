@@ -136,66 +136,14 @@ export default function OrdersPage({ initialTab }) {
     setReviewImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // Voucher State (Mục Voucher mới chuẩn FoodFast)
+  // Voucher State (Mục Voucher chuẩn FoodFast 100% Database thật)
   const [voucherCategory, setVoucherCategory] = useState('ALL'); // 'ALL' | 'FREESHIP' | 'DISCOUNT' | 'STORE'
   const [inputVoucherCode, setInputVoucherCode] = useState('');
   const [voucherMsg, setVoucherMsg] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
-  const [customVouchers, setCustomVouchers] = useState([]);
-
-  // Danh mục Voucher mặc định chuẩn FoodFast
-  const defaultVouchersList = useMemo(() => [
-    {
-      code: 'FREESHIP50',
-      type: 'FREESHIP',
-      badge: 'Freeship Extra',
-      title: 'Giảm 50.000đ Phí Vận Chuyển',
-      condition: 'Áp dụng đơn từ 100.000đ',
-      expiry: 'HSD: 30/11/2026',
-      usedPercent: 64,
-      issuer: 'PLATFORM'
-    },
-    {
-      code: 'QUANNGON20',
-      type: 'STORE',
-      badge: 'Quán Đối Tác',
-      title: 'Giảm 20% Tối Đa 40.000đ',
-      condition: 'Áp dụng cho Quán đối tác từ 60.000đ',
-      expiry: 'HSD: 31/12/2026',
-      usedPercent: 42,
-      issuer: 'STORE'
-    },
-    {
-      code: 'FOODFAST10',
-      type: 'DISCOUNT',
-      badge: 'Toàn Sàn',
-      title: 'Giảm 10.000đ Mọi Đơn Hàng',
-      condition: 'Áp dụng cho mọi giá trị đơn',
-      expiry: 'HSD: 15/12/2026',
-      usedPercent: 85,
-      issuer: 'PLATFORM'
-    },
-    {
-      code: 'BANMOI50',
-      type: 'DISCOUNT',
-      badge: 'Bạn Mới',
-      title: 'Giảm 50% Tối Đa 35.000đ',
-      condition: 'Dành riêng cho đơn hàng đầu tiên',
-      expiry: 'HSD: 31/12/2026',
-      usedPercent: 28,
-      issuer: 'PLATFORM'
-    },
-    {
-      code: 'TIENLOI15',
-      type: 'FREESHIP',
-      badge: 'Giao Tiết Kiệm',
-      title: 'Giảm 15.000đ Phí Vận Chuyển',
-      condition: 'Áp dụng đơn từ 50.000đ',
-      expiry: 'HSD: 25/12/2026',
-      usedPercent: 50,
-      issuer: 'PLATFORM'
-    }
-  ], []);
+  const [serverVouchers, setServerVouchers] = useState([]);
+  const [userSavedVouchers, setUserSavedVouchers] = useState([]);
+  const [vouchersLoading, setVouchersLoading] = useState(false);
 
   // Tải danh sách đơn hàng & Tự động xử lý dọn dẹp các đơn cũ bị treo
   const fetchOrders = async ({ silent = false } = {}) => {
@@ -366,35 +314,57 @@ export default function OrdersPage({ initialTab }) {
     publishRealtimeSignal('order', { type: 'order.completed', orderId });
   };
 
-  // Tải danh sách voucher từ server
+  // Tải danh sách voucher thực tế 100% từ cơ sở dữ liệu MongoDB Atlas
   const fetchVouchers = async () => {
     if (!isAuthenticated) {
-      setCustomVouchers([]);
+      setServerVouchers([]);
       return;
     }
     try {
-      const res = await voucherApi.getAvailable();
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        const serverVouchers = res.data.data.map((v) => ({
-          code: v.code,
-          type: v.discount_type === 'FIXED_AMOUNT' && v.discount_value > 20000 ? 'FREESHIP' : (v.issuer_type === 'STORE' ? 'STORE' : 'DISCOUNT'),
-          badge: v.issuer_type === 'STORE' ? 'Quán Đối Tác' : (v.code.startsWith('THANKYOU') ? 'Tri Ân 5 Sao' : (v.code.startsWith('SORRY') ? 'Đền Bù' : 'FoodFast')),
-          title: v.title || (v.discount_type === 'PERCENTAGE' ? `Giảm ${v.discount_value}% tối đa ${(v.max_discount_amount || 0).toLocaleString('vi-VN')}đ` : `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ`),
-          condition: v.min_order_value ? `Đơn tối thiểu ${v.min_order_value.toLocaleString('vi-VN')}đ` : 'Áp dụng mọi đơn',
-          expiry: v.end_date ? `HSD: ${new Date(v.end_date).toLocaleDateString('vi-VN')}` : 'HSD: 30 ngày',
-          usedPercent: Math.min(100, Math.round(((v.used_count || 0) / (v.usage_limit || 100)) * 100)),
-          issuer: v.issuer_type || 'PLATFORM'
-        }));
+      setVouchersLoading(true);
+      const res = await voucherApi.getAvailable({ all: true });
+      const list = res.data?.data || res.data || [];
+      if (Array.isArray(list)) {
+        const formatted = list.map((v) => {
+          const isFreeship = v.code.includes('FREESHIP') || (v.discount_type === 'FIXED_AMOUNT' && v.discount_value >= 15000);
+          const isStore = v.issuer_type === 'STORE';
+          let badge = 'Toàn Sàn';
+          let type = 'DISCOUNT';
 
-        setCustomVouchers((prev) => {
-          const defaultCodes = new Set(defaultVouchersList.map((d) => d.code));
-          const serverMap = new Map(serverVouchers.filter((sv) => !defaultCodes.has(sv.code)).map((sv) => [sv.code, sv]));
-          const userSaved = prev.filter((p) => p.issuer === 'USER' && !serverMap.has(p.code));
-          return [...userSaved, ...Array.from(serverMap.values())];
+          if (isFreeship) {
+            badge = 'Freeship Extra';
+            type = 'FREESHIP';
+          } else if (isStore) {
+            badge = v.code.startsWith('THANKYOU') ? 'Tri Ân 5 Sao' : (v.code.startsWith('SORRY') ? 'Đền Bù' : 'Quán Đối Tác');
+            type = 'STORE';
+          }
+
+          let discountTitle = '';
+          if (v.discount_type === 'PERCENTAGE') {
+            discountTitle = `Giảm ${v.discount_value}%${v.max_discount_amount ? ` Tối Đa ${(v.max_discount_amount || 0).toLocaleString('vi-VN')}đ` : ''}`;
+          } else {
+            discountTitle = `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ${isFreeship ? ' Phí Vận Chuyển' : ' Mọi Đơn Hàng'}`;
+          }
+
+          return {
+            _id: v._id,
+            code: v.code,
+            type,
+            badge,
+            title: v.title || discountTitle,
+            condition: v.min_order_value ? `Áp dụng đơn từ ${v.min_order_value.toLocaleString('vi-VN')}đ` : 'Áp dụng cho mọi giá trị đơn',
+            expiry: v.end_date ? `HSD: ${new Date(v.end_date).toLocaleDateString('vi-VN')}` : 'HSD: 31/12/2026',
+            usedPercent: Math.min(100, Math.round(((v.used_count || 0) / (v.usage_limit || 100)) * 100)),
+            issuer: v.issuer_type || 'PLATFORM',
+            is_active: v.is_active
+          };
         });
+        setServerVouchers(formatted);
       }
     } catch (err) {
-      console.warn('Không thể tải voucher từ server:', err.message);
+      console.warn('Lỗi tải voucher từ server:', err.message);
+    } finally {
+      setVouchersLoading(false);
     }
   };
 
@@ -473,13 +443,15 @@ export default function OrdersPage({ initialTab }) {
       .filter((o) => !o.isReviewed);
   }, [orders, reviewedOrderIds]);
 
-  // Toàn bộ danh sách voucher tổng hợp (Chỉ hiển thị khi đã đăng nhập)
+  // Toàn bộ danh sách voucher tổng hợp từ cơ sở dữ liệu thật (Chỉ hiển thị khi đã đăng nhập)
   const allVouchers = useMemo(() => {
     if (!isAuthenticated) return [];
-    const combined = [...defaultVouchersList, ...customVouchers];
+    const serverCodes = new Set(serverVouchers.map((v) => v.code));
+    const extraUser = userSavedVouchers.filter((uv) => !serverCodes.has(uv.code));
+    const combined = [...serverVouchers, ...extraUser];
     if (voucherCategory === 'ALL') return combined;
     return combined.filter((v) => v.type === voucherCategory);
-  }, [defaultVouchersList, customVouchers, voucherCategory, isAuthenticated]);
+  }, [serverVouchers, userSavedVouchers, voucherCategory, isAuthenticated]);
 
   // Các trạng thái phân trang cho các Tab trong OrdersPage
   const [activePage, setActivePage] = useState(1);
@@ -553,7 +525,7 @@ export default function OrdersPage({ initialTab }) {
     if (!inputVoucherCode.trim()) return;
     const clean = inputVoucherCode.trim().toUpperCase();
 
-    // Kiểm tra xem đã có chưa
+    // Kiểm tra xem đã có trong ví chưa
     const exists = allVouchers.some((v) => v.code === clean);
     if (exists) {
       setVoucherMsg({ type: 'info', text: `Mã [${clean}] đã có sẵn trong ví voucher của bạn!` });
@@ -565,35 +537,24 @@ export default function OrdersPage({ initialTab }) {
     try {
       const res = await voucherApi.apply({ voucher_code: clean, cart_total: 100000 });
       if (res.data?.success) {
+        const vData = res.data.data;
         const newV = {
           code: clean,
           type: 'DISCOUNT',
           badge: 'Đã lưu',
-          title: `Giảm ${Number(res.data.data.discount_amount || 20000).toLocaleString('vi-VN')}đ`,
+          title: `Giảm ${Number(vData?.discount_amount || 20000).toLocaleString('vi-VN')}đ`,
           condition: 'Đã thêm thành công vào ví',
           expiry: 'HSD: 30 ngày',
-          usedPercent: 10,
+          usedPercent: 0,
           issuer: 'USER'
         };
-        setCustomVouchers((prev) => [newV, ...prev]);
+        setUserSavedVouchers((prev) => [newV, ...prev]);
         setVoucherMsg({ type: 'success', text: `Đã lưu mã [${clean}] vào ví voucher thành công!` });
       } else {
         setVoucherMsg({ type: 'error', text: res.data?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.' });
       }
     } catch (err) {
-      // Thêm voucher mã tùy ý vào danh sách để người dùng có thể dùng khi checkout
-      const newV = {
-        code: clean,
-        type: 'DISCOUNT',
-        badge: 'Đã lưu',
-        title: `Mã ưu đãi [${clean}]`,
-        condition: 'Có hiệu lực khi thanh toán',
-        expiry: 'HSD: 30 ngày',
-        usedPercent: 0,
-        issuer: 'USER'
-      };
-      setCustomVouchers((prev) => [newV, ...prev]);
-      setVoucherMsg({ type: 'success', text: `Đã lưu mã [${clean}] vào ví voucher của bạn!` });
+      setVoucherMsg({ type: 'error', text: err.response?.data?.message || `Mã [${clean}] không tồn tại trên hệ thống hoặc đã hết hạn.` });
     }
 
     setInputVoucherCode('');
@@ -1498,113 +1459,125 @@ export default function OrdersPage({ initialTab }) {
               ))}
             </div>
 
-            {/* Danh sách thẻ Voucher (Chuẩn Style Coupon FoodFast) */}
-            <div className="space-y-3">
-              {paginatedVouchers.map((voucher) => {
-                const isFreeship = voucher.type === 'FREESHIP';
-                const isStore = voucher.type === 'STORE';
-                const isCopied = copiedCode === voucher.code;
+            {/* Danh sách thẻ Voucher (Chuẩn Style Coupon FoodFast 100% Real Database) */}
+            {vouchersLoading ? (
+              <div className="py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
+                <RotateCcw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#EE4D2D]" />
+                Đang đồng bộ ví voucher từ hệ thống...
+              </div>
+            ) : paginatedVouchers.length === 0 ? (
+              <div className="py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
+                <Tag className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                Không có mã giảm giá nào trong danh mục này.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {paginatedVouchers.map((voucher) => {
+                  const isFreeship = voucher.type === 'FREESHIP';
+                  const isStore = voucher.type === 'STORE';
+                  const isCopied = copiedCode === voucher.code;
 
-                return (
-                  <div
-                    key={voucher.code}
-                    className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex items-stretch hover:border-orange-300 transition-all group"
-                  >
-                    {/* Phần Coupon Left Badge */}
+                  return (
                     <div
-                      className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-300 ${
-                        isFreeship
-                          ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
-                          : isStore
-                          ? 'bg-gradient-to-br from-red-500 to-rose-600'
-                          : 'bg-gradient-to-br from-[#EE4D2D] to-orange-500'
-                      }`}
+                      key={voucher.code}
+                      className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex items-stretch hover:border-orange-300 transition-all group"
                     >
-                      {isFreeship ? (
-                        <Truck className="w-7 h-7 mb-1" />
-                      ) : isStore ? (
-                        <Store className="w-7 h-7 mb-1" />
-                      ) : (
-                        <BadgePercent className="w-7 h-7 mb-1" />
-                      )}
-                      <span className="text-[11px] font-black tracking-wide uppercase leading-tight">
-                        {voucher.badge}
-                      </span>
+                      {/* Phần Coupon Left Badge */}
+                      <div
+                        className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-300 ${
+                          isFreeship
+                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                            : isStore
+                            ? 'bg-gradient-to-br from-red-500 to-rose-600'
+                            : 'bg-gradient-to-br from-[#EE4D2D] to-orange-500'
+                        }`}
+                      >
+                        {isFreeship ? (
+                          <Truck className="w-7 h-7 mb-1" />
+                        ) : isStore ? (
+                          <Store className="w-7 h-7 mb-1" />
+                        ) : (
+                          <BadgePercent className="w-7 h-7 mb-1" />
+                        )}
+                        <span className="text-[11px] font-black tracking-wide uppercase leading-tight">
+                          {voucher.badge}
+                        </span>
 
-                      {/* Nốt khuyết vé coupon ở viền trên & dưới */}
-                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
-                      <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
-                    </div>
-
-                    {/* Phần nội dung chi tiết bên phải */}
-                    <div className="flex-1 p-3.5 flex flex-col justify-between space-y-2 min-w-0">
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[11px] font-mono font-extrabold text-[#EE4D2D] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
-                            {voucher.code}
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-medium">{voucher.expiry}</span>
-                        </div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">
-                          {voucher.title}
-                        </h4>
-                        <p className="text-[11px] text-gray-500 font-medium line-clamp-1">
-                          {voucher.condition}
-                        </p>
+                        {/* Nốt khuyết vé coupon ở viền trên & dưới */}
+                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
+                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
                       </div>
 
-                      {/* Thanh phần trăm sử dụng & Nút Sao chép / Dùng ngay */}
-                      <div className="pt-1 flex items-center justify-between gap-2 border-t border-gray-50">
-                        <div className="space-y-1 flex-1 max-w-[120px]">
-                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                isFreeship ? 'bg-emerald-500' : 'bg-[#EE4D2D]'
-                              }`}
-                              style={{ width: `${voucher.usedPercent || 50}%` }}
-                            />
+                      {/* Phần nội dung chi tiết bên phải */}
+                      <div className="flex-1 p-3.5 flex flex-col justify-between space-y-2 min-w-0">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[11px] font-mono font-extrabold text-[#EE4D2D] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                              {voucher.code}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium">{voucher.expiry}</span>
                           </div>
-                          <span className="text-[10px] text-gray-400 block">
-                            Đã dùng {voucher.usedPercent || 50}%
-                          </span>
+                          <h4 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">
+                            {voucher.title}
+                          </h4>
+                          <p className="text-[11px] text-gray-500 font-medium line-clamp-1">
+                            {voucher.condition}
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleCopyCode(voucher.code)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                              isCopied
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                            }`}
-                            title="Sao chép mã"
-                          >
-                            {isCopied ? (
-                              <>
-                                <Check className="w-3 h-3 text-emerald-600" />
-                                <span>Đã chép</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3 h-3" />
-                                <span>Chép mã</span>
-                              </>
-                            )}
-                          </button>
+                        {/* Thanh phần trăm sử dụng & Nút Sao chép / Dùng ngay */}
+                        <div className="pt-1 flex items-center justify-between gap-2 border-t border-gray-50">
+                          <div className="space-y-1 flex-1 max-w-[120px]">
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  isFreeship ? 'bg-emerald-500' : 'bg-[#EE4D2D]'
+                                }`}
+                                style={{ width: `${voucher.usedPercent || 10}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-gray-400 block">
+                              Đã dùng {voucher.usedPercent || 0}%
+                            </span>
+                          </div>
 
-                          <Link
-                            to="/"
-                            className="px-3 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-[11px] font-bold shadow-xs transition-colors"
-                          >
-                            Dùng ngay
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleCopyCode(voucher.code)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                isCopied
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              }`}
+                              title="Sao chép mã"
+                            >
+                              {isCopied ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span>Đã chép</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Chép mã</span>
+                                </>
+                              )}
+                            </button>
+
+                            <Link
+                              to="/"
+                              className="px-3 py-1.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-[11px] font-bold shadow-xs transition-colors"
+                            >
+                              Dùng ngay
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Phân trang tab Voucher */}
             <Pagination

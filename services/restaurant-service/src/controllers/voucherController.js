@@ -267,21 +267,28 @@ exports.getBannerVouchers = async (req, res) => {
  */
 exports.getVouchers = async (req, res) => {
   try {
-    const { store_id } = req.query;
+    const { store_id, all, scope } = req.query;
     const now = new Date();
     const validStoreObjectId = store_id && mongoose.Types.ObjectId.isValid(store_id) ? store_id : null;
+
+    let issuerCondition;
+    if (all === 'true' || scope === 'all' || !validStoreObjectId) {
+      // Khi xem ví voucher chung hoặc kho voucher toàn sàn
+      issuerCondition = { $or: [{ issuer_type: 'PLATFORM' }, { issuer_type: 'STORE' }] };
+    } else {
+      // Khi xem tại 1 quán cụ thể trong giỏ hàng/thanh toán
+      issuerCondition = { $or: [{ issuer_type: 'PLATFORM' }, { issuer_type: 'STORE', store_id: validStoreObjectId }] };
+    }
 
     const query = {
       is_active: true,
       $and: [
         { $or: [{ end_date: null }, { end_date: { $gte: now } }] },
-        validStoreObjectId
-          ? { $or: [{ issuer_type: 'PLATFORM' }, { issuer_type: 'STORE', store_id: validStoreObjectId }] }
-          : { issuer_type: 'PLATFORM' }
+        issuerCondition
       ]
     };
 
-    const vouchers = await Voucher.find(query).sort({ issuer_type: -1, discount_value: -1 });
+    const vouchers = await Voucher.find(query).sort({ issuer_type: -1, discount_value: -1, createdAt: -1 });
 
     return res.status(200).json({
       success: true,
