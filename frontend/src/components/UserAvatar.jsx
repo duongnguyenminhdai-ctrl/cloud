@@ -21,7 +21,7 @@ export default function UserAvatar({
 
   return (
     <div
-      className={`relative overflow-hidden bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold flex items-center justify-center shrink-0 select-none ${className}`}
+      className={`relative overflow-hidden bg-[#9a6a3e] text-white font-bold flex items-center justify-center shrink-0 select-none shadow-2xs ${className}`}
     >
       {cleanSrc && !imgError ? (
         <img

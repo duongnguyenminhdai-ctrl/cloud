@@ -134,10 +134,10 @@ export default function Navbar() {
           {isAuthenticated && user?.role === 'ADMIN' && (
             <Link
               to="/admin"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2b2721] text-white hover:bg-[#1a1714] text-xs font-bold border border-[#2b2721] shadow-xs transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white text-xs font-bold border border-[#845831] shadow-xs transition-all cursor-pointer"
               title="Trang quản trị hệ thống"
             >
-              <ShieldCheck className="w-4 h-4 text-orange-400" />
+              <ShieldCheck className="w-4 h-4 text-amber-200" />
               <span className="hidden sm:inline">Quản trị</span>
             </Link>
           )}
