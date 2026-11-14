@@ -37,6 +37,20 @@ export default function CitySelector() {
     changeCity(city);
     setIsOpen(false);
     setSearchQuery('');
+
+    // Phát tín hiệu 1 chiều trực tiếp tới cuốn sách ký họa iframe (City -> Sách)
+    try {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach((ifr) => {
+        ifr.contentWindow?.postMessage({
+          type: 'FOODFAST_NAVIGATE_CITY',
+          cityCode: city.code,
+          cityName: city.shortName || city.name
+        }, '*');
+      });
+    } catch (err) {
+      console.warn('Could not postMessage to iframe:', err);
+    }
   };
 
   return (

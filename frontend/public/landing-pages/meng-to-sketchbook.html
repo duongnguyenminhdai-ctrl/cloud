@@ -1109,8 +1109,12 @@ function goTo(i){
   if(i===idx)return;
   if(turn){idx=turn.to;turn=null;}
   const fwd=(i-idx+M)%M, back=(idx-i+M)%M;
-  if(Math.min(fwd,back)===1){step(fwd===1?'next':'prev');return;}
-  idx=i;paint();
+  const dir = fwd <= back ? 'next' : 'prev';
+  if(typeof shoveLoupe==='function')shoveLoupe(dir);
+  const from=idx;
+  turn={dir:dir,from:from,to:i,t:0};
+  paint();
+  commit();
 }
 document.getElementById('sbLeft').onclick=()=>step('prev');
 document.getElementById('sbRight').onclick=()=>step('next');
@@ -1362,10 +1366,49 @@ function startIntro(){
   }
 
   window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'foodfast-theme-change' && e.data.theme) {
+    if (!e.data) return;
+    if (e.data.type === 'foodfast-theme-change' && e.data.theme) {
       applyTheme(e.data.theme, false);
     }
+    // Lắng nghe lệnh điều hướng 1 chiều từ Chọn Tỉnh/Thành phố sang Sổ tay Ký họa
+    if (e.data.type === 'FOODFAST_NAVIGATE_CITY') {
+      const code = String(e.data.cityCode || '').toLowerCase().trim();
+      const name = String(e.data.cityName || e.data.name || '').toLowerCase().trim();
+      
+      const CITY_INDEX_MAP = {
+        'hcm': 0, 'tphcm': 0, 'saigon': 0, 'sài gòn': 0, 'tp.hcm': 0, 'tp. hcm': 0, 'tp. hồ chí minh': 0, 'hồ chí minh': 0,
+        'hn': 1, 'hanoi': 1, 'hà nội': 1,
+        'dn': 2, 'danang': 2, 'đà nẵng': 2,
+        'hp': 3, 'haiphong': 3, 'hải phòng': 3,
+        'ct': 4, 'cantho': 4, 'cần thơ': 4,
+        'hue': 5, 'thừa thiên huế': 5, 'huế': 5,
+        'bacninh': 6, 'bắc ninh': 6,
+        'quangninh': 7, 'quảng ninh': 7, 'hạ long': 7,
+        'dongnai': 8, 'đồng nai': 8, 'biên hòa': 8
+      };
+
+      let targetIdx = CITY_INDEX_MAP[code];
+      if (targetIdx === undefined && name) {
+        targetIdx = CITY_INDEX_MAP[name];
+      }
+      if (targetIdx === undefined) {
+        // Tìm kiếm linh hoạt trong PAGES theo cityCode hoặc place
+        targetIdx = PAGES.findIndex(p => {
+          const pCode = (p.cityCode || '').toLowerCase();
+          const pPlace = (p.place || '').toLowerCase();
+          return (code && (pCode === code || code.includes(pCode))) ||
+                 (name && (pPlace.includes(name) || name.includes(pPlace)));
+        });
+      }
+      if (targetIdx !== undefined && targetIdx >= 0 && targetIdx < PAGES.length) {
+        goTo(targetIdx);
+      }
+    }
   });
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'FOODFAST_SKETCHBOOK_READY' }, '*');
+  }
 
   const themeBtn = document.getElementById('themeToggleBtn');
   if (themeBtn) {
