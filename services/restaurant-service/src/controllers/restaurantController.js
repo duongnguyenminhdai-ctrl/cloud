@@ -1,10 +1,32 @@
 const Restaurant = require('../models/Restaurant');
+const CustomerNotification = require('../models/CustomerNotification');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const { getCache, setCache, deleteCache, invalidateRestaurantCache, TTL } = require('../../redis');
 const { calculateMerchantSettlement } = require('../utils/settlementEngine');
-const { subscribe, emitStoreUpdate, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
+const { subscribe, emitStoreUpdate, emitUserEvent, broadcastAdminEvent, broadcastPublicEvent } = require('../utils/realtimeHub');
 const { JWT_SECRET } = require('../middlewares/authMiddleware');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+
+function normalizeVietnamPhone(rawPhone) {
+  if (!rawPhone || typeof rawPhone !== 'string') {
+    return { valid: false, local: '', reason: 'Số điện thoại không được để trống.' };
+  }
+  let cleaned = rawPhone.replace(/[\s().-]/g, '').trim();
+  if (cleaned.startsWith('+84')) {
+    cleaned = '0' + cleaned.slice(3);
+  } else if (cleaned.startsWith('84') && cleaned.length === 11) {
+    cleaned = '0' + cleaned.slice(2);
+  }
+  if (!/^0(3|5|7|8|9)\d{8}$/.test(cleaned)) {
+    return {
+      valid: false,
+      local: cleaned,
+      reason: 'Số điện thoại phải là số di động Việt Nam hợp lệ gồm 10 chữ số (đầu 03, 05, 07, 08 hoặc 09).'
+    };
+  }
+  return { valid: true, local: cleaned, reason: '' };
+}
 
 function getAuthenticatedUserId(req) {
   return String(req.user?.userId || req.user?.id || req.user?._id || '').trim();
@@ -260,9 +282,28 @@ exports.getStoreStatus = async (req, res) => {
     }
 
     // Chỉ chọn các trường cần thiết, bỏ qua mảng menuItems và giao dịch nặng
-    const store = await Restaurant.findOne({ ownerId: userId })
+    let store = await Restaurant.findOne({ ownerId: userId })
       .select('_id status name ownerId phone city')
       .lean();
+
+    let userRoleInStore = 'OWNER';
+
+    // Nếu không sở hữu quán, kiểm tra xem có phải nhân viên đang hoạt động (ACTIVE) của quán nào không
+    if (!store) {
+      const staffStore = await Restaurant.findOne({
+        staff: { $elemMatch: { userId: userId, status: 'ACTIVE' } }
+      })
+        .select('_id status name ownerId phone city staff')
+        .lean();
+
+      if (staffStore) {
+        store = staffStore;
+        const matchingStaff = (staffStore.staff || []).find(
+          (s) => s.userId === userId && s.status === 'ACTIVE'
+        );
+        userRoleInStore = matchingStaff ? matchingStaff.role : 'STAFF';
+      }
+    }
 
     if (!store) {
       const notFoundData = {
@@ -281,6 +322,7 @@ exports.getStoreStatus = async (req, res) => {
       has_store: true,
       store_status: store.status,
       store_id: store._id.toString(),
+      user_role_in_store: userRoleInStore,
       store
     };
     await setCache(cacheKey, responseData, 300);
@@ -534,15 +576,30 @@ exports.registerStore = async (req, res) => {
   }
 };
 
-// 7. Lấy thông tin quán của người dùng hiện tại
+// 7. Lấy thông tin quán của người dùng hiện tại (Hỗ trợ cả Chủ quán & Nhân viên được duyệt)
 exports.getMyStore = async (req, res) => {
   try {
     const userId = getAuthenticatedUserId(req);
-    const store = await Restaurant.findOne({ ownerId: userId });
+    let store = await Restaurant.findOne({ ownerId: userId });
+    let userRoleInStore = 'OWNER';
+
+    if (!store) {
+      // Tìm xem có phải nhân viên ACTIVE của quán nào không
+      store = await Restaurant.findOne({
+        staff: { $elemMatch: { userId: userId, status: 'ACTIVE' } }
+      });
+      if (store) {
+        const staffObj = (store.staff || []).find(
+          (s) => s.userId === userId && s.status === 'ACTIVE'
+        );
+        userRoleInStore = staffObj ? staffObj.role : 'STAFF';
+      }
+    }
+
     if (!store) {
       return res.status(404).json({
         success: false,
-        message: 'Bạn chưa có cửa hàng nào được tạo.'
+        message: 'Bạn chưa có cửa hàng nào hoặc chưa được phân quyền vào cửa hàng.'
       });
     }
 
@@ -565,7 +622,9 @@ exports.getMyStore = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: store
+      data: store,
+      userRoleInStore,
+      isOwner: userRoleInStore === 'OWNER'
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi lấy thông tin quán: ' + error.message });
@@ -1289,19 +1348,375 @@ exports.manageToppingGroups = async (req, res) => {
   }
 };
 
-// 20. Quản lý Nhân viên của Quán (Module 4)
+// 20. Quản lý Nhân viên của Quán (Module 4 - Người dùng thật & Xác nhận gia nhập)
+
+// 20.1 Tra cứu thông tin người dùng thật theo Số Điện Thoại trước khi gửi lời mời (GET /my-store/staff/lookup)
+exports.lookupStaffUser = async (req, res) => {
+  try {
+    const rawPhone = String(req.query.phone || '').trim();
+    const norm = normalizeVietnamPhone(rawPhone);
+    if (!norm.valid) {
+      return res.status(400).json({ success: false, message: norm.reason });
+    }
+
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, message: 'Chưa kết nối cơ sở dữ liệu.' });
+    }
+
+    const authDb = mongoose.connection.useDb('auth_db');
+    const usersCol = authDb.collection('users');
+    const userDoc = await usersCol.findOne({ phone: norm.local });
+
+    if (!userDoc) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy tài khoản người dùng với số điện thoại ${norm.local}. Vui lòng yêu cầu nhân viên đăng ký tài khoản FoodFast trước.`
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        userId: userDoc._id.toString(),
+        name: userDoc.name || 'Người dùng',
+        phone: userDoc.phone,
+        email: userDoc.email || '',
+        avatar: userDoc.avatar || '',
+        phoneVerified: !!userDoc.phoneVerified
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tra cứu người dùng: ' + error.message });
+  }
+};
+
+// 20.2 Gửi lời mời làm nhân viên tới người dùng thật sở hữu SĐT (POST /my-store/staff/invite)
+exports.inviteStaff = async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    const { phone, role = 'STAFF', scope = 'ALL' } = req.body;
+    const norm = normalizeVietnamPhone(String(phone || ''));
+    if (!norm.valid) {
+      return res.status(400).json({ success: false, message: norm.reason });
+    }
+
+    const authDb = mongoose.connection.useDb('auth_db');
+    const usersCol = authDb.collection('users');
+    const targetUser = await usersCol.findOne({ phone: norm.local });
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy tài khoản người dùng với số điện thoại ${norm.local}. Vui lòng yêu cầu nhân viên đăng ký tài khoản FoodFast trước.`
+      });
+    }
+
+    const targetUserIdStr = targetUser._id.toString();
+    if (targetUserIdStr === store.ownerId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bạn là chủ cửa hàng, không thể tự gửi lời mời làm nhân viên cho chính mình.'
+      });
+    }
+
+    if (!Array.isArray(store.staff)) {
+      store.staff = [];
+    }
+
+    // Dọn dẹp các nhân viên ảo không có userId
+    store.staff = store.staff.filter((s) => s.userId && !s.userId.startsWith('staff_'));
+
+    // Kiểm tra xem đã có bản ghi nhân viên chưa
+    const existingIndex = store.staff.findIndex(
+      (s) => (s.userId && s.userId.toString() === targetUserIdStr) || s.phone === norm.local
+    );
+
+    if (existingIndex !== -1) {
+      const existing = store.staff[existingIndex];
+      if (existing.status === 'ACTIVE') {
+        return res.status(400).json({
+          success: false,
+          message: `Người dùng ${targetUser.name} (${norm.local}) đã là nhân viên đang hoạt động của quán.`
+        });
+      }
+      if (existing.status === 'PENDING') {
+        return res.status(400).json({
+          success: false,
+          message: `Lời mời làm việc đã được gửi tới ${targetUser.name} (${norm.local}) và đang chờ người dùng phản hồi.`
+        });
+      }
+      // Nếu là REJECTED thì xóa bản ghi cũ để gửi lại lời mời mới
+      store.staff.splice(existingIndex, 1);
+    }
+
+    const invitationId = `staff_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newStaffItem = {
+      id: invitationId,
+      userId: targetUserIdStr,
+      name: targetUser.name || 'Người dùng',
+      phone: targetUser.phone,
+      email: targetUser.email || '',
+      avatar: targetUser.avatar || '',
+      role: role || 'STAFF',
+      scope: scope || 'ALL',
+      status: 'PENDING',
+      invitedAt: new Date(),
+      respondedAt: null
+    };
+
+    store.staff.push(newStaffItem);
+    await store.save();
+
+    // Tạo thông báo chuông cho nhân viên được mời
+    const roleLabels = {
+      MANAGER: 'Quản lý (Manager)',
+      CASHIER: 'Thu ngân (Cashier)',
+      CHEF: 'Bếp (Chef)',
+      STAFF: 'Nhân viên (Staff)'
+    };
+    const roleText = roleLabels[role] || 'Nhân viên';
+
+    try {
+      await CustomerNotification.create({
+        userId: targetUserIdStr,
+        orderId: `staff_invitation_${invitationId}`,
+        storeId: store._id,
+        storeName: store.name,
+        storeImage: store.image || '',
+        type: 'STAFF_INVITATION',
+        staffRole: role,
+        staffId: invitationId,
+        title: `Lời mời làm việc tại quán ${store.name}`,
+        content: `Quán "${store.name}" vừa gửi lời mời bạn tham gia đội ngũ nhân viên với vị trí [${roleText}]. Hãy xác nhận để gia nhập quán nhé!`,
+        rewardCoins: 0,
+        isRead: false,
+        isCompleted: false,
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      });
+
+      emitUserEvent(targetUserIdStr, 'notification.created', {
+        type: 'STAFF_INVITATION',
+        storeId: store._id.toString(),
+        storeName: store.name,
+        role: roleText
+      });
+    } catch (notifErr) {
+      console.warn('[Staff] Lỗi tạo thông báo chuông cho nhân viên:', notifErr.message);
+    }
+
+    emitStoreUpdate({ store, event: 'store.staff_updated' });
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã gửi lời mời làm ${roleText} tới ${targetUser.name} (${norm.local}) thành công! Đang chờ nhân viên phản hồi chấp nhận.`,
+      data: store.staff
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi gửi lời mời nhân viên: ' + error.message });
+  }
+};
+
+// 20.3 Người dùng phản hồi Lời mời làm nhân viên: Chấp nhận (ACCEPT) hoặc Từ chối (REJECT) (POST /staff/respond-invitation)
+exports.respondStaffInvitation = async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const { storeId, staffId, action } = req.body;
+
+    if (!storeId || !action || !['ACCEPT', 'REJECT'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dữ liệu không hợp lệ. action phải là ACCEPT hoặc REJECT.'
+      });
+    }
+
+    const store = await Restaurant.findById(storeId);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    if (!Array.isArray(store.staff)) {
+      store.staff = [];
+    }
+
+    // Tìm bản ghi nhân viên khớp với user hiện tại
+    const staffIndex = store.staff.findIndex(
+      (s) =>
+        (staffId && s.id === staffId && s.userId === userId) ||
+        (!staffId && s.userId === userId && s.status === 'PENDING')
+    );
+
+    if (staffIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lời mời làm việc tương ứng với tài khoản của bạn.'
+      });
+    }
+
+    const staffItem = store.staff[staffIndex];
+    if (action === 'ACCEPT') {
+      staffItem.status = 'ACTIVE';
+      staffItem.respondedAt = new Date();
+
+      if (!Array.isArray(store.notifications)) store.notifications = [];
+      store.notifications.unshift({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        type: 'SYSTEM',
+        title: 'Nhân viên mới đã đồng ý gia nhập!',
+        content: `Người dùng ${staffItem.name} (${staffItem.phone}) đã chấp nhận lời mời làm [${staffItem.role === 'MANAGER' ? 'Quản lý' : 'Nhân viên'}] của quán.`,
+        isRead: false,
+        createdAt: new Date()
+      });
+
+      await store.save();
+
+      // Cập nhật CustomerNotification
+      await CustomerNotification.updateMany(
+        { userId, storeId: store._id, type: 'STAFF_INVITATION' },
+        { isCompleted: true, isRead: true }
+      ).catch(() => {});
+
+      emitStoreUpdate({ store, event: 'store.staff_updated' });
+
+      return res.status(200).json({
+        success: true,
+        message: `Bạn đã chấp nhận lời mời và chính thức trở thành nhân viên quán "${store.name}"!`,
+        data: staffItem
+      });
+    } else {
+      // REJECT: Xóa bản ghi staff khỏi quán
+      const staffName = staffItem.name;
+      const staffPhone = staffItem.phone;
+      store.staff.splice(staffIndex, 1);
+
+      if (!Array.isArray(store.notifications)) store.notifications = [];
+      store.notifications.unshift({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        type: 'SYSTEM',
+        title: 'Lời mời làm việc bị từ chối',
+        content: `Người dùng ${staffName} (${staffPhone}) đã từ chối lời mời làm nhân viên của quán.`,
+        isRead: false,
+        createdAt: new Date()
+      });
+
+      await store.save();
+
+      await CustomerNotification.updateMany(
+        { userId, storeId: store._id, type: 'STAFF_INVITATION' },
+        { isCompleted: true, isRead: true }
+      ).catch(() => {});
+
+      emitStoreUpdate({ store, event: 'store.staff_updated' });
+
+      return res.status(200).json({
+        success: true,
+        message: `Bạn đã từ chối lời mời làm việc tại quán "${store.name}".`
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi phản hồi lời mời: ' + error.message });
+  }
+};
+
+// 20.4 Xóa quyền nhân viên hoặc Hủy lời mời đang chờ (DELETE /my-store/staff/:staffId)
+exports.deleteStaff = async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const store = await Restaurant.findOne({ ownerId: userId });
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
+    }
+
+    const { staffId } = req.params;
+    if (!Array.isArray(store.staff)) store.staff = [];
+
+    const prevLen = store.staff.length;
+    store.staff = store.staff.filter((s) => s.id !== staffId && String(s._id) !== staffId);
+
+    if (store.staff.length === prevLen) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy nhân viên cần xóa.' });
+    }
+
+    await store.save();
+    emitStoreUpdate({ store, event: 'store.staff_updated' });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã xóa tài khoản nhân viên / Hủy lời mời thành công!',
+      data: store.staff
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa nhân viên: ' + error.message });
+  }
+};
+
+// 20.5 Lấy danh sách lời mời làm việc gửi tới tài khoản người dùng hiện tại (GET /staff/my-invitations)
+exports.getMyStaffInvitations = async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Chưa đăng nhập.' });
+    }
+
+    const stores = await Restaurant.find({
+      'staff.userId': userId,
+      'staff.status': 'PENDING'
+    }).select('_id name image address phone staff').lean();
+
+    const invitations = [];
+    stores.forEach((st) => {
+      (st.staff || []).forEach((item) => {
+        if (item.userId === userId && item.status === 'PENDING') {
+          invitations.push({
+            invitationId: item.id || String(item._id),
+            storeId: st._id,
+            storeName: st.name,
+            storeImage: st.image || '',
+            storeAddress: st.address || '',
+            role: item.role,
+            invitedAt: item.invitedAt || item.createdAt
+          });
+        }
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: invitations.length,
+      data: invitations
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy danh sách lời mời: ' + error.message });
+  }
+};
+
+// 20.6 Quản lý Nhân viên của Quán (Module 4) - Cập nhật đồng bộ & dọn sạch nhân viên ảo
 exports.manageStaff = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = getAuthenticatedUserId(req);
     const store = await Restaurant.findOne({ ownerId: userId });
     if (!store) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng.' });
     }
     const { staff } = req.body;
     if (staff && Array.isArray(staff)) {
-      store.staff = staff;
+      // Giữ lại các nhân viên hợp lệ (có userId thật trên hệ thống)
+      store.staff = staff.filter((s) => s.userId && !s.userId.startsWith('staff_'));
       await store.save();
       emitStoreUpdate({ store, event: 'store.staff_updated' });
+    } else {
+      // Dọn sạch nhân viên ảo cũ không có userId thật
+      if (Array.isArray(store.staff)) {
+        const cleaned = store.staff.filter((s) => s.userId && !s.userId.startsWith('staff_'));
+        if (cleaned.length !== store.staff.length) {
+          store.staff = cleaned;
+          await store.save();
+        }
+      }
     }
     return res.status(200).json({
       success: true,

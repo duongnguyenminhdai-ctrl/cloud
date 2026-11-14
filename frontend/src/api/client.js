@@ -633,6 +633,81 @@ export const storeApi = {
   updateStaff: async (staffData) => {
     return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/staff'), staffData);
   },
+  lookupStaffUser: async (phone) => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/staff/lookup?phone=${encodeURIComponent(phone)}`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get(`http://localhost:3001/api/v1/stores/my-store/staff/lookup?phone=${encodeURIComponent(phone)}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  inviteStaff: async (data) => {
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/staff/invite'), data);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3001/api/v1/stores/my-store/staff/invite', data, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  deleteStaff: async (staffId) => {
+    try {
+      return await apiClient.delete(buildUrl(RESTAURANT_SERVICE_URL, `/stores/my-store/staff/${staffId}`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.delete(`http://localhost:3001/api/v1/stores/my-store/staff/${staffId}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getMyStaffInvitations: async () => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/stores/staff/my-invitations'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3001/api/v1/stores/staff/my-invitations', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  respondStaffInvitation: async (data) => {
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/staff/respond-invitation'), data);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3001/api/v1/stores/staff/respond-invitation', data, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
   manageWallet: async (walletData) => {
     return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/stores/my-store/wallet'), walletData);
   },

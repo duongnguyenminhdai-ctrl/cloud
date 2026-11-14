@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Gift, Check, Trash2, Clock, Star, X, CheckCircle2, Camera, Upload } from 'lucide-react';
-import { notificationApi, reviewApi } from '../api/client';
+import { Bell, Gift, Check, Trash2, Clock, Star, X, CheckCircle2, Camera, Upload, Briefcase, UserCheck, UserX } from 'lucide-react';
+import { notificationApi, reviewApi, storeApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { compressReviewImage } from '../utils/imageHelpers';
 import { playNotificationChime } from '../utils/realtimeSync';
@@ -23,6 +23,30 @@ export default function NotificationBell({ onReviewOrder }) {
   const [reviewImages, setReviewImages] = useState([]);
   const [uploadingReviewImg, setUploadingReviewImg] = useState(false);
   const reviewFileInputRef = useRef(null);
+
+  // Xử lý Lời mời làm nhân viên quán
+  const [respondingStaffId, setRespondingStaffId] = useState(null);
+
+  const handleRespondStaffInvitation = async (notif, action) => {
+    try {
+      setRespondingStaffId(notif._id);
+      const res = await storeApi.respondStaffInvitation({
+        storeId: notif.storeId,
+        staffId: notif.staffId,
+        action
+      });
+      if (res.data?.success) {
+        alert(res.data.message || (action === 'ACCEPT' ? 'Đã đồng ý gia nhập quán!' : 'Đã từ chối lời mời.'));
+        await fetchNotifications();
+      } else {
+        alert(res.data?.message || 'Có lỗi xảy ra khi xử lý phản hồi.');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi phản hồi lời mời làm việc.');
+    } finally {
+      setRespondingStaffId(null);
+    }
+  };
 
   const handleReviewImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -256,45 +280,100 @@ export default function NotificationBell({ onReviewOrder }) {
               <div className="py-10 text-center text-gray-400 space-y-2">
                 <Bell className="w-8 h-8 mx-auto text-gray-300 stroke-[1.5]" />
                 <p className="text-xs font-semibold">Chưa có thông báo mới nào</p>
-                <p className="text-[10px] text-gray-400">Các thông báo mời đánh giá nhận 1.000 Xu sẽ hiện ở đây</p>
+                <p className="text-[10px] text-gray-400">Các lời mời làm việc và đánh giá nhận 1.000 Xu sẽ hiện ở đây</p>
               </div>
             ) : (
               notifications.map((notif) => {
                 const daysLeft = getDaysRemaining(notif.expiresAt);
+                const isStaffInvitation = notif.type === 'STAFF_INVITATION';
+
+                const roleNameMap = {
+                  MANAGER: 'Quản lý (Manager)',
+                  CASHIER: 'Thu ngân (Cashier)',
+                  CHEF: 'Bếp (Chef)',
+                  STAFF: 'Nhân viên (Staff)'
+                };
+
                 return (
                   <div
                     key={notif._id}
-                    className={`p-3.5 hover:bg-orange-50/50 transition-colors flex items-start gap-3 relative group ${
-                      !notif.isRead ? 'bg-orange-50/30' : ''
+                    className={`p-3.5 hover:bg-orange-50/40 transition-colors flex items-start gap-3 relative group ${
+                      !notif.isRead ? (isStaffInvitation ? 'bg-blue-50/30' : 'bg-orange-50/30') : ''
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <Gift className="w-5 h-5" />
-                    </div>
+                    {isStaffInvitation ? (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <Gift className="w-5 h-5" />
+                      </div>
+                    )}
 
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-xs font-black text-gray-900 truncate">
-                          {notif.title || 'Đơn hàng đã giao thành công!'}
-                        </p>
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {isStaffInvitation && (
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 shrink-0">
+                              Lời mời việc
+                            </span>
+                          )}
+                          <p className="text-xs font-black text-gray-900 truncate">
+                            {notif.title || (isStaffInvitation ? 'Lời mời làm việc' : 'Đơn hàng đã giao thành công!')}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-0.5">
+                          <Clock className="w-3 h-3 text-gray-400" />
                           Còn {daysLeft} ngày
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-2">
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
                         {notif.content}
                       </p>
 
-                      <div className="pt-1 flex items-center justify-between">
-                        <button
-                          onClick={() => handleOpenReview(notif)}
-                          className="px-2.5 py-1 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white text-[11px] font-extrabold rounded-lg shadow-sm flex items-center gap-1 transition-all"
-                        >
-                          <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" />
-                          <span>Đánh giá (+1.000 Xu)</span>
-                        </button>
+                      {isStaffInvitation && notif.staffRole && (
+                        <div className="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                          Vị trí đề xuất: {roleNameMap[notif.staffRole] || notif.staffRole}
+                        </div>
+                      )}
+
+                      <div className="pt-1 flex items-center justify-between gap-2">
+                        {isStaffInvitation ? (
+                          !notif.isCompleted ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleRespondStaffInvitation(notif, 'ACCEPT')}
+                                disabled={respondingStaffId === notif._id}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-extrabold rounded-lg shadow-xs flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <Check className="w-3 h-3 stroke-[2.5]" />
+                                <span>{respondingStaffId === notif._id ? 'Đang duyệt...' : 'Đồng ý gia nhập'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleRespondStaffInvitation(notif, 'REJECT')}
+                                disabled={respondingStaffId === notif._id}
+                                className="px-2 py-1 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 disabled:opacity-50 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                              >
+                                <span>Từ chối</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Đã phản hồi
+                            </span>
+                          )
+                        ) : (
+                          <button
+                            onClick={() => handleOpenReview(notif)}
+                            className="px-2.5 py-1 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white text-[11px] font-extrabold rounded-lg shadow-sm flex items-center gap-1 transition-all"
+                          >
+                            <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" />
+                            <span>Đánh giá (+1.000 Xu)</span>
+                          </button>
+                        )}
 
                         <button
                           onClick={(e) => handleDeleteNotification(notif._id, e)}

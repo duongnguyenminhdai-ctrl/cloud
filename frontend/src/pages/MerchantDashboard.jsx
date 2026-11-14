@@ -206,12 +206,14 @@ export default function MerchantDashboard() {
   // =========================================================================
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [staffForm, setStaffForm] = useState({
-    name: '',
     phone: '',
-    email: '',
-    role: 'STAFF', // 'MANAGER' | 'STAFF'
+    role: 'STAFF', // 'MANAGER' | 'CASHIER' | 'CHEF' | 'STAFF'
     scope: 'ALL' // 'ALL' | 'SPECIFIC'
   });
+  const [lookupUserResult, setLookupUserResult] = useState(null);
+  const [lookingUpUser, setLookingUpUser] = useState(false);
+  const [lookupUserError, setLookupUserError] = useState('');
+  const [invitingStaff, setInvitingStaff] = useState(false);
 
   // =========================================================================
   // 5. PHÂN HỆ TÀI CHÍNH & VÍ ĐỐI TÁC (Images 17 - 18)
@@ -1120,45 +1122,74 @@ export default function MerchantDashboard() {
   };
 
   // =========================================================================
-  // XỬ LÝ PHÂN HỆ QUẢN LÝ NHÂN VIÊN (Images 16, 17)
+  // XỬ LÝ PHÂN HỆ QUẢN LÝ NHÂN VIÊN (Images 16, 17 - Người dùng thật & Lời mời)
   // =========================================================================
-  const handleAddStaff = async () => {
-    if (!staffForm.name || !staffForm.phone) {
-      alert('Vui lòng nhập Tên và Số điện thoại nhân viên!');
+  const handleLookupUserByPhone = async (phoneInput) => {
+    const raw = String(phoneInput !== undefined ? phoneInput : staffForm.phone || '').trim();
+    if (!raw) {
+      setLookupUserError('Vui lòng nhập số điện thoại');
+      setLookupUserResult(null);
       return;
     }
-    const currentStaff = store?.staff ? [...store.staff] : [];
-    currentStaff.push({
-      id: `staff_${Date.now()}`,
-      name: staffForm.name,
-      phone: staffForm.phone.replace(/^0+/, ''), // Chuẩn hóa SĐT theo FoodFast Partner
-      email: staffForm.email || '',
-      role: staffForm.role,
-      scope: staffForm.scope,
-      status: 'ACTIVE',
-      createdAt: new Date()
-    });
-
+    setLookingUpUser(true);
+    setLookupUserError('');
     try {
-      await storeApi.updateStaff({ staff: currentStaff });
-      showToast(`Đã thêm nhân viên [${staffForm.name}] thành công!`);
-      setShowStaffModal(false);
-      setStaffForm({ name: '', phone: '', email: '', role: 'STAFF', scope: 'ALL' });
-      fetchStoreData({ silent: true });
+      const res = await storeApi.lookupStaffUser(raw);
+      if (res.data?.success && res.data.data) {
+        setLookupUserResult(res.data.data);
+      } else {
+        setLookupUserResult(null);
+        setLookupUserError(res.data?.message || 'Không tìm thấy người dùng');
+      }
     } catch (err) {
-      alert('Lỗi thêm nhân viên: ' + (err.response?.data?.message || err.message));
+      setLookupUserResult(null);
+      setLookupUserError(err.response?.data?.message || 'Không tìm thấy tài khoản người dùng với SĐT này trên FoodFast.');
+    } finally {
+      setLookingUpUser(false);
     }
   };
 
-  const handleDeleteStaff = async (staffId, staffName) => {
-    if (!confirm(`Bạn có chắc muốn xóa tài khoản nhân viên [${staffName}]?`)) return;
-    const updated = (store?.staff || []).filter((s) => s.id !== staffId);
+  const handleInviteStaff = async () => {
+    if (!staffForm.phone) {
+      setLookupUserError('Vui lòng nhập Số điện thoại nhân viên!');
+      return;
+    }
+    setInvitingStaff(true);
+    setLookupUserError('');
     try {
-      await storeApi.updateStaff({ staff: updated });
-      showToast(`Đã xóa nhân viên [${staffName}]!`);
-      fetchStoreData({ silent: true });
+      const res = await storeApi.inviteStaff({
+        phone: staffForm.phone,
+        role: staffForm.role,
+        scope: staffForm.scope
+      });
+      if (res.data?.success) {
+        showToast(res.data.message || 'Đã gửi lời mời thành công!');
+        setShowStaffModal(false);
+        setStaffForm({ phone: '', role: 'STAFF', scope: 'ALL' });
+        setLookupUserResult(null);
+        setLookupUserError('');
+        fetchStoreData({ silent: true });
+      } else {
+        setLookupUserError(res.data?.message || 'Không thể gửi lời mời');
+      }
     } catch (err) {
-      alert('Lỗi xóa nhân viên: ' + (err.response?.data?.message || err.message));
+      setLookupUserError(err.response?.data?.message || err.message || 'Lỗi gửi lời mời');
+    } finally {
+      setInvitingStaff(false);
+    }
+  };
+
+  const handleDeleteStaff = async (staffId, staffName, status) => {
+    const actionLabel = status === 'PENDING' ? `hủy lời mời gửi tới [${staffName}]` : `xóa quyền nhân viên của [${staffName}]`;
+    if (!confirm(`Bạn có chắc chắn muốn ${actionLabel}?`)) return;
+    try {
+      const res = await storeApi.deleteStaff(staffId);
+      if (res.data?.success) {
+        showToast(res.data.message || 'Thao tác thành công!');
+        fetchStoreData({ silent: true });
+      }
+    } catch (err) {
+      alert('Lỗi: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -2572,49 +2603,77 @@ export default function MerchantDashboard() {
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paginatedStaff.items.map((st) => (
-                  <div key={st.id} className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-full bg-slate-700 text-white font-bold flex items-center justify-center text-sm">
-                          {st.name?.slice(0, 1).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-bold text-white text-sm">{st.name}</p>
-                          <p className="text-xs text-slate-400">+84 {st.phone}</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        Hoạt động
-                      </span>
-                    </div>
+                    {paginatedStaff.items.map((st) => {
+                      const isPending = st.status === 'PENDING';
+                      const roleMap = {
+                        MANAGER: 'Quản lý (Manager)',
+                        CASHIER: 'Thu ngân (Cashier)',
+                        CHEF: 'Bếp (Chef)',
+                        STAFF: 'Nhân viên (Staff)'
+                      };
+                      const roleDisplay = roleMap[st.role] || 'Nhân viên (Staff)';
 
-                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Vai trò:</span>
-                        <span className="font-bold text-orange-400">
-                          {st.role === 'MANAGER' ? 'Quản lý (Manager)' : 'Nhân viên (Staff)'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Phạm vi:</span>
-                        <span className="text-slate-300">
-                          {st.scope === 'ALL' ? 'Tất cả quán' : 'Quán này'}
-                        </span>
-                      </div>
-                    </div>
+                      return (
+                        <div key={st.id || st._id} className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2.5">
+                              {st.avatar ? (
+                                <img
+                                  src={st.avatar}
+                                  alt={st.name}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-600"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-700 text-white font-bold flex items-center justify-center text-sm">
+                                  {st.name?.slice(0, 1).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-bold text-white text-sm">{st.name}</p>
+                                <p className="text-xs text-slate-400 font-mono">{st.phone?.startsWith('0') ? st.phone : `0${st.phone}`}</p>
+                                {st.email && <p className="text-[11px] text-slate-500 truncate max-w-[150px]">{st.email}</p>}
+                              </div>
+                            </div>
+                            {isPending ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> Chờ chấp nhận
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Hoạt động
+                              </span>
+                            )}
+                          </div>
 
-                    <div className="flex justify-end pt-1">
-                      <button
-                        onClick={() => handleDeleteStaff(st.id, st.name)}
-                        className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold transition-colors flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Xóa quyền</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Vị trí:</span>
+                              <span className="font-bold text-orange-400">{roleDisplay}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Trạng thái:</span>
+                              <span className={isPending ? 'text-amber-400 font-semibold' : 'text-emerald-400 font-semibold'}>
+                                {isPending ? 'Đang chờ nhân viên đồng ý' : 'Đã duyệt làm việc'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end pt-1">
+                            <button
+                              onClick={() => handleDeleteStaff(st.id || st._id, st.name, st.status)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer ${
+                                isPending
+                                  ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400'
+                                  : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400'
+                              }`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>{isPending ? 'Hủy lời mời' : 'Xóa quyền'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
 
                 <Pagination
@@ -4084,64 +4143,150 @@ export default function MerchantDashboard() {
       )}
 
       {/* ===================================================================== */}
-      {/* MODAL 7: THÊM NHÂN VIÊN MỚI (Image 16) */}
+      {/* MODAL 7: THÊM NHÂN VIÊN MỚI - TÌM NGƯỜI DÙNG THẬT & GỬI LỜI MỜI */}
       {/* ===================================================================== */}
       {showStaffModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-white text-base">Thêm tài khoản nhân viên</h3>
-              <button onClick={() => setShowStaffModal(false)} className="text-slate-400 hover:text-white">
+              <h3 className="font-bold text-white text-base flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-orange-400" />
+                <span>Gửi lời mời nhân viên cửa hàng</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setShowStaffModal(false);
+                  setLookupUserResult(null);
+                  setLookupUserError('');
+                  setStaffForm({ phone: '', role: 'STAFF', scope: 'ALL' });
+                }}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
+              {/* Nhập SĐT để dò tìm người dùng thật */}
               <div>
-                <label className="text-xs font-bold text-slate-300">Tên nhân viên (*):</label>
-                <input
-                  type="text"
-                  value={staffForm.name}
-                  onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
-                  placeholder="Điền tên đầy đủ"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300">Số điện thoại nhân viên (*):</label>
-                <div className="flex items-center mt-1">
-                  <span className="px-3 py-2 bg-slate-800 border border-r-0 border-slate-700 rounded-l-xl text-slate-400 text-xs font-bold">
-                    +84
-                  </span>
-                  <input
-                    type="text"
-                    value={staffForm.phone}
-                    onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
-                    placeholder="Điền SĐT không gồm số 0 (VD: 969535231)"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-r-xl text-white text-xs"
-                  />
+                <label className="text-xs font-bold text-slate-300">
+                  Số điện thoại người dùng (*):
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="relative flex-1">
+                    <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="tel"
+                      value={staffForm.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setStaffForm({ ...staffForm, phone: val });
+                        setLookupUserError('');
+                        if (val.length === 10) {
+                          handleLookupUserByPhone(val);
+                        } else {
+                          setLookupUserResult(null);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (staffForm.phone.length >= 9) {
+                          handleLookupUserByPhone(staffForm.phone);
+                        }
+                      }}
+                      placeholder="VD: 0323456789"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs font-mono font-bold focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleLookupUserByPhone(staffForm.phone)}
+                    disabled={lookingUpUser || !staffForm.phone}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    {lookingUpUser ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Hệ thống sẽ tra cứu tài khoản thật gắn với số điện thoại này để gửi lời mời vị trí làm việc.
+                </p>
               </div>
 
+              {/* Thông báo lỗi tra cứu nếu không tìm thấy */}
+              {lookupUserError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{lookupUserError}</span>
+                </div>
+              )}
+
+              {/* Preview người dùng thật tìm thấy trên FoodFast */}
+              {lookupUserResult && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                      Đã tìm thấy tài khoản hợp lệ:
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
+                      FoodFast User ✓
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 pt-0.5">
+                    {lookupUserResult.avatar ? (
+                      <img
+                        src={lookupUserResult.avatar}
+                        alt={lookupUserResult.name}
+                        className="w-10 h-10 rounded-full object-cover border border-emerald-500/40"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-emerald-600/30 text-emerald-300 font-black flex items-center justify-center text-sm border border-emerald-500/30">
+                        {lookupUserResult.name?.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-white text-sm truncate">{lookupUserResult.name}</p>
+                      <p className="text-xs text-slate-400 font-mono">{lookupUserResult.phone}</p>
+                      {lookupUserResult.email && (
+                        <p className="text-[11px] text-slate-500 truncate">{lookupUserResult.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Chọn vai trò */}
               <div>
-                <label className="text-xs font-bold text-slate-300">Chỉ định vai trò (*):</label>
+                <label className="text-xs font-bold text-slate-300">Vị trí công việc phân công (*):</label>
                 <select
                   value={staffForm.role}
                   onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs mt-1 focus:border-orange-500 focus:outline-none"
                 >
-                  <option value="STAFF">Nhân viên (Staff - Nhận đơn, chuẩn bị món, hết món)</option>
-                  <option value="MANAGER">Quản lý (Manager - Toàn quyền quản lý quán)</option>
+                  <option value="STAFF">Nhân viên (Staff - Nhận đơn, chế biến, cập nhật hết món)</option>
+                  <option value="CASHIER">Thu ngân (Cashier - Xác nhận thanh toán & in bill)</option>
+                  <option value="CHEF">Đầu bếp (Chef - Quản lý chuẩn bị món ăn)</option>
+                  <option value="MANAGER">Quản lý (Manager - Toàn quyền quản lý cửa hàng)</option>
                 </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+                💡 <strong>Cơ chế duyệt 2 chiều:</strong> Sau khi bạn gửi lời mời, người dùng sở hữu số điện thoại trên sẽ nhận được thông báo chuông. Khi người dùng <strong>bấm đồng ý</strong>, tài khoản đó mới chính thức được duyệt làm việc tại quán.
               </div>
             </div>
 
             <button
-              onClick={handleAddStaff}
-              className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer"
+              onClick={handleInviteStaff}
+              disabled={invitingStaff || !staffForm.phone}
+              className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Lưu tài khoản nhân viên
+              {invitingStaff ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Đang gửi lời mời...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" /> Gửi Lời Mời Gia Nhập Quán
+                </>
+              )}
             </button>
           </div>
         </div>

@@ -339,16 +339,20 @@ const restaurantSchema = new mongoose.Schema(
       }
     ],
 
-    // 12. Quản lý Nhân viên của Quán (Module 4)
+    // 12. Quản lý Nhân viên của Quán (Module 4 - Người dùng thật & Xác nhận gia nhập)
     staff: [
       {
         id: { type: String, default: '' },
+        userId: { type: String, default: '', index: true },
         name: { type: String, required: true },
         phone: { type: String, required: true },
         email: { type: String, default: '' },
-        role: { type: String, enum: ['MANAGER', 'STAFF'], default: 'STAFF' },
-        scope: { type: String, enum: ['ALL', 'SPECIFIC'], default: 'SPECIFIC' },
-        status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+        avatar: { type: String, default: '' },
+        role: { type: String, enum: ['MANAGER', 'CASHIER', 'CHEF', 'STAFF'], default: 'STAFF' },
+        scope: { type: String, enum: ['ALL', 'SPECIFIC'], default: 'ALL' },
+        status: { type: String, enum: ['PENDING', 'ACTIVE', 'REJECTED'], default: 'PENDING' },
+        invitedAt: { type: Date, default: Date.now },
+        respondedAt: { type: Date, default: null },
         createdAt: { type: Date, default: Date.now }
       }
     ],

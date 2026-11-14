@@ -87,9 +87,39 @@ router.put(
   restaurantController.manageToppingGroups
 );
 
-// 1.5 Quản lý Nhân viên của Quán (Module 4)
+// 1.5 Quản lý Nhân viên của Quán (Module 4 - Người dùng thật & Xác nhận gia nhập)
+router.get(
+  ['/my-store/staff/lookup', '/stores/my-store/staff/lookup', '/api/v1/stores/my-store/staff/lookup'],
+  verifyToken,
+  restaurantController.lookupStaffUser
+);
+
+router.post(
+  ['/my-store/staff/invite', '/stores/my-store/staff/invite', '/api/v1/stores/my-store/staff/invite'],
+  verifyToken,
+  restaurantController.inviteStaff
+);
+
+router.delete(
+  ['/my-store/staff/:staffId', '/stores/my-store/staff/:staffId', '/api/v1/stores/my-store/staff/:staffId'],
+  verifyToken,
+  restaurantController.deleteStaff
+);
+
+router.get(
+  ['/staff/my-invitations', '/stores/staff/my-invitations', '/api/v1/stores/staff/my-invitations'],
+  verifyToken,
+  restaurantController.getMyStaffInvitations
+);
+
+router.post(
+  ['/staff/respond-invitation', '/stores/staff/respond-invitation', '/api/v1/stores/staff/respond-invitation'],
+  verifyToken,
+  restaurantController.respondStaffInvitation
+);
+
 router.put(
-  ['/my-store/staff', '/stores/my-store/staff'],
+  ['/my-store/staff', '/stores/my-store/staff', '/api/v1/stores/my-store/staff'],
   verifyToken,
   restaurantController.manageStaff
 );

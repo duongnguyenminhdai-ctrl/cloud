@@ -28,8 +28,16 @@ const customerNotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['ORDER_REVIEW_PROMPT', 'SYSTEM', 'COINS_REWARD'],
+      enum: ['ORDER_REVIEW_PROMPT', 'SYSTEM', 'COINS_REWARD', 'STAFF_INVITATION'],
       default: 'ORDER_REVIEW_PROMPT'
+    },
+    staffRole: {
+      type: String,
+      default: 'STAFF'
+    },
+    staffId: {
+      type: String,
+      default: ''
     },
     title: {
       type: String,
