@@ -49,6 +49,178 @@
 }
 
 /* =============================================================================
+   TIỆN ÍCH PANEL & COMPONENT SỔ TAY KÝ HỌA (SKETCHBOOK THEME UTILITIES)
+   ============================================================================= */
+.sketch-panel {
+  background-color: rgba(255, 253, 250, 0.96);
+  border: 1px solid rgba(43, 39, 33, 0.12);
+  box-shadow: 0 4px 24px rgba(43, 39, 33, 0.05);
+  color: #2b2721;
+}
+
+.sketch-card {
+  background-color: rgba(255, 253, 250, 0.94);
+  border: 1px solid rgba(43, 39, 33, 0.11);
+  box-shadow: 0 2px 12px rgba(43, 39, 33, 0.04);
+  color: #2b2721;
+}
+
+.sketch-subcard {
+  background-color: #fbf9f4;
+  border: 1px solid rgba(43, 39, 33, 0.1);
+  color: #2b2721;
+}
+
+.sketch-input {
+  background-color: #fffdfa !important;
+  border: 1px solid rgba(43, 39, 33, 0.18) !important;
+  color: #2b2721 !important;
+  transition: all 0.2s ease;
+}
+.sketch-input:focus {
+  border-color: #9a6a3e !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(154, 106, 62, 0.15) !important;
+}
+
+.sketch-btn-primary {
+  background-color: #9a6a3e !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(154, 106, 62, 0.25);
+}
+.sketch-btn-primary:hover {
+  background-color: #845831 !important;
+}
+
+.sketch-btn-secondary {
+  background-color: #f2ece1 !important;
+  color: #845831 !important;
+  border: 1px solid rgba(154, 106, 62, 0.25) !important;
+  transition: all 0.2s ease;
+}
+.sketch-btn-secondary:hover {
+  background-color: #ebdcc8 !important;
+}
+
+.sketch-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  color: #2b2721;
+}
+
+.sketch-handwrite {
+  font-family: 'Caveat', cursive;
+}
+
+/* =============================================================================
+   ĐỒNG BỘ THEME SỔ TAY KÝ HỌA CHO ADMIN DASHBOARD & TẤT CẢ PANEL HỆ THỐNG
+   ============================================================================= */
+.admin-sketchbook-theme {
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme .bg-slate-900,
+.admin-sketchbook-theme.bg-slate-900 {
+  background-color: transparent !important;
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme header,
+.admin-sketchbook-theme .bg-slate-800\/90 {
+  background-color: rgba(247, 244, 238, 0.96) !important;
+  border-color: rgba(43, 39, 33, 0.14) !important;
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme .bg-slate-800,
+.admin-sketchbook-theme .bg-slate-800\/80,
+.admin-sketchbook-theme .bg-slate-800\/60,
+.admin-sketchbook-theme .bg-slate-950,
+.admin-sketchbook-theme .bg-slate-900\/90 {
+  background-color: rgba(255, 253, 250, 0.96) !important;
+  border-color: rgba(43, 39, 33, 0.12) !important;
+  color: #2b2721 !important;
+  box-shadow: 0 4px 20px rgba(43, 39, 33, 0.05) !important;
+}
+
+.admin-sketchbook-theme .bg-slate-700,
+.admin-sketchbook-theme .bg-slate-700\/50,
+.admin-sketchbook-theme .bg-slate-700\/60 {
+  background-color: #f2ece1 !important;
+  border-color: rgba(43, 39, 33, 0.12) !important;
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme .text-white {
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme h1,
+.admin-sketchbook-theme h2,
+.admin-sketchbook-theme h3 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  color: #2b2721 !important;
+  letter-spacing: -0.01em;
+}
+
+.admin-sketchbook-theme .text-slate-100,
+.admin-sketchbook-theme .text-slate-200 {
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme .text-slate-300,
+.admin-sketchbook-theme .text-slate-400 {
+  color: rgba(43, 39, 33, 0.65) !important;
+}
+
+.admin-sketchbook-theme .border-slate-700,
+.admin-sketchbook-theme .border-slate-700\/60,
+.admin-sketchbook-theme .border-slate-700\/80,
+.admin-sketchbook-theme .border-slate-800 {
+  border-color: rgba(43, 39, 33, 0.12) !important;
+}
+
+.admin-sketchbook-theme input,
+.admin-sketchbook-theme select,
+.admin-sketchbook-theme textarea {
+  background-color: #fffdfa !important;
+  border-color: rgba(43, 39, 33, 0.18) !important;
+  color: #2b2721 !important;
+}
+
+.admin-sketchbook-theme input:focus,
+.admin-sketchbook-theme select:focus,
+.admin-sketchbook-theme textarea:focus {
+  border-color: #9a6a3e !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(154, 106, 62, 0.15) !important;
+}
+
+.admin-sketchbook-theme .bg-gradient-to-r.from-orange-500.to-amber-500,
+.admin-sketchbook-theme .bg-gradient-to-tr.from-orange-500.to-amber-500 {
+  background: #9a6a3e !important;
+  color: #ffffff !important;
+}
+
+.admin-sketchbook-theme .text-orange-400,
+.admin-sketchbook-theme .text-orange-500 {
+  color: #9a6a3e !important;
+}
+
+.admin-sketchbook-theme table thead tr {
+  background-color: #f2ece1 !important;
+  color: rgba(43, 39, 33, 0.8) !important;
+}
+
+.admin-sketchbook-theme table tbody tr {
+  border-color: rgba(43, 39, 33, 0.08) !important;
+}
+
+.admin-sketchbook-theme table tbody tr:hover {
+  background-color: rgba(242, 236, 225, 0.5) !important;
+}
+
+/* =============================================================================
    MỞ RỘNG THANH CUỘN & THANH KÉO NGANG TOÀN HỆ THỐNG (FOODFAST PREMIUM DESIGN)
    ============================================================================= */
 

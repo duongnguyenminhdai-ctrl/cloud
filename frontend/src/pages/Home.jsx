@@ -1075,11 +1075,11 @@ export default function Home() {
         {/* ===================================================================== */}
         {/* 3. DANH MỤC ĐẶC TRƯNG FOODFAST (20 Icon Grid) (Image 3) */}
         {/* ===================================================================== */}
-        <div className="bg-[#fcfbf9]/95 rounded-3xl p-5 border border-[rgba(43,39,33,0.14)] shadow-sm space-y-3 backdrop-blur-xs">
+        <div className="sketch-panel rounded-3xl p-5 space-y-3 backdrop-blur-xs">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-600 animate-ping" />
-              <h2 className="text-base sm:text-lg font-black text-[#2b2721] tracking-tight">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#9a6a3e] animate-ping" />
+              <h2 className="sketch-title text-xl sm:text-2xl font-bold tracking-tight text-[#2b2721]">
                 Khám Phá Món Ngon FoodFast
               </h2>
             </div>
@@ -1089,7 +1089,7 @@ export default function Home() {
                   setSelectedTopCatId('all');
                   setSelectedCategory('All');
                 }}
-                className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#9a6a3e] hover:text-[#845831] hover:underline cursor-pointer"
               >
                 Xem tất cả
               </button>
@@ -1097,7 +1097,7 @@ export default function Home() {
           </div>
 
           {/* 20 Icon danh mục FoodFast dạng grid 2 hàng lướt ngang mượt mà */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[98px] gap-2 sm:gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {FOODFAST_TOP_CATEGORIES.map((cat) => {
               const isSelected = selectedTopCatId === cat.id;
               return (
@@ -1106,8 +1106,8 @@ export default function Home() {
                   onClick={() => handleSelectTopCategory(cat.id)}
                   className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
                     isSelected
-                      ? 'bg-orange-50 border-2 border-orange-500 scale-102 shadow-xs'
-                      : 'bg-white/80 hover:bg-orange-50/70 border border-[rgba(43,39,33,0.1)] hover:border-orange-300'
+                      ? 'bg-[#f2ece1] border-2 border-[#9a6a3e] scale-102 shadow-xs'
+                      : 'bg-[#fffdfa] hover:bg-[#f2ece1]/70 border border-[rgba(43,39,33,0.12)] hover:border-[#9a6a3e]/40'
                   }`}
                 >
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center overflow-hidden mb-1 group-hover:scale-110 transition-transform">
@@ -1122,7 +1122,7 @@ export default function Home() {
                   </div>
                   <span
                     className={`text-[11px] sm:text-xs text-center font-bold leading-tight line-clamp-1 ${
-                      isSelected ? 'text-orange-600' : 'text-[#2b2721] group-hover:text-orange-600'
+                      isSelected ? 'text-[#845831]' : 'text-[#2b2721] group-hover:text-[#845831]'
                     }`}
                   >
                     {cat.name}
@@ -1424,15 +1424,15 @@ export default function Home() {
       {/* ===================================================================== */}
       {!loading && (
         displayedRestaurants.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
+          <div className="text-center py-16 sketch-panel rounded-3xl p-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[#f2ece1] text-[#9a6a3e] flex items-center justify-center mx-auto border border-[rgba(154,106,62,0.2)]">
               <MapPin className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <p className="text-base text-gray-900 font-extrabold">
+              <p className="sketch-title text-xl text-[#2b2721] font-bold">
                 Chưa có quán ăn nào phù hợp tại {selectedDistrict !== 'ALL' ? selectedDistrict : (selectedCity?.name || 'khu vực này')}
               </p>
-              <p className="text-xs text-gray-500 max-w-md mx-auto">
+              <p className="text-xs text-[#2b2721]/60 max-w-md mx-auto">
                 Bạn có thể thử chọn quận/huyện khác hoặc chuyển sang danh mục món ăn khác.
               </p>
             </div>
@@ -1444,7 +1444,7 @@ export default function Home() {
                   setSelectedDistrict('ALL');
                   setActiveTab('near');
                 }}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors"
+                className="sketch-btn-secondary px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 Xóa tất cả bộ lọc
               </button>
@@ -1457,7 +1457,7 @@ export default function Home() {
                 <Link
                   key={res._id}
                   to={`/restaurants/${res._id}`}
-                  className="bg-white/95 rounded-2xl p-3 border border-[rgba(43,39,33,0.12)] hover:border-[#9a6a3e]/60 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative backdrop-blur-xs"
+                  className="sketch-card rounded-2xl p-3 hover:border-[#9a6a3e]/60 hover:shadow-md transition-all duration-200 flex items-start gap-3 group cursor-pointer relative backdrop-blur-xs"
                 >
                   {/* Left: Thumbnail ảnh quán kèm Chấm xanh trực tuyến 🟢 và Nút Thả tim ❤️ */}
                   <div className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
@@ -1500,24 +1500,24 @@ export default function Home() {
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                       )}
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm group-hover:text-orange-600 transition-colors truncate">
+                      <h3 className="font-bold text-[#2b2721] text-xs sm:text-sm group-hover:text-[#9a6a3e] transition-colors truncate">
                         {res.name}
                       </h3>
                     </div>
 
                     {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương FoodFast */}
-                    <p className="text-xs font-semibold text-[#0084ff] truncate">
+                    <p className="text-xs font-semibold text-[#8c5d33] truncate">
                       {getLocationCountText(res)}
                     </p>
 
                     {/* Hàng 3: Tối thiểu 20k / Giá 0 */}
-                    <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-gray-500 flex-wrap">
+                    <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-[#2b2721]/60 flex-wrap">
                       <div className="flex items-center gap-1">
-                        <Tag className="w-3 h-3 text-gray-400 rotate-90" />
+                        <Tag className="w-3 h-3 text-[#2b2721]/40 rotate-90" />
                         <span>{getMinOrderText(res)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[10px] flex items-center justify-center font-bold text-gray-500 leading-none">
+                        <span className="w-3.5 h-3.5 rounded-full border border-[#2b2721]/30 text-[10px] flex items-center justify-center font-bold text-[#2b2721]/60 leading-none">
                           $
                         </span>
                         <span>{getPriceRangeText(res)}</span>
@@ -1525,8 +1525,8 @@ export default function Home() {
                     </div>
 
                     {/* Hàng 4: Tag khuyến mãi màu đỏ Giảm món */}
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-red-500">
-                      <Tag className="w-3 h-3 text-red-500 fill-red-500" />
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-[#9a6a3e]">
+                      <Tag className="w-3 h-3 text-[#9a6a3e] fill-[#9a6a3e]" />
                       <span>{getPromoTag(res)}</span>
                     </div>
                   </div>

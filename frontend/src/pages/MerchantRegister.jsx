@@ -521,9 +521,9 @@ export default function MerchantRegister() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50/60 pb-16">
+    <div className="min-h-screen pb-16 text-[#2b2721]">
       {/* Top Header Minimalist */}
-      <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-40">
+      <div className="bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] sticky top-16 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
@@ -534,13 +534,13 @@ export default function MerchantRegister() {
               />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">Đăng ký trở thành Người Bán</h1>
-              <p className="text-xs text-gray-500">Quy trình mở gian hàng đối tác FoodFast tiêu chuẩn</p>
+              <h1 className="sketch-title text-2xl font-bold text-[#2b2721] leading-tight">Đăng ký trở thành Người Bán</h1>
+              <p className="text-xs text-[#2b2721]/60">Quy trình mở gian hàng đối tác FoodFast tiêu chuẩn</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/')}
-            className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer"
+            className="text-xs text-[#2b2721]/70 hover:text-[#2b2721] px-3.5 py-1.5 rounded-xl bg-[#f2ece1] border border-[rgba(154,106,62,0.2)] cursor-pointer transition-colors"
           >
             Về trang chủ
           </button>
@@ -549,7 +549,7 @@ export default function MerchantRegister() {
 
       <div className="max-w-4xl mx-auto px-4 mt-6">
         {/* Stepper Progress Bar */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm mb-6">
+        <div className="sketch-panel rounded-3xl p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between overflow-x-auto pb-2 sm:pb-0 gap-2">
             {steps.map((st, idx) => (
               <React.Fragment key={st.num}>
@@ -557,7 +557,7 @@ export default function MerchantRegister() {
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                       currentStep === st.num
-                        ? 'bg-orange-600 text-white shadow-md shadow-orange-500/30 ring-4 ring-orange-100'
+                        ? 'bg-[#9a6a3e] text-white shadow-md shadow-[#9a6a3e]/30 ring-4 ring-[#f2ece1]'
                         : currentStep > st.num
                         ? 'bg-emerald-500 text-white'
                         : 'bg-gray-100 text-gray-400'

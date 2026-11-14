@@ -579,16 +579,16 @@ export default function ProfilePage() {
   const pwdStrength = getPasswordStrength(passwordForm.newPassword);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6 profile-sketchbook-theme">
       {/* Breadcrumb điều hướng */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-        <Link to="/" className="hover:text-orange-600 transition-colors">
+      <div className="flex items-center gap-2 text-xs text-[#2b2721]/60 font-medium">
+        <Link to="/" className="hover:text-[#9a6a3e] transition-colors">
           Trang chủ
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-gray-900 font-bold">Tài khoản của tôi</span>
+        <span className="text-[#2b2721] font-bold">Tài khoản của tôi</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-orange-600 font-bold">
+        <span className="text-[#9a6a3e] font-bold">
           {activeTab === 'profile'
             ? 'Hồ sơ cá nhân'
             : activeTab === 'password'
@@ -629,21 +629,21 @@ export default function ProfilePage() {
         {/* =================================================================== */}
         <div className="lg:col-span-4 space-y-4">
           {/* Card Thẻ User Profile */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5">
+          <div className="sketch-panel rounded-3xl p-6 space-y-5">
             <div className="flex items-center gap-4">
               <div className="relative group">
                 <UserAvatar
                   src={profileForm.avatar}
                   name={profileForm.name}
                   fallbackChar="U"
-                  className="w-16 h-16 rounded-2xl text-2xl shadow-md shadow-orange-500/20"
+                  className="w-16 h-16 rounded-2xl text-2xl shadow-md shadow-[#9a6a3e]/20"
                 />
                 <button
                   type="button"
                   disabled={savingAvatar}
                   onClick={() => avatarInputRef.current?.click()}
                   title="Đổi ảnh đại diện"
-                  className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center border-2 border-white shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                  className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white flex items-center justify-center border-2 border-white shadow-sm transition-all cursor-pointer disabled:opacity-60"
                 >
                   {savingAvatar ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -661,16 +661,13 @@ export default function ProfilePage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="font-extrabold text-gray-900 text-base truncate">
+                <h3 className="sketch-title text-xl font-bold text-[#2b2721] truncate">
                   {profileForm.name || 'Người dùng FoodFast'}
                 </h3>
-                <p className="text-xs text-gray-500 truncate">{profileForm.email || 'user@foodfast.vn'}</p>
+                <p className="text-xs text-[#2b2721]/60 truncate">{profileForm.email || 'user@foodfast.vn'}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${user?.role === 'ADMIN'
-                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                        : 'bg-orange-100 text-orange-700 border border-orange-200'
-                      }`}
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.25)]"
                   >
                     {user?.role === 'ADMIN' ? 'Quản trị viên Hệ thống' : 'Thành viên FoodFast'}
                   </span>
@@ -679,74 +676,74 @@ export default function ProfilePage() {
             </div>
 
             {/* Danh sách Menu điều hướng */}
-            <div className="border-t border-gray-100 pt-3 space-y-1">
+            <div className="border-t border-[rgba(43,39,33,0.12)] pt-3 space-y-1">
               <button
                 onClick={() => handleTabChange('profile')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'profile'
-                    ? 'bg-orange-50 text-orange-600 border border-orange-200/80 shadow-xs'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-orange-500" />
+                  <User className="w-4 h-4 text-[#9a6a3e]" />
                   <span>Hồ sơ của tôi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
               </button>
 
               <button
                 onClick={() => handleTabChange('password')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'password'
-                    ? 'bg-orange-50 text-orange-600 border border-orange-200/80 shadow-xs'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <Lock className="w-4 h-4 text-orange-500" />
+                  <Lock className="w-4 h-4 text-[#9a6a3e]" />
                   <span>Đổi mật khẩu & Bảo mật</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
               </button>
 
               <button
                 onClick={() => handleTabChange('address')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'address'
-                    ? 'bg-orange-50 text-orange-600 border border-orange-200/80 shadow-xs'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-orange-500" />
+                  <MapPin className="w-4 h-4 text-[#9a6a3e]" />
                   <span>Địa chỉ nhận hàng</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
               </button>
 
               <Link
                 to="/orders"
-                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all"
+                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Package className="w-4 h-4 text-blue-500" />
+                  <Package className="w-4 h-4 text-[#8c5d33]" />
                   <span>Đơn mua của tôi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
               </Link>
 
               <Link
                 to="/orders?tab=vouchers"
-                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all"
+                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Ticket className="w-4 h-4 text-emerald-500" />
+                  <Ticket className="w-4 h-4 text-emerald-700" />
                   <span>Kho Voucher & Khuyến mãi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
               </Link>
             </div>
 
             {/* Nút Đăng xuất an toàn */}
-            <div className="border-t border-gray-100 pt-3">
+            <div className="border-t border-[rgba(43,39,33,0.12)] pt-3">
               <button
                 onClick={logout}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200/60 transition-all cursor-pointer"
@@ -764,18 +761,18 @@ export default function ProfilePage() {
         <div className="lg:col-span-8">
           {/* TAB 1: HỒ SƠ CỦA TÔI */}
           {activeTab === 'profile' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h2 className="text-lg sm:text-xl font-black text-gray-900">Hồ Sơ Của Tôi</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="border-b border-[rgba(43,39,33,0.12)] pb-4">
+                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721]">Hồ Sơ Của Tôi</h2>
+                <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-0.5">
                   Quản lý thông tin hồ sơ để bảo mật tài khoản và nhận đồ ăn nhanh chóng.
                 </p>
               </div>
 
               <form onSubmit={handleSaveProfile} className="space-y-5">
                 {/* Ảnh đại diện */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start pb-2 border-b border-gray-50">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start pb-2 border-b border-[rgba(43,39,33,0.08)]">
+                  <label className="text-xs sm:text-sm font-bold text-[#2b2721]/80 sm:text-right pt-2">
                     Ảnh đại diện:
                   </label>
                   <div className="sm:col-span-3 space-y-3">
@@ -784,7 +781,7 @@ export default function ProfilePage() {
                         src={profileForm.avatar}
                         name={profileForm.name}
                         fallbackChar="U"
-                        className="w-16 h-16 rounded-2xl text-2xl border border-orange-100 shadow-sm"
+                        className="w-16 h-16 rounded-2xl text-2xl border border-[rgba(154,106,62,0.2)] shadow-sm"
                       />
                       <div className="space-y-2 flex-1 min-w-[200px]">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -792,7 +789,7 @@ export default function ProfilePage() {
                             type="button"
                             disabled={savingAvatar}
                             onClick={() => avatarInputRef.current?.click()}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl sketch-btn-secondary font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
                           >
                             {savingAvatar ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -813,7 +810,7 @@ export default function ProfilePage() {
                                   : ''
                               );
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#fffdfa] hover:bg-[#f2ece1] text-[#2b2721] border border-[rgba(43,39,33,0.15)] font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
                           >
                             <LinkIcon className="w-3.5 h-3.5" />
                             <span>Dán link ảnh</span>
@@ -831,7 +828,7 @@ export default function ProfilePage() {
                             </button>
                           )}
                         </div>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-[#2b2721]/50">
                           Hỗ trợ JPG, PNG, WebP, GIF (tối đa 5MB, tự động nén tối ưu hiển thị).
                         </p>
                       </div>
@@ -1019,7 +1016,7 @@ export default function ProfilePage() {
                     <button
                       type="submit"
                       disabled={savingProfile}
-                      className="px-8 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                      className="px-8 py-3 rounded-2xl sketch-btn-primary font-bold text-sm shadow-md shadow-[#9a6a3e]/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
                     >
                       <Save className="w-4 h-4" />
                       <span>{savingProfile ? 'Đang lưu thông tin...' : 'Lưu Thay Đổi'}</span>
@@ -1032,10 +1029,10 @@ export default function ProfilePage() {
 
           {/* TAB 2: ĐỔI MẬT KHẨU & BẢO MẬT */}
           {activeTab === 'password' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h2 className="text-lg sm:text-xl font-black text-gray-900">Đổi Mật Khẩu</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="border-b border-[rgba(43,39,33,0.12)] pb-4">
+                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721]">Đổi Mật Khẩu</h2>
+                <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-0.5">
                   Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu của bạn cho người khác.
                 </p>
               </div>
@@ -1122,7 +1119,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={savingPassword}
-                  className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                  className="w-full sm:w-auto px-8 py-3 rounded-2xl sketch-btn-primary font-bold text-sm shadow-md shadow-[#9a6a3e]/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{savingPassword ? 'Đang cập nhật mật khẩu...' : 'Xác Nhận Đổi Mật Khẩu'}</span>
@@ -1133,21 +1130,21 @@ export default function ProfilePage() {
 
           {/* TAB 3: ĐỊA CHỈ NHẬN HÀNG */}
           {activeTab === 'address' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-5">
+            <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] pb-5">
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-orange-600" />
+                  <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-[#9a6a3e]" />
                     <span>Sổ Địa Chỉ Nhận Hàng</span>
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-1">
                     Lưu nhiều địa chỉ (nhà riêng, công ty...) và click chọn địa chỉ mặc định để đổi nhanh khi đặt món.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleOpenAddAddress}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl sketch-btn-primary font-bold text-xs sm:text-sm shadow-md shadow-[#9a6a3e]/20 transition-all cursor-pointer active:scale-98"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Thêm Địa Chỉ Mới</span>

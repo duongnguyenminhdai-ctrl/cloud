@@ -889,7 +889,7 @@ export default function AdminDashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-16">
+    <div className="min-h-screen bg-slate-900 text-slate-100 pb-16 admin-sketchbook-theme">
       {/* Top Navbar Admin */}
       <header className="bg-slate-800/90 backdrop-blur-md border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

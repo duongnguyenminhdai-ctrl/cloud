@@ -665,23 +665,23 @@ export default function OrdersPage({ initialTab }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-12">
+    <div className="min-h-screen pb-20 md:pb-12 text-[#2b2721]">
       {/* Khung chính tối đa 640px để tạo chuẩn màn hình ứng dụng FoodFast */}
-      <div className="max-w-2xl mx-auto bg-white min-h-screen shadow-sm flex flex-col">
+      <div className="max-w-2xl mx-auto sketch-panel min-h-screen my-4 rounded-3xl shadow-md flex flex-col">
         
         {/* =================================================================== */}
         {/* 1. TOP HEADER CHUẨN FOODFAST */}
         {/* =================================================================== */}
-        <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3.5 flex items-center justify-between">
+        <header className="sticky top-0 z-40 bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.12)] px-4 py-3.5 flex items-center justify-between rounded-t-3xl">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="p-1 -ml-1 text-gray-700 hover:text-[#EE4D2D] rounded-full transition-colors"
+              className="p-1 -ml-1 text-[#2b2721] hover:text-[#9a6a3e] rounded-full transition-colors cursor-pointer"
               title="Quay lại"
             >
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </button>
-            <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
+            <h1 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] tracking-tight">
               Đơn hàng
             </h1>
           </div>
@@ -689,7 +689,7 @@ export default function OrdersPage({ initialTab }) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsSearching(!isSearching)}
-              className="p-2 text-gray-700 hover:text-[#EE4D2D] rounded-full transition-colors"
+              className="p-2 text-[#2b2721] hover:text-[#9a6a3e] rounded-full transition-colors cursor-pointer"
               title="Tìm kiếm đơn hàng"
             >
               <Search className="w-5 h-5 stroke-[2.2]" />
@@ -699,21 +699,21 @@ export default function OrdersPage({ initialTab }) {
 
         {/* Thanh tìm kiếm khi nhấn vào icon Search */}
         {isSearching && (
-          <div className="p-3 bg-gray-50 border-b border-gray-100 animate-fadeIn">
-            <div className="relative flex items-center bg-white rounded-xl border border-gray-200 px-3 py-1.5 focus-within:border-[#EE4D2D] transition-colors">
-              <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+          <div className="p-3 bg-[#f2ece1] border-b border-[rgba(43,39,33,0.12)] animate-fadeIn">
+            <div className="relative flex items-center bg-[#fffdfa] rounded-xl border border-[rgba(43,39,33,0.18)] px-3 py-1.5 focus-within:border-[#9a6a3e] transition-colors">
+              <Search className="w-4 h-4 text-[#2b2721]/40 mr-2 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm theo tên quán ăn hoặc tên món..."
-                className="w-full text-xs sm:text-sm text-gray-800 focus:outline-none bg-transparent"
+                className="w-full text-xs sm:text-sm text-[#2b2721] focus:outline-none bg-transparent"
                 autoFocus
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-xs text-gray-400 hover:text-gray-600 font-bold px-1"
+                  className="text-xs text-[#2b2721]/40 hover:text-[#2b2721] font-bold px-1"
                 >
                   ✕
                 </button>
@@ -725,7 +725,7 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         {/* 2. TABS BAR CHUẨN FOODFAST: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
         {/* =================================================================== */}
-        <div className="border-b border-gray-100 bg-white sticky top-[53px] z-30">
+        <div className="border-b border-[rgba(43,39,33,0.12)] bg-[#f7f4ee]/95 sticky top-[53px] z-30">
           <div className="flex items-center justify-between px-4 overflow-x-auto no-scrollbar gap-5 text-xs sm:text-sm">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -735,15 +735,15 @@ export default function OrdersPage({ initialTab }) {
                   onClick={() => handleTabChange(tab.id)}
                   className={`py-3 relative font-bold whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
                     isActive
-                      ? 'text-[#EE4D2D] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#EE4D2D]'
-                      : 'text-gray-600 hover:text-gray-900 font-medium'
+                      ? 'text-[#9a6a3e] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#9a6a3e]'
+                      : 'text-[#2b2721]/60 hover:text-[#2b2721] font-medium'
                   }`}
                 >
                   <span>{tab.label}</span>
                   {tab.count > 0 && (
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        isActive ? 'bg-[#EE4D2D] text-white' : 'bg-gray-200 text-gray-700'
+                        isActive ? 'bg-[#9a6a3e] text-white' : 'bg-[#f2ece1] text-[#845831]'
                       }`}
                     >
                       {tab.count}

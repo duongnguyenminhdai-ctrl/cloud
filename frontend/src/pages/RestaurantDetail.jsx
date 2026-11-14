@@ -507,7 +507,7 @@ export default function RestaurantDetail() {
       </Link>
 
       {/* Restaurant Header Banner */}
-      <div className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+      <div className="rounded-3xl sketch-panel overflow-hidden">
         {restaurant.image && (
           <div className="h-52 sm:h-64 w-full relative">
             <img
@@ -517,7 +517,7 @@ export default function RestaurantDetail() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
             <div className="absolute bottom-4 left-6 right-6 text-white">
-              <h1 className="text-2xl sm:text-3xl font-extrabold drop-shadow">{restaurant.name}</h1>
+              <h1 className="sketch-title text-3xl sm:text-4xl font-bold drop-shadow">{restaurant.name}</h1>
               <p className="text-xs sm:text-sm text-gray-200 flex items-center gap-1.5 mt-1">
                 <MapPin className="w-4 h-4 text-orange-400 shrink-0" />
                 {restaurant.address}
@@ -621,14 +621,14 @@ export default function RestaurantDetail() {
 
         {/* Thanh danh mục Sticky phong cách FoodFast */}
         {categoriesList.length > 0 && (
-          <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md py-2 px-1 border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl">
+          <div className="sticky top-16 z-20 bg-[#f7f4ee]/95 backdrop-blur-md py-2 px-1 border-b border-[rgba(43,39,33,0.14)] flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl">
             <button
               type="button"
               onClick={() => setActiveCategoryTab('ALL')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeCategoryTab === 'ALL'
-                  ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-[#9a6a3e] text-white shadow-sm'
+                  : 'bg-[#fffdfa] text-[#2b2721] hover:bg-[#f2ece1] border border-[rgba(43,39,33,0.1)]'
               }`}
             >
               Tất cả ({restaurant.menuItems?.length || 0})
@@ -642,8 +642,8 @@ export default function RestaurantDetail() {
                   onClick={() => setActiveCategoryTab(catId)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     activeCategoryTab === catId
-                      ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-[#9a6a3e] text-white shadow-sm'
+                      : 'bg-[#fffdfa] text-[#2b2721] hover:bg-[#f2ece1] border border-[rgba(43,39,33,0.1)]'
                   }`}
                 >
                   {cat.name}
@@ -654,7 +654,7 @@ export default function RestaurantDetail() {
         )}
 
         {filteredMenuItems.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-gray-100 text-gray-400">
+          <div className="p-8 text-center sketch-panel rounded-2xl text-[#2b2721]/50">
             Không có món ăn nào trong danh mục này.
           </div>
         ) : (
@@ -668,7 +668,7 @@ export default function RestaurantDetail() {
               return (
                 <div
                   key={itemId}
-                  className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:border-orange-200 transition-all flex flex-col justify-between space-y-3"
+                  className="sketch-card rounded-2xl p-4 hover:border-[#9a6a3e]/60 transition-all flex flex-col justify-between space-y-3"
                 >
                   <div className="flex gap-3">
                     {item.image && (
@@ -766,14 +766,14 @@ export default function RestaurantDetail() {
       {/* ===================================================================== */}
       {/* 5. ĐÁNH GIÁ SHOP / QUÁN ĂN (CHUẨN SHOPEE STYLE DỰA THEO HÌNH ẢNH) */}
       {/* ===================================================================== */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+      <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
         {/* Header Phân vùng */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] pb-4">
           <div className="space-y-1">
-            <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+            <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] flex items-center gap-2">
               <span>Đánh giá Shop</span>
             </h2>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-[#2b2721]/60">
               Đánh giá từ khách hàng đã trải nghiệm và nhận món thực tế tại quán
             </p>
           </div>

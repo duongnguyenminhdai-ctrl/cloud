@@ -59,22 +59,26 @@ export default function MerchantStatus() {
   const status = storeStatus?.store_status || 'NOT_REGISTERED';
 
   return (
-    <div className="min-h-screen bg-gray-50/60 pb-16">
-      {/* Header Cam Tiêu Chuẩn FoodFast */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md">
+    <div className="min-h-screen pb-16 text-[#2b2721]">
+      {/* Header Sổ Tay Ký Họa Tiêu Chuẩn FoodFast */}
+      <div className="bg-[#f7f4ee]/95 border-b border-[rgba(43,39,33,0.14)] text-[#2b2721] shadow-2xs">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
-              <Store className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
+              <img
+                src="/foodfast-logo.png"
+                alt="FoodFast Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Đăng Ký Quán</h1>
-              <p className="text-xs text-orange-100">Cổng tiếp nhận và theo dõi tiến độ duyệt gian hàng</p>
+              <h1 className="sketch-title text-2xl font-bold text-[#2b2721]">Đăng Ký Quán</h1>
+              <p className="text-xs text-[#2b2721]/60">Cổng tiếp nhận và theo dõi tiến độ duyệt gian hàng</p>
             </div>
           </div>
           <button
             onClick={fetchStatus}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1.5 text-xs font-medium"
+            className="p-2 rounded-xl bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#845831] border border-[rgba(154,106,62,0.2)] transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             title="Làm mới trạng thái"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -84,24 +88,24 @@ export default function MerchantStatus() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 mt-6">
-        {/* Tabs Bar giống ảnh Screenshot 11 */}
-        <div className="bg-white rounded-t-2xl border-b border-gray-200 px-6 pt-3 flex gap-6 text-sm font-semibold">
+        {/* Tabs Bar */}
+        <div className="sketch-panel rounded-t-3xl border-b border-[rgba(43,39,33,0.12)] px-6 pt-3 flex gap-6 text-sm font-semibold">
           <button
             onClick={() => setActiveTab('my_stores')}
-            className={`pb-3 border-b-2 transition-all ${
+            className={`pb-3 border-b-2 transition-all cursor-pointer ${
               activeTab === 'my_stores'
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-[#9a6a3e] text-[#9a6a3e] font-bold'
+                : 'border-transparent text-[#2b2721]/60 hover:text-[#2b2721]'
             }`}
           >
             Quán của tôi ({status === 'ACTIVE' ? 1 : 0})
           </button>
           <button
             onClick={() => setActiveTab('registration')}
-            className={`pb-3 border-b-2 transition-all ${
+            className={`pb-3 border-b-2 transition-all cursor-pointer ${
               activeTab === 'registration'
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-[#9a6a3e] text-[#9a6a3e] font-bold'
+                : 'border-transparent text-[#2b2721]/60 hover:text-[#2b2721]'
             }`}
           >
             Đăng ký quán ({status === 'PENDING' || status === 'REJECTED' ? 1 : 0})
@@ -109,7 +113,7 @@ export default function MerchantStatus() {
         </div>
 
         {/* Content Body */}
-        <div className="bg-white rounded-b-2xl border border-t-0 border-gray-100 shadow-sm p-6 sm:p-8">
+        <div className="sketch-panel rounded-b-3xl border border-t-0 shadow-sm p-6 sm:p-8">
           {loading ? (
             <div className="py-12 text-center text-gray-500">
               <RefreshCw className="w-8 h-8 mx-auto animate-spin text-orange-600 mb-3" />
