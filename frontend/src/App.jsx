@@ -61,12 +61,34 @@ function IntroGatekeeper({ children }) {
 function AppContent() {
   const location = useLocation();
   const isIntro = location.pathname === '/intro';
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/admin/login'].includes(location.pathname);
 
   return (
     <IntroGatekeeper>
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div
+        className={`min-h-screen flex flex-col font-sans relative ${
+          isAuthPage
+            ? 'bg-transparent'
+            : 'bg-[#ece7dc] text-[#2b2721]'
+        }`}
+      >
+        {/* Lớp nền Wash màu nước nghệ thuật Sổ Tay Ký Họa áp dụng toàn hệ thống (trừ các trang Auth) */}
+        {!isAuthPage && !isIntro && (
+          <>
+            <div
+              className="fixed inset-0 pointer-events-none z-0 opacity-45 bg-cover bg-top"
+              style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
+              aria-hidden="true"
+            />
+            <div
+              className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90"
+              aria-hidden="true"
+            />
+          </>
+        )}
+
         {!isIntro && <Navbar />}
-        <main className="flex-1 flex flex-col">
+        <main className={`flex-1 flex flex-col ${!isAuthPage && !isIntro ? 'relative z-10' : ''}`}>
           <Routes>
             {/* Trang Intro mở đầu */}
             <Route path="/intro" element={<IntroPage />} />
@@ -100,6 +122,40 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+
+        {/* Footer Sổ Tay Ký Họa FoodFast đồng bộ toàn hệ thống */}
+        {!isAuthPage && !isIntro && (
+          <footer className="relative z-10 border-t border-[rgba(43,39,33,0.12)] bg-[#f7f4ee]/90 backdrop-blur-xs py-8 mt-auto text-[#2b2721]">
+            <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 drop-shadow-xs">
+                  <img
+                    src="/foodfast-logo.png"
+                    alt="FoodFast Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-['Instrument_Serif'] text-xl font-bold tracking-tight text-[#2b2721]">
+                      FoodFast
+                    </span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f2ece1] text-[#9a6a3e] border border-[rgba(154,106,62,0.2)]">
+                      Sổ tay mỹ vị
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#2b2721]/65 font-serif italic mt-0.5">
+                    Hương vị truyền thống & ngàn món ngon giao siêu tốc 15 phút
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs text-[#2b2721]/55 space-y-1 sm:text-right">
+                <p>© 2026 FoodFast. Nền tảng ẩm thực & ký họa mỹ vị Việt Nam.</p>
+                <p className="text-[11px] font-mono text-[#9a6a3e]">Mỹ vị 9 miền — Giao nhanh tận cửa</p>
+              </div>
+            </div>
+          </footer>
+        )}
       </div>
     </IntroGatekeeper>
   );

@@ -390,8 +390,12 @@ export default function IntroPage() {
         {/* Topbar điều hướng */}
         <header className="intro-topbar">
           <div className="intro-logo" onClick={() => handleProceed('/')} title="Vào FoodFast">
-            <div className="intro-logo-badge">
-              <UtensilsCrossed className="w-5 h-5 stroke-[2.4]" />
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
+              <img
+                src="/foodfast-logo.png"
+                alt="FoodFast Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <span>FoodFast</span>
           </div>

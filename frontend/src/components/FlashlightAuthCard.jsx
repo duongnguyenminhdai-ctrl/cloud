@@ -359,8 +359,12 @@ export default function FlashlightAuthCard({
 
           {/* Slogan & Giới thiệu FoodFast */}
           <div className="flashlight-scene-copy">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 mx-auto mb-3 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-              <UtensilsCrossed className="w-5 h-5" />
+            <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden drop-shadow-md">
+              <img
+                src="/foodfast-logo.png"
+                alt="FoodFast Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <h2>{sceneTitle}</h2>
             <p>{sceneDesc}</p>
@@ -372,8 +376,12 @@ export default function FlashlightAuthCard({
           {/* Nút Toggle Chế độ Ngày / Đêm ở góc trên (Độc lập hoàn toàn với đèn pin) */}
           <div className="flex items-center justify-between mb-4">
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md">
-                <UtensilsCrossed className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0">
+                <img
+                  src="/foodfast-logo.png"
+                  alt="FoodFast Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-extrabold text-sm tracking-tight text-gray-900 dark:text-white">FOODFAST</span>
             </div>

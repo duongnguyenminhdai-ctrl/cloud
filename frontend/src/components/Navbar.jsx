@@ -84,20 +84,24 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] text-[#2b2721] shadow-2xs">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo & City Selector (FoodFast Style) */}
+        {/* Logo chính thức từ Google AI Studio & City Selector */}
         <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
-              <UtensilsCrossed className="w-5 h-5" />
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs">
+              <img
+                src="/foodfast-logo.png"
+                alt="FoodFast Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            <div className="flex items-center">
+              <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] group-hover:text-[#9a6a3e] transition-colors leading-none">
                 FoodFast
               </span>
-              <span className="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-orange-100 text-orange-700">
-                Giao siêu tốc
+              <span className="hidden sm:inline-block text-[11px] font-serif font-medium px-2.5 py-0.5 ml-2 rounded-full bg-[#ece5d8] text-[#845831] border border-[rgba(43,39,33,0.12)]">
+                Giao siêu tốc 15'
               </span>
             </div>
           </Link>
@@ -116,13 +120,13 @@ export default function Navbar() {
             <button
               onClick={handleMyStoreClick}
               disabled={checkingStore}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-500/50 text-orange-600 hover:bg-orange-50 font-bold text-xs sm:text-sm transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[rgba(154,106,62,0.35)] text-[#9a6a3e] hover:bg-[#ece7dc] font-bold text-xs sm:text-sm transition-all shadow-xs"
               title="Quản lý hoặc mở cửa hàng kinh doanh trên FoodFast"
             >
               {checkingStore ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-orange-600" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[#9a6a3e]" />
               ) : (
-                <Store className="w-4 h-4 text-orange-600" />
+                <Store className="w-4 h-4 text-[#9a6a3e]" />
               )}
               <span className="hidden sm:inline">Cửa hàng của tôi</span>
               <span className="sm:hidden">Quán tôi</span>
@@ -133,7 +137,7 @@ export default function Navbar() {
           {isAuthenticated && user?.role === 'ADMIN' && (
             <Link
               to="/admin"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold border border-slate-700 shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2b2721] text-white hover:bg-[#1a1714] text-xs font-bold border border-[#2b2721] shadow-xs transition-all"
               title="Trang quản trị hệ thống"
             >
               <ShieldCheck className="w-4 h-4 text-orange-400" />
@@ -144,22 +148,22 @@ export default function Navbar() {
           {/* Nút Đơn hàng FoodFast */}
           <Link
             to="/orders?tab=history"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 hover:text-[#EE4D2D] hover:bg-orange-50 font-bold text-xs sm:text-sm transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[#2b2721]/80 hover:text-[#9a6a3e] hover:bg-[#ece7dc]/70 font-bold text-xs sm:text-sm transition-all"
             title="Xem đơn hàng và lịch sử đặt món"
           >
-            <FileText className="w-4 h-4 text-[#EE4D2D]" />
+            <FileText className="w-4 h-4 text-[#9a6a3e]" />
             <span className="hidden sm:inline">Đơn hàng</span>
           </Link>
 
           {/* Cart Button: Nhấn vào hiển thị Giỏ hàng và các mục trên */}
           <Link
             to="/orders?tab=cart"
-            className="relative p-2.5 rounded-xl text-gray-700 hover:text-[#EE4D2D] hover:bg-orange-50 transition-colors"
+            className="relative p-2.5 rounded-xl text-[#2b2721]/80 hover:text-[#9a6a3e] hover:bg-[#ece7dc]/70 transition-colors"
             title="Xem giỏ hàng"
           >
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
             {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#EE4D2D] text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#9a6a3e] text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse shadow-xs">
                 {totalItems > 99 ? '99+' : totalItems}
               </span>
             )}
@@ -172,20 +176,20 @@ export default function Navbar() {
           {isAuthenticated && (
             <Link
               to="/orders?tab=reviews"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 font-extrabold text-xs hover:bg-amber-100 hover:border-amber-300 transition-all shadow-xs"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2ece1] border border-[rgba(154,106,62,0.25)] text-[#845831] font-extrabold text-xs hover:bg-[#ebdcc8] transition-all shadow-2xs"
               title="Số Xu FoodFast tích lũy (Đánh giá đơn hàng để nhận 1.000 Xu)"
             >
-              <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+              <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
               <span>{Number(user?.coins || 0).toLocaleString('vi-VN')} Xu</span>
             </Link>
           )}
 
           {/* User Profile / Auth */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+            <div className="flex items-center gap-2 pl-2 border-l border-[rgba(43,39,33,0.14)]">
               <Link
                 to="/profile"
-                className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-orange-50/80 transition-all text-right group cursor-pointer"
+                className="flex items-center gap-2 p-1 px-2 rounded-xl hover:bg-[#ece7dc]/80 transition-all text-right group cursor-pointer"
                 title="Xem và cập nhật thông tin tài khoản & Đổi mật khẩu"
               >
                 <UserAvatar
@@ -195,10 +199,10 @@ export default function Navbar() {
                   className="w-8 h-8 rounded-full text-xs shadow-xs"
                 />
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-sm font-semibold text-gray-800 group-hover:text-orange-600 leading-tight transition">
+                  <span className="text-sm font-semibold text-[#2b2721] group-hover:text-[#9a6a3e] leading-tight transition">
                     {user?.name || 'Khách hàng'}
                   </span>
-                  <span className="text-xs text-gray-400 font-medium">
+                  <span className="text-xs text-[#2b2721]/50 font-medium">
                     {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
                   </span>
                 </div>
@@ -208,7 +212,7 @@ export default function Navbar() {
                   logout();
                   navigate('/login');
                 }}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-[#2b2721]/60 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -218,13 +222,13 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 to="/login"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#2b2721] hover:text-[#9a6a3e] hover:bg-[#ece7dc]/60 rounded-xl transition-colors"
               >
                 Đăng nhập
               </Link>
               <Link
                 to="/register"
-                className="hidden sm:inline-block px-4 py-2 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-md shadow-orange-600/20 transition-all hover:shadow-lg"
+                className="hidden sm:inline-block px-4 py-2 text-sm font-semibold text-white bg-[#9a6a3e] hover:bg-[#845831] rounded-xl shadow-md shadow-[#9a6a3e]/20 transition-all hover:shadow-lg"
               >
                 Đăng ký
               </Link>

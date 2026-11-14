@@ -526,8 +526,12 @@ export default function MerchantRegister() {
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
-              <UtensilsCrossed className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
+              <img
+                src="/foodfast-logo.png"
+                alt="FoodFast Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 leading-tight">Đăng ký trở thành Người Bán</h1>
