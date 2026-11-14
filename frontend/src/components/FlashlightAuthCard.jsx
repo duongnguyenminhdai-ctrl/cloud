@@ -81,15 +81,27 @@ export default function FlashlightAuthCard({
       transform: `rotate(${currentAngleDeg}deg)`
     });
 
-    // Định vị overlay password
+    // Định vị overlay password chuẩn xác khớp theo input
     let fieldRect = { left: 0, top: 0, width: 0, height: 48 };
     if (passwordInputRef?.current) {
       fieldRect = passwordInputRef.current.getBoundingClientRect();
+      const inputStyle = window.getComputedStyle(passwordInputRef.current);
+      const padLeft = parseFloat(inputStyle.paddingLeft) || 40;
+      const padRight = parseFloat(inputStyle.paddingRight) || 48;
+      const fontSize = inputStyle.fontSize || '14px';
+      const fontFamily = inputStyle.fontFamily;
+      const letterSpacing = inputStyle.letterSpacing || 'normal';
+
       setOverlayStyle({
         left: `${fieldRect.left}px`,
         top: `${fieldRect.top}px`,
-        width: `${Math.max(0, fieldRect.width - 45)}px`,
-        height: `${fieldRect.height}px`
+        width: `${fieldRect.width}px`,
+        height: `${fieldRect.height}px`,
+        paddingLeft: `${padLeft}px`,
+        paddingRight: `${padRight}px`,
+        fontSize,
+        fontFamily,
+        letterSpacing
       });
     }
 
@@ -179,6 +191,16 @@ export default function FlashlightAuthCard({
       setOwlGaze({ x: 0, y: 0, headX: 0, headY: 0, tilt: 0, isLit: false });
     }
   }, [nightMode, updatePhysics, passwordInputRef]);
+
+  // Cập nhật lại vị trí và độ sáng khi passwordValue thay đổi
+  useEffect(() => {
+    if (nightMode) {
+      const raf = requestAnimationFrame(() => {
+        updatePhysics(pointer.x, pointer.y);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [passwordValue, nightMode, updatePhysics, pointer]);
 
   const charsArray = Array.from(passwordValue || '');
 

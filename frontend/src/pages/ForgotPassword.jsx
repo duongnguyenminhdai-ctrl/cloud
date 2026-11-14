@@ -230,7 +230,7 @@ export default function ForgotPassword() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"
-                  className={`auth-input w-full pl-10 pr-12 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
+                  className={`auth-input w-full pl-10 pr-12 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
                     isNightMode ? 'auth-password-input font-mono' : ''
                   }`}
                 />
@@ -239,7 +239,7 @@ export default function ForgotPassword() {
                   ref={passwordButtonRef}
                   type="button"
                   onClick={() => setIsNightMode(!isNightMode)}
-                  className="absolute right-2 top-1.5 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
+                  className="absolute right-2 top-2 p-1.5 rounded-lg text-gray-500 hover:text-orange-600 transition-colors cursor-pointer"
                   title={isNightMode ? 'Tắt đèn pin' : 'Bật đèn pin soi sáng mật khẩu'}
                   aria-pressed={isNightMode}
                 >
@@ -266,7 +266,7 @@ export default function ForgotPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Nhập lại mật khẩu mới"
-                  className={`auth-input w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
+                  className={`auth-input w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/80 bg-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 ${
                     isNightMode ? 'font-mono' : ''
                   }`}
                 />

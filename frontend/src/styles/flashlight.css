@@ -378,11 +378,16 @@
   position: fixed;
   z-index: 9997;
   overflow: hidden;
+  box-sizing: border-box;
   color: #e9fbf9;
-  font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: normal;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
+  display: flex;
+  align-items: center;
   transition: opacity 700ms ease, visibility 0s linear 700ms;
 }
 
@@ -393,28 +398,30 @@
 }
 
 .password-reveal-overlay > span {
-  position: absolute;
-  top: 0;
-  left: 14px;
-  display: block;
-  height: 48px;
-  line-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
   white-space: pre;
 }
 
 .password-reveal-overlay .reveal-char {
   --lit: 0;
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1ch;
   height: 100%;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .password-reveal-overlay .reveal-char .masked-char,
 .password-reveal-overlay .reveal-char .plain-char {
   position: absolute;
   inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   transition: opacity 90ms linear;
 }
