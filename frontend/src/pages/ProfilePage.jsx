@@ -680,73 +680,73 @@ export default function ProfilePage() {
               <button
                 onClick={() => handleTabChange('profile')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'profile'
-                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
-                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
+                    ? 'bg-[#f2ece1] dark:bg-[#28231d] text-[#845831] dark:text-[#f5c542] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(245,197,66,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-[#ece7dc]/60 dark:hover:bg-[#25201a]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-[#9a6a3e]" />
+                  <User className="w-4 h-4 text-[#9a6a3e] dark:text-[#f5c542]" />
                   <span>Hồ sơ của tôi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40" />
               </button>
 
               <button
                 onClick={() => handleTabChange('password')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'password'
-                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
-                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
+                    ? 'bg-[#f2ece1] dark:bg-[#28231d] text-[#845831] dark:text-[#f5c542] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(245,197,66,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-[#ece7dc]/60 dark:hover:bg-[#25201a]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <Lock className="w-4 h-4 text-[#9a6a3e]" />
+                  <Lock className="w-4 h-4 text-[#9a6a3e] dark:text-[#f5c542]" />
                   <span>Đổi mật khẩu & Bảo mật</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40" />
               </button>
 
               <button
                 onClick={() => handleTabChange('address')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'address'
-                    ? 'bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.3)] shadow-2xs'
-                    : 'text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721]'
+                    ? 'bg-[#f2ece1] dark:bg-[#28231d] text-[#845831] dark:text-[#f5c542] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(245,197,66,0.3)] shadow-2xs'
+                    : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-[#ece7dc]/60 dark:hover:bg-[#25201a]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8]'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-[#9a6a3e]" />
+                  <MapPin className="w-4 h-4 text-[#9a6a3e] dark:text-[#f5c542]" />
                   <span>Địa chỉ nhận hàng</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40" />
               </button>
 
               <Link
                 to="/orders"
-                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721] transition-all"
+                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-[#ece7dc]/60 dark:hover:bg-[#25201a]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Package className="w-4 h-4 text-[#8c5d33]" />
+                  <Package className="w-4 h-4 text-[#8c5d33] dark:text-[#d49859]" />
                   <span>Đơn mua của tôi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40" />
               </Link>
 
               <Link
                 to="/orders?tab=vouchers"
-                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 hover:bg-[#ece7dc]/60 hover:text-[#2b2721] transition-all"
+                className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-[#ece7dc]/60 dark:hover:bg-[#25201a]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Ticket className="w-4 h-4 text-emerald-700" />
+                  <Ticket className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                   <span>Kho Voucher & Khuyến mãi</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2b2721]/40" />
+                <ChevronRight className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40" />
               </Link>
             </div>
 
             {/* Nút Đăng xuất an toàn */}
-            <div className="border-t border-[rgba(43,39,33,0.12)] pt-3">
+            <div className="border-t border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pt-3">
               <button
                 onClick={logout}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200/60 transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 border border-red-200/60 dark:border-red-900/50 transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Đăng xuất tài khoản</span>
@@ -762,17 +762,17 @@ export default function ProfilePage() {
           {/* TAB 1: HỒ SƠ CỦA TÔI */}
           {activeTab === 'profile' && (
             <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-[rgba(43,39,33,0.12)] pb-4">
-                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721]">Hồ Sơ Của Tôi</h2>
-                <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-0.5">
+              <div className="border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pb-4">
+                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] dark:text-[#ede6d8]">Hồ Sơ Của Tôi</h2>
+                <p className="text-xs sm:text-sm text-[#2b2721]/65 dark:text-[#ede6d8]/65 mt-0.5">
                   Quản lý thông tin hồ sơ để bảo mật tài khoản và nhận đồ ăn nhanh chóng.
                 </p>
               </div>
 
               <form onSubmit={handleSaveProfile} className="space-y-5">
                 {/* Ảnh đại diện */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start pb-2 border-b border-[rgba(43,39,33,0.08)]">
-                  <label className="text-xs sm:text-sm font-bold text-[#2b2721]/80 sm:text-right pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start pb-2 border-b border-[rgba(43,39,33,0.08)] dark:border-[rgba(240,234,224,0.08)]">
+                  <label className="text-xs sm:text-sm font-bold text-[#2b2721]/80 dark:text-[#ede6d8]/80 sm:text-right pt-2">
                     Ảnh đại diện:
                   </label>
                   <div className="sm:col-span-3 space-y-3">
@@ -781,7 +781,7 @@ export default function ProfilePage() {
                         src={profileForm.avatar}
                         name={profileForm.name}
                         fallbackChar="U"
-                        className="w-16 h-16 rounded-2xl text-2xl border border-[rgba(154,106,62,0.2)] shadow-sm"
+                        className="w-16 h-16 rounded-2xl text-2xl border border-[rgba(154,106,62,0.2)] dark:border-[rgba(240,234,224,0.15)] shadow-sm"
                       />
                       <div className="space-y-2 flex-1 min-w-[200px]">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -810,7 +810,7 @@ export default function ProfilePage() {
                                   : ''
                               );
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#fffdfa] hover:bg-[#f2ece1] text-[#2b2721] border border-[rgba(43,39,33,0.15)] font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#fffdfa] dark:bg-[#25201a] hover:bg-[#f2ece1] dark:hover:bg-[#2e261f] text-[#2b2721] dark:text-[#ede6d8] border border-[rgba(43,39,33,0.15)] dark:border-[rgba(240,234,224,0.15)] font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
                           >
                             <LinkIcon className="w-3.5 h-3.5" />
                             <span>Dán link ảnh</span>
@@ -821,14 +821,14 @@ export default function ProfilePage() {
                               type="button"
                               disabled={savingAvatar}
                               onClick={handleRemoveAvatar}
-                              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
+                              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 font-bold text-xs transition-all cursor-pointer disabled:opacity-60"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               <span>Xóa ảnh</span>
                             </button>
                           )}
                         </div>
-                        <p className="text-[11px] text-[#2b2721]/50">
+                        <p className="text-[11px] text-[#2b2721]/50 dark:text-[#ede6d8]/50">
                           Hỗ trợ JPG, PNG, WebP, GIF (tối đa 5MB, tự động nén tối ưu hiển thị).
                         </p>
                       </div>
@@ -841,7 +841,7 @@ export default function ProfilePage() {
                           value={avatarUrlInput}
                           onChange={(e) => setAvatarUrlInput(e.target.value)}
                           placeholder="https://example.com/avatar.jpg"
-                          className="flex-1 min-w-0 px-3.5 py-2 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900"
+                          className="flex-1 min-w-0 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1a1714] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8]"
                         />
                         <button
                           type="button"
@@ -858,18 +858,18 @@ export default function ProfilePage() {
 
                 {/* Email định danh tài khoản */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right">
                     Email đăng ký:
                   </label>
                   <div className="sm:col-span-3">
-                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-gray-50 border border-gray-200 text-gray-600 text-xs sm:text-sm">
-                      <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-gray-50 dark:bg-[#1a1714] border border-gray-200 dark:border-[rgba(240,234,224,0.14)] text-gray-600 dark:text-[#ede6d8] text-xs sm:text-sm">
+                      <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                       <span className="font-medium truncate">{profileForm.email || 'Chưa cập nhật'}</span>
-                      <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <span className="ml-auto text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
                         Đã xác thực
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-1 pl-1">
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 pl-1">
                       Email định danh tài khoản chính thức không thể thay đổi.
                     </p>
                   </div>
@@ -877,18 +877,18 @@ export default function ProfilePage() {
 
                 {/* Họ và tên */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right">
                     Họ và tên:
                   </label>
                   <div className="sm:col-span-3">
                     <div className="relative">
-                      <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <User className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="text"
                         value={profileForm.name}
                         onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                         placeholder="Nhập họ và tên đầy đủ"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -896,7 +896,7 @@ export default function ProfilePage() {
 
                 {/* Số điện thoại (Xác thực SMS OTP chống SĐT rác) */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right pt-2.5">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right pt-2.5">
                     Số điện thoại:
                   </label>
                   <div className="sm:col-span-3 space-y-2">
@@ -924,16 +924,16 @@ export default function ProfilePage() {
                       }}
                     />
                     {linkedStoreInfo?.phone && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500">
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
                         <Phone className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                         <span>
-                          SĐT liên kết từ quán <strong>{linkedStoreInfo.name}</strong>: <span className="font-mono text-gray-800 font-bold">{linkedStoreInfo.phone}</span>
+                          SĐT liên kết từ quán <strong>{linkedStoreInfo.name}</strong>: <span className="font-mono text-gray-800 dark:text-gray-200 font-bold">{linkedStoreInfo.phone}</span>
                         </span>
                         {profileForm.phone !== linkedStoreInfo.phone && (
                           <button
                             type="button"
                             onClick={() => setProfileForm((p) => ({ ...p, phone: linkedStoreInfo.phone }))}
-                            className="text-[10px] text-orange-600 hover:underline font-bold ml-1 cursor-pointer"
+                            className="text-[10px] text-orange-600 dark:text-orange-400 hover:underline font-bold ml-1 cursor-pointer"
                           >
                             Dùng số này
                           </button>
@@ -945,12 +945,12 @@ export default function ProfilePage() {
 
                 {/* Năm sinh */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right">
                     Năm sinh:
                   </label>
                   <div className="sm:col-span-3">
                     <div className="relative">
-                      <Calendar className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="number"
                         min="1940"
@@ -958,7 +958,7 @@ export default function ProfilePage() {
                         value={profileForm.birthYear}
                         onChange={(e) => setProfileForm({ ...profileForm, birthYear: e.target.value })}
                         placeholder="VD: 2000"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -966,7 +966,7 @@ export default function ProfilePage() {
 
                 {/* Giới tính */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right">
                     Giới tính:
                   </label>
                   <div className="sm:col-span-3 flex items-center gap-6 text-xs sm:text-sm">
@@ -975,7 +975,7 @@ export default function ProfilePage() {
                       { id: 'female', label: 'Nữ' },
                       { id: 'other', label: 'Khác' }
                     ].map((g) => (
-                      <label key={g.id} className="flex items-center gap-2 cursor-pointer font-medium text-gray-800">
+                      <label key={g.id} className="flex items-center gap-2 cursor-pointer font-medium text-gray-800 dark:text-[#ede6d8]">
                         <input
                           type="radio"
                           name="gender"
@@ -992,18 +992,18 @@ export default function ProfilePage() {
 
                 {/* Địa chỉ giao hàng mặc định */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700 sm:text-right pt-2.5">
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85 sm:text-right pt-2.5">
                     Địa chỉ liên hệ:
                   </label>
                   <div className="sm:col-span-3">
                     <div className="relative">
-                      <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                      <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-3.5 pointer-events-none" />
                       <textarea
                         rows={2}
                         value={profileForm.address}
                         onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
                         placeholder="VD: Số 2 Đường Đỗ Xuân Hợp, Phường Phú Hữu, TP. Thủ Đức, TP. Hồ Chí Minh"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium resize-none"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium resize-none"
                       />
                     </div>
                   </div>
@@ -1030,9 +1030,9 @@ export default function ProfilePage() {
           {/* TAB 2: ĐỔI MẬT KHẨU & BẢO MẬT */}
           {activeTab === 'password' && (
             <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-[rgba(43,39,33,0.12)] pb-4">
-                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721]">Đổi Mật Khẩu</h2>
-                <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-0.5">
+              <div className="border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pb-4">
+                <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] dark:text-[#ede6d8]">Đổi Mật Khẩu</h2>
+                <p className="text-xs sm:text-sm text-[#2b2721]/65 dark:text-[#ede6d8]/65 mt-0.5">
                   Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu của bạn cho người khác.
                 </p>
               </div>
@@ -1040,20 +1040,20 @@ export default function ProfilePage() {
               <form onSubmit={handleChangePassword} className="space-y-5 max-w-lg">
                 {/* Mật khẩu hiện tại */}
                 <div className="space-y-1.5">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700">Mật khẩu hiện tại (*):</label>
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85">Mật khẩu hiện tại (*):</label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type={showOldPass ? 'text' : 'password'}
                       value={passwordForm.oldPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
                       placeholder="Nhập mật khẩu hiện tại"
-                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
+                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowOldPass(!showOldPass)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                     >
                       {showOldPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1062,20 +1062,20 @@ export default function ProfilePage() {
 
                 {/* Mật khẩu mới */}
                 <div className="space-y-1.5">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700">Mật khẩu mới (*):</label>
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85">Mật khẩu mới (*):</label>
                   <div className="relative">
-                    <Key className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Key className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type={showNewPass ? 'text' : 'password'}
                       value={passwordForm.newPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                       placeholder="Tối thiểu 6 ký tự"
-                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
+                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPass(!showNewPass)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                     >
                       {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1084,10 +1084,10 @@ export default function ProfilePage() {
                   {/* Thanh đo độ mạnh mật khẩu */}
                   {pwdStrength && (
                     <div className="space-y-1 pt-1">
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className={`h-full ${pwdStrength.color} ${pwdStrength.width} transition-all duration-300`} />
                       </div>
-                      <p className="text-[11px] font-semibold text-gray-500">
+                      <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
                         Độ mạnh: <span className="font-bold">{pwdStrength.label}</span>
                       </p>
                     </div>
@@ -1096,20 +1096,20 @@ export default function ProfilePage() {
 
                 {/* Xác nhận mật khẩu mới */}
                 <div className="space-y-1.5">
-                  <label className="text-xs sm:text-sm font-bold text-gray-700">Xác nhận mật khẩu mới (*):</label>
+                  <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]/85">Xác nhận mật khẩu mới (*):</label>
                   <div className="relative">
-                    <Key className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Key className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type={showConfirmPass ? 'text' : 'password'}
                       value={passwordForm.confirmPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                       placeholder="Nhập lại mật khẩu mới"
-                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 transition-all font-medium"
+                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 transition-all font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPass(!showConfirmPass)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                     >
                       {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1281,17 +1281,17 @@ export default function ProfilePage() {
       {/* MODAL THÊM / CHỈNH SỬA ĐỊA CHỈ NHẬN HÀNG */}
       {showAddressModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#1e1b18] text-[#2b2721] dark:text-[#ede6d8] rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.14)] space-y-5 animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <h3 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-orange-600" />
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-[rgba(240,234,224,0.12)] pb-4">
+              <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-[#ede6d8] flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 <span>{editingAddressId ? 'Cập Nhật Địa Chỉ Nhận Hàng' : 'Thêm Địa Chỉ Nhận Hàng Mới'}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowAddressModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-[#25201a] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1300,7 +1300,7 @@ export default function ProfilePage() {
             <form onSubmit={handleSubmitAddress} className="space-y-4">
               {/* Chọn nhãn / loại địa chỉ */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">Loại địa chỉ:</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/85">Loại địa chỉ:</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: 'Nhà riêng', icon: Home },
@@ -1316,8 +1316,8 @@ export default function ProfilePage() {
                         onClick={() => setAddressForm({ ...addressForm, label: lbl.id })}
                         className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-orange-50 border-orange-500 text-orange-600 shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-600 dark:text-orange-400 shadow-xs'
+                            : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.16)] text-gray-600 dark:text-[#ede6d8] hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />
@@ -1331,26 +1331,26 @@ export default function ProfilePage() {
               {/* Tên và SĐT người nhận */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700">Tên người nhận (*):</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/85">Tên người nhận (*):</label>
                   <input
                     type="text"
                     required
                     value={addressForm.receiverName}
                     onChange={(e) => setAddressForm({ ...addressForm, receiverName: e.target.value })}
                     placeholder="VD: Nguyễn Văn A"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1a1714] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 font-medium"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700">Số điện thoại (*):</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/85">Số điện thoại (*):</label>
                   <input
                     type="tel"
                     required
                     value={addressForm.receiverPhone}
                     onChange={(e) => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
                     placeholder="VD: 0912345678"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1a1714] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 font-medium"
                   />
                 </div>
               </div>
@@ -1358,11 +1358,11 @@ export default function ProfilePage() {
               {/* Chi tiết địa chỉ & Nút chọn trên bản đồ */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-700">Địa chỉ chi tiết (*):</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/85">Địa chỉ chi tiết (*):</label>
                   <button
                     type="button"
                     onClick={() => setIsAddressMapOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 cursor-pointer"
                   >
                     <Compass className="w-3.5 h-3.5" />
                     <span>Chọn trên bản đồ</span>
@@ -1374,7 +1374,7 @@ export default function ProfilePage() {
                   value={addressForm.fullAddress}
                   onChange={(e) => setAddressForm({ ...addressForm, fullAddress: e.target.value })}
                   placeholder="VD: Số 49A, Hẻm 36 Đường Số 53, Phường Hiệp Bình Chánh, TP. Thủ Đức, TP. Hồ Chí Minh"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1a1714] focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500 font-medium resize-none"
                 />
               </div>
 
@@ -1386,17 +1386,17 @@ export default function ProfilePage() {
                   onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
                   className="w-4 h-4 rounded text-orange-600 focus:ring-0 cursor-pointer"
                 />
-                <span className="text-xs sm:text-sm font-bold text-gray-700">
+                <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-[#ede6d8]">
                   Đặt làm địa chỉ nhận hàng mặc định
                 </span>
               </label>
 
               {/* Nút Submit */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-[rgba(240,234,224,0.12)]">
                 <button
                   type="button"
                   onClick={() => setShowAddressModal(false)}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] hover:bg-gray-50 dark:hover:bg-[#25201a] text-gray-700 dark:text-[#ede6d8] text-xs sm:text-sm font-bold transition-all cursor-pointer"
                 >
                   Hủy
                 </button>

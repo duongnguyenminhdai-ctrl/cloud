@@ -238,21 +238,21 @@ export default function PhoneVerificationBox({
   };
 
   return (
-    <div className={`space-y-2.5 ${compact ? '' : 'p-3.5 rounded-2xl bg-gray-50/80 border border-gray-200/80'}`}>
+    <div className={`space-y-2.5 ${compact ? '' : 'p-3.5 rounded-2xl bg-gray-50/80 dark:bg-[#1a1714] border border-gray-200/80 dark:border-[rgba(240,234,224,0.14)]'}`}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+        <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8] flex items-center gap-1.5">
           <span>{label}</span>
         </label>
         {!requireOtp ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80">
             <AlertTriangle className="w-3.5 h-3.5" /> Chế độ kiểm thử (Bỏ qua OTP)
           </span>
         ) : isVerified ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80">
             <ShieldCheck className="w-3.5 h-3.5" /> Đã xác thực SMS
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80">
             Chưa xác thực SMS
           </span>
         )}
@@ -260,7 +260,7 @@ export default function PhoneVerificationBox({
 
       <div className={stacked ? 'flex flex-col gap-2.5' : 'flex flex-col sm:flex-row gap-2'}>
         <div className="relative flex-1 min-w-0 w-full">
-          <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="tel"
             inputMode="numeric"
@@ -268,7 +268,7 @@ export default function PhoneVerificationBox({
             value={phone}
             onChange={(e) => handlePhoneInput(e.target.value)}
             placeholder={placeholder}
-            className="w-full min-w-0 pl-10 pr-3 py-2.5 text-base sm:text-sm font-semibold tracking-wide rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900"
+            className="w-full min-w-0 pl-10 pr-3 py-2.5 text-base sm:text-sm font-semibold tracking-wide rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1f1b17] focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 dark:text-[#ede6d8] placeholder-gray-400 dark:placeholder-gray-500"
           />
         </div>
 
@@ -322,15 +322,15 @@ export default function PhoneVerificationBox({
 
       {/* Thông tin hỗ trợ khi ở Chế độ kiểm thử */}
       {!requireOtp && (
-        <p className="text-[11px] text-amber-700/90 leading-tight">
+        <p className="text-[11px] text-amber-700/90 dark:text-amber-400/90 leading-tight">
           Hệ thống đang mở chế độ kiểm thử: Bạn có thể nhập số điện thoại và lưu trực tiếp mà không cần mã OTP SMS Firebase.
         </p>
       )}
 
       {/* Ô nhập mã OTP 6 số khi đã gửi thành công (chỉ khi requireOtp === true) */}
       {requireOtp && confirmationResult && (
-        <div className="p-3 rounded-xl bg-white border border-orange-200 space-y-2 animate-fadeIn">
-          <p className="text-[11px] font-semibold text-gray-600">
+        <div className="p-3 rounded-xl bg-white dark:bg-[#1f1b17] border border-orange-200 dark:border-orange-800/60 space-y-2 animate-fadeIn">
+          <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
             Nhập mã OTP 6 chữ số từ tin nhắn SMS Firebase:
           </p>
           <div className={stacked ? 'flex flex-col gap-2' : 'flex flex-col sm:flex-row gap-2'}>
@@ -343,7 +343,7 @@ export default function PhoneVerificationBox({
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                 placeholder="123456"
-                className="w-full min-w-0 pl-9 pr-3 py-2 text-base tracking-[0.25em] font-mono font-bold rounded-xl border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-gray-900"
+                className="w-full min-w-0 pl-9 pr-3 py-2 text-base tracking-[0.25em] font-mono font-bold rounded-xl border border-orange-300 dark:border-orange-700/60 bg-white dark:bg-[#1a1714] focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-gray-900 dark:text-[#ede6d8]"
               />
             </div>
             <button

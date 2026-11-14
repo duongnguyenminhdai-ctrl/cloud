@@ -952,29 +952,29 @@ export default function Home() {
   const totalPages = Math.ceil(displayedRestaurants.length / PAGE_SIZE) || 1;
 
   return (
-    <div className="min-h-screen bg-[#ece7dc] text-[#2b2721] relative overflow-x-hidden pb-14">
-      {/* Background Wash màu nước nghệ thuật đặc trưng Sổ Tay Ký Họa */}
+    <div className="min-h-screen bg-[#ece7dc] dark:bg-[#161412] text-[#2b2721] dark:text-[#ede6d8] relative overflow-x-hidden pb-14 transition-colors">
+      {/* Background Wash màu nước nghệ thuật đặc trưng Sổ Tay Ký Họa (ẩn khi Dark Mode tránh chói sáng) */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-45 bg-cover bg-top"
+        className="fixed inset-0 pointer-events-none z-0 opacity-45 dark:opacity-0 bg-cover bg-top transition-opacity"
         style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
         aria-hidden="true"
       />
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90" aria-hidden="true" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] dark:from-[#161412]/40 dark:via-[#161412]/80 dark:to-[#161412] opacity-90 transition-colors" aria-hidden="true" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-5 space-y-6 sm:space-y-7">
         {/* ===================================================================== */}
         {/* 1. HERO BANNER CHUẨN FOODFAST (Sổ Tay Ký Họa) */}
         {/* ===================================================================== */}
-        <div className="relative overflow-hidden rounded-3xl sketch-panel text-[#2b2721] shadow-sm">
+        <div className="relative overflow-hidden rounded-3xl sketch-panel text-[#2b2721] dark:text-[#ede6d8] shadow-sm">
           {/* Lớp nền phong cảnh mỹ thuật đồng bộ Sổ Tay Ký Họa */}
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-15 mix-blend-multiply"
+            className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-5 mix-blend-multiply"
             style={{
               backgroundImage:
                 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")'
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#fcfbf9]/95 via-[#f9f6f0]/90 to-[#f5efe4]/85" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#fcfbf9]/95 via-[#f9f6f0]/90 to-[#f5efe4]/85 dark:from-[#1e1b18]/95 dark:via-[#1a1714]/90 dark:to-[#161412]/85" />
 
           <div className="relative z-10 p-4 sm:py-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
             {/* Cột trái: Thanh tìm kiếm & Danh mục món ăn FoodFast */}
@@ -1016,7 +1016,7 @@ export default function Home() {
                       className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                         isActive
                           ? 'bg-[#9a6a3e] text-white border-[#9a6a3e] shadow-xs font-bold scale-105'
-                          : 'bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721]/80 border-[rgba(43,39,33,0.12)]'
+                          : 'bg-[#f2ece1] dark:bg-[#25201a] hover:bg-[#ebdcc8] dark:hover:bg-[#2f2922] text-[#2b2721]/80 dark:text-[#ede6d8]/80 border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)]'
                       }`}
                     >
                       {cat.label}
@@ -1029,9 +1029,9 @@ export default function Home() {
             {/* Cột phải: Thẻ Ưu đãi hôm nay thu nhỏ vừa vặn */}
             <div className="lg:col-span-5">
               {/* Khung thẻ Ưu đãi & Quán nổi bật thu nhỏ */}
-              <div className="sketch-card rounded-2xl p-3 sm:p-3.5 shadow-sm text-[#2b2721] space-y-2.5">
-                <div className="flex items-center justify-between border-b border-[rgba(43,39,33,0.1)] pb-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-[#2b2721]">
+              <div className="sketch-card rounded-2xl p-3 sm:p-3.5 shadow-sm text-[#2b2721] dark:text-[#ede6d8] space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[rgba(43,39,33,0.1)] dark:border-[rgba(240,234,224,0.1)] pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-[#2b2721] dark:text-[#ede6d8]">
                     <Flame className="w-4 h-4 text-[#9a6a3e] fill-[#9a6a3e]" />
                     <span>Ưu đãi hôm nay</span>
                   </div>
@@ -1040,7 +1040,7 @@ export default function Home() {
                     onClick={() => {
                       document.getElementById('foodfast-restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="text-[11px] font-semibold text-[#8c5d33] hover:underline cursor-pointer bg-transparent border-0 p-0"
+                    className="text-[11px] font-semibold text-[#8c5d33] dark:text-[#d49859] hover:underline cursor-pointer bg-transparent border-0 p-0"
                   >
                     Xem tất cả
                   </button>
@@ -1055,7 +1055,7 @@ export default function Home() {
                       className="group/item flex flex-col space-y-1 transition-all text-left cursor-pointer hover:scale-102"
                       title={`Nhà hàng: ${item.restaurantName} - Bấm để vào quán đặt món & dùng mã ${item.code}`}
                     >
-                      <div className="h-16 w-full rounded-xl overflow-hidden bg-[#f2ece1] relative">
+                      <div className="h-16 w-full rounded-xl overflow-hidden bg-[#f2ece1] dark:bg-[#25201a] relative">
                         <img
                           src={item.image}
                           alt={item.restaurantName}
@@ -1072,7 +1072,7 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                      <p className="text-[11px] font-bold text-[#2b2721] line-clamp-1 group-hover/item:text-[#9a6a3e] transition-colors">
+                      <p className="text-[11px] font-bold text-[#2b2721] dark:text-[#ede6d8] line-clamp-1 group-hover/item:text-[#9a6a3e] dark:group-hover/item:text-[#f5c542] transition-colors">
                         {item.restaurantName}
                       </p>
                       <button
@@ -1082,7 +1082,7 @@ export default function Home() {
                           handleCopyVoucher(item.code);
                           navigate(`/restaurants/${item.restaurantId}`);
                         }}
-                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#845831] bg-[#f2ece1] border border-[rgba(154,106,62,0.25)] rounded px-1.5 py-0.5 w-fit hover:bg-[#ebdcc8] active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#845831] dark:text-[#f5c542] bg-[#f2ece1] dark:bg-[#25201a] border border-[rgba(154,106,62,0.25)] dark:border-[rgba(245,197,66,0.25)] rounded px-1.5 py-0.5 w-fit hover:bg-[#ebdcc8] dark:hover:bg-[#332c24] active:scale-95 transition-all cursor-pointer"
                         title={`Bấm để sao chép mã ${item.code} và vào quán`}
                       >
                         <Tag className="w-2.5 h-2.5 shrink-0" />
@@ -1135,8 +1135,8 @@ export default function Home() {
                   onClick={() => handleSelectTopCategory(cat.id)}
                   className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all group cursor-pointer ${
                     isSelected
-                      ? 'bg-[#f2ece1] border-2 border-[#9a6a3e] scale-102 shadow-xs'
-                      : 'bg-[#fffdfa] hover:bg-[#f2ece1]/70 border border-[rgba(43,39,33,0.12)] hover:border-[#9a6a3e]/40'
+                      ? 'bg-[#f2ece1] dark:bg-[#28231d] border-2 border-[#9a6a3e] dark:border-[#f5c542] scale-102 shadow-xs'
+                      : 'bg-[#fffdfa] dark:bg-[#1e1b18] hover:bg-[#f2ece1]/70 dark:hover:bg-[#28231d] border border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] hover:border-[#9a6a3e]/40'
                   }`}
                 >
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center overflow-hidden mb-1 group-hover:scale-110 transition-transform">
@@ -1151,7 +1151,7 @@ export default function Home() {
                   </div>
                   <span
                     className={`text-[11px] sm:text-xs text-center font-bold leading-tight line-clamp-1 ${
-                      isSelected ? 'text-[#845831]' : 'text-[#2b2721] group-hover:text-[#845831]'
+                      isSelected ? 'text-[#845831] dark:text-[#f5c542]' : 'text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#845831] dark:group-hover:text-[#f5c542]'
                     }`}
                   >
                     {cat.name}
@@ -1169,7 +1169,7 @@ export default function Home() {
           id="foodfast-restaurants-section"
           className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 p-4 rounded-2xl shadow-sm border transition-all scroll-mt-20 sm:scroll-mt-24 ${
             isAuthenticated && !hasUserAddress
-              ? 'bg-amber-50/90 border-amber-300'
+              ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800/60'
               : 'bg-[#f7f3ea]/95 dark:bg-[#1c1916]/95 border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)]'
           }`}
         >
@@ -1185,7 +1185,7 @@ export default function Home() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#845831] uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#845831] dark:text-[#d49859] uppercase tracking-wider">
                   Giao hàng đến:
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold border border-orange-200">
@@ -1210,7 +1210,7 @@ export default function Home() {
               ) : (
                 <p
                   onClick={() => setIsAddressModalOpen(true)}
-                  className="text-sm sm:text-base font-bold text-[#2b2721] truncate hover:text-orange-600 cursor-pointer transition-colors"
+                  className="text-sm sm:text-base font-bold text-[#2b2721] dark:text-[#ede6d8] truncate hover:text-orange-600 cursor-pointer transition-colors"
                   title={userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
                 >
                   {userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
@@ -1233,10 +1233,10 @@ export default function Home() {
             ) : (
               <button
                 onClick={() => setIsAddressModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-white/90 hover:bg-orange-50 text-orange-600 border border-[rgba(43,39,33,0.15)] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-[#25201a] hover:bg-orange-50 dark:hover:bg-[#2f2720] text-orange-600 dark:text-orange-400 border border-[rgba(43,39,33,0.15)] dark:border-[rgba(240,234,224,0.15)] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Mở bản đồ chọn địa chỉ giao hàng"
               >
-                <Compass className="w-4 h-4 text-orange-600" />
+                <Compass className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 <span>Đổi địa chỉ</span>
               </button>
             )}
@@ -1244,7 +1244,7 @@ export default function Home() {
             <button
               onClick={refreshLocation}
               disabled={locationLoading}
-              className="p-2 rounded-xl bg-white/90 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border border-[rgba(43,39,33,0.15)] text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-white/90 dark:bg-[#25201a] hover:bg-orange-50 dark:hover:bg-[#2f2720] text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 border border-[rgba(43,39,33,0.15)] dark:border-[rgba(240,234,224,0.15)] text-xs font-semibold shadow-xs transition-all cursor-pointer"
               title="Định vị lại GPS của bạn"
             >
               <Crosshair className={`w-4 h-4 ${locationLoading ? 'animate-spin text-orange-600' : ''}`} />
@@ -1262,8 +1262,8 @@ export default function Home() {
               onClick={() => setActiveTab('near')}
               className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
                 activeTab === 'near'
-                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
-                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+                  ? 'text-[#9a6a3e] dark:text-[#f5c542] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e] dark:after:bg-[#f5c542]'
+                  : 'text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-[#2b2721] dark:hover:text-[#ede6d8] font-medium'
               }`}
             >
               Gần tôi
@@ -1273,8 +1273,8 @@ export default function Home() {
               onClick={() => setActiveTab('bestseller')}
               className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
                 activeTab === 'bestseller'
-                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
-                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+                  ? 'text-[#9a6a3e] dark:text-[#f5c542] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e] dark:after:bg-[#f5c542]'
+                  : 'text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-[#2b2721] dark:hover:text-[#ede6d8] font-medium'
               }`}
             >
               Bán chạy
@@ -1284,8 +1284,8 @@ export default function Home() {
               onClick={() => setActiveTab('rating')}
               className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
                 activeTab === 'rating'
-                  ? 'text-[#9a6a3e] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e]'
-                  : 'text-[#2b2721]/70 hover:text-[#2b2721] font-medium'
+                  ? 'text-[#9a6a3e] dark:text-[#f5c542] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#9a6a3e] dark:after:bg-[#f5c542]'
+                  : 'text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-[#2b2721] dark:hover:text-[#ede6d8] font-medium'
               }`}
             >
               Đánh giá
@@ -1296,7 +1296,7 @@ export default function Home() {
               className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'favorites'
                   ? 'text-red-500 font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-500'
-                  : 'text-[#2b2721]/70 hover:text-red-500 font-medium'
+                  : 'text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-red-500 font-medium'
               }`}
             >
               <Heart className={`w-4 h-4 ${activeTab === 'favorites' || likedStoreIds.length > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
@@ -1310,7 +1310,7 @@ export default function Home() {
               type="button"
               onClick={() => fetchRestaurants(true)}
               disabled={loading}
-              className="p-1.5 rounded-lg border border-[rgba(43,39,33,0.18)] hover:border-orange-300 hover:bg-white/80 text-[#2b2721]/70 hover:text-orange-600 transition-all shadow-xs cursor-pointer"
+              className="p-1.5 rounded-lg border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.15)] hover:border-orange-300 hover:bg-white/80 dark:hover:bg-[#25201a] text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-xs cursor-pointer"
               title="Đồng bộ / Làm mới danh sách quán ngay lập tức"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-500' : ''}`} />
@@ -1320,7 +1320,7 @@ export default function Home() {
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="appearance-none bg-white/90 border border-[rgba(43,39,33,0.18)] hover:border-gray-400 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-[#2b2721] focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/20 focus:border-[#9a6a3e] cursor-pointer shadow-xs transition-all"
+                className="appearance-none bg-white/90 dark:bg-[#1f1b17] border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.16)] hover:border-gray-400 dark:hover:border-gray-500 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-[#2b2721] dark:text-[#ede6d8] focus:outline-none focus:ring-2 focus:ring-[#9a6a3e]/20 focus:border-[#9a6a3e] cursor-pointer shadow-xs transition-all"
               >
                 <option value="ALL">Chọn quận/ huyện</option>
                 {availableDistricts.map((d) => (
@@ -1336,10 +1336,10 @@ export default function Home() {
 
       {/* 3.1. THANH TRẠNG THÁI BỘ LỌC ĐANG HOẠT ĐỘNG (Hiển thị tức thì khi chọn danh mục) */}
       {(selectedCategory !== 'All' || selectedTopCatId !== 'all' || selectedDistrict !== 'ALL' || searchKeyword.trim()) && (
-        <div className="flex items-center justify-between gap-3 p-3 bg-orange-50/90 border border-orange-200 rounded-2xl text-xs shadow-xs animate-fadeIn mb-4">
+        <div className="flex items-center justify-between gap-3 p-3 bg-orange-50/90 dark:bg-[#251e16] border border-orange-200 dark:border-orange-900/40 rounded-2xl text-xs shadow-xs animate-fadeIn mb-4">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <span className="font-bold text-gray-700 flex items-center gap-1">
-              <Tag className="w-3.5 h-3.5 text-orange-600" />
+            <span className="font-bold text-gray-700 dark:text-[#ede6d8] flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
               Đang lọc:
             </span>
 
@@ -1530,24 +1530,24 @@ export default function Home() {
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                       )}
-                      <h3 className="font-bold text-[#2b2721] text-xs sm:text-sm group-hover:text-[#9a6a3e] transition-colors truncate">
+                      <h3 className="font-bold text-[#2b2721] dark:text-[#ede6d8] text-xs sm:text-sm group-hover:text-[#9a6a3e] dark:group-hover:text-[#f5c542] transition-colors truncate">
                         {res.name}
                       </h3>
                     </div>
 
                     {/* Hàng 2: Số địa điểm / chi nhánh màu xanh dương FoodFast */}
-                    <p className="text-xs font-semibold text-[#8c5d33] truncate">
+                    <p className="text-xs font-semibold text-[#8c5d33] dark:text-[#d49859] truncate">
                       {getLocationCountText(res)}
                     </p>
 
                     {/* Hàng 3: Tối thiểu 20k / Giá 0 */}
-                    <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-[#2b2721]/60 flex-wrap">
+                    <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60 flex-wrap">
                       <div className="flex items-center gap-1">
-                        <Tag className="w-3 h-3 text-[#2b2721]/40 rotate-90" />
+                        <Tag className="w-3 h-3 text-[#2b2721]/40 dark:text-[#ede6d8]/40 rotate-90" />
                         <span>{getMinOrderText(res)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="w-3.5 h-3.5 rounded-full border border-[#2b2721]/30 text-[10px] flex items-center justify-center font-bold text-[#2b2721]/60 leading-none">
+                        <span className="w-3.5 h-3.5 rounded-full border border-[#2b2721]/30 dark:border-[#ede6d8]/30 text-[10px] flex items-center justify-center font-bold text-[#2b2721]/60 dark:text-[#ede6d8]/60 leading-none">
                           $
                         </span>
                         <span>{getPriceRangeText(res)}</span>
@@ -1555,8 +1555,8 @@ export default function Home() {
                     </div>
 
                     {/* Hàng 4: Tag khuyến mãi màu đỏ Giảm món */}
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-[#9a6a3e]">
-                      <Tag className="w-3 h-3 text-[#9a6a3e] fill-[#9a6a3e]" />
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-[#9a6a3e] dark:text-[#f5c542]">
+                      <Tag className="w-3 h-3 text-[#9a6a3e] dark:text-[#f5c542] fill-[#9a6a3e] dark:fill-[#f5c542]" />
                       <span>{getPromoTag(res)}</span>
                     </div>
                   </div>
