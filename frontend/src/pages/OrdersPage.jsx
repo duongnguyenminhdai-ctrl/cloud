@@ -756,7 +756,7 @@ export default function OrdersPage({ initialTab }) {
         </div>
 
         {/* =================================================================== */}
-        {/* 3. BANNER NHẬN 500 XU (FoodFast Coins Banner) */}
+        {/* 3. BANNER NHẬN 1.000 XU (FoodFast Coins Banner) */}
         {/* =================================================================== */}
         <div className="px-4 pt-3 pb-1">
           <div
@@ -774,7 +774,7 @@ export default function OrdersPage({ initialTab }) {
                 F
               </span>
               <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-[#ede6d8]">
-                Đánh giá quán, nhận ngay 500 xu FoodFast
+                Đánh giá đơn hàng, nhận ngay 1.000 Xu FoodFast
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400 dark:text-stone-500" />
