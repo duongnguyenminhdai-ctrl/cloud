@@ -1340,20 +1340,20 @@ export default function RestaurantDetail() {
         </div>
       )}
 
-      {/* Floating Bottom Cart Bar for Mobile */}
+      {/* Floating Bottom Cart Bar for Mobile: Nổi phía trên Bottom Navigation (bottom-18 trên mobile, bottom-4 trên desktop) */}
       {totalItems > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-40 animate-bounce-subtle">
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-gray-700/50 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="relative p-2 rounded-xl bg-orange-600 text-white">
+        <div className="fixed bottom-18 md:bottom-4 left-3 right-3 sm:left-4 sm:right-4 max-w-4xl mx-auto z-40 animate-bounce-subtle">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl p-3 sm:p-4 shadow-2xl flex items-center justify-between gap-2 border border-gray-700/50 backdrop-blur-md">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="relative p-2 rounded-xl bg-orange-600 text-white shrink-0">
                 <ShoppingBag className="w-5 h-5" />
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-orange-600 text-xs font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
               </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Tổng tiền ({totalItems} món)</p>
-                <p className="text-lg font-extrabold text-white">
+              <div className="min-w-0">
+                <p className="text-[11px] text-gray-400 font-medium truncate">Tổng ({totalItems} món)</p>
+                <p className="text-base sm:text-lg font-extrabold text-white truncate">
                   {totalPrice.toLocaleString('vi-VN')} đ
                 </p>
               </div>
@@ -1361,9 +1361,10 @@ export default function RestaurantDetail() {
 
             <Link
               to="/checkout"
-              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-600/30 transition-all"
+              className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-orange-600/30 transition-all shrink-0 text-center"
             >
-              Xem Giỏ Hàng & Thanh Toán →
+              <span className="hidden sm:inline">Xem Giỏ Hàng & Thanh Toán →</span>
+              <span className="sm:hidden">Thanh toán →</span>
             </Link>
           </div>
         </div>

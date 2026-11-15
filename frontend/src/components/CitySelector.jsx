@@ -73,9 +73,9 @@ export default function CitySelector() {
         />
       </button>
 
-      {/* Dropdown Popover Modal */}
+      {/* Dropdown Popover Modal (Tối ưu full fit trên Mobile: w-[calc(100vw-32px)] max-w-xs) */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 sketch-panel rounded-2xl shadow-2xl z-50 overflow-hidden animate-fadeIn">
+        <div className="absolute left-0 top-full mt-2 w-[calc(100vw-32px)] max-w-xs sm:w-80 sketch-panel rounded-2xl shadow-2xl z-50 overflow-hidden animate-fadeIn">
           {/* Header & Search Bar */}
           <div className="p-3 bg-[#f2ece1] border-b border-[rgba(43,39,33,0.1)] space-y-2.5">
             <div className="flex items-center justify-between">

@@ -3,7 +3,8 @@ import { useLocationCity } from '../context/LocationContext';
 
 export default function HomeSketchbookSection({ onDishSelect }) {
   const iframeRef = useRef(null);
-  const [iframeHeight, setIframeHeight] = useState(980);
+  const getMinHeight = () => (typeof window !== 'undefined' && window.innerWidth < 640 ? 380 : 780);
+  const [iframeHeight, setIframeHeight] = useState(getMinHeight);
   const { selectedCity } = useLocationCity();
   const lastNavigatedCodeRef = useRef(null);
 
@@ -37,7 +38,8 @@ export default function HomeSketchbookSection({ onDishSelect }) {
         }
       }
       if (e.data.type === 'FOODFAST_SKETCHBOOK_HEIGHT' && e.data.height) {
-        setIframeHeight(Math.max(920, Math.ceil(e.data.height)));
+        const minH = window.innerWidth < 640 ? 380 : 780;
+        setIframeHeight(Math.max(minH, Math.ceil(e.data.height)));
       }
     };
     window.addEventListener('message', handleMessage);

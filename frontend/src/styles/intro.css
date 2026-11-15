@@ -620,19 +620,30 @@
   }
 
   .intro-nav,
-  .intro-btn-login,
   .intro-doodle-slash,
   .intro-note-beseen-wrap,
   .intro-arrow-beseen {
     display: none;
   }
 
+  .intro-btn-login {
+    display: inline-flex;
+    position: static;
+    width: auto;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    margin-left: auto;
+    margin-right: 8px;
+  }
+
   .intro-btn-signup {
+    display: inline-flex;
     position: static;
     width: auto;
     height: 36px;
     padding: 0 16px;
-    font-size: 13.5px;
+    font-size: 13px;
   }
 
   .intro-mobile-copy {

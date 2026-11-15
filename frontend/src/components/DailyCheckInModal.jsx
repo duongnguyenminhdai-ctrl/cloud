@@ -194,8 +194,8 @@ export default function DailyCheckInModal({ isOpen, onClose }) {
         </div>
       )}
 
-      {/* Panel Điểm Danh - Phong cách Truy Kích & FoodFast Candlelit */}
-      <div className="relative w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl border border-[#3b4c5a] dark:border-[#4a5f70] bg-[#1a232c] text-[#e3edf7] font-sans flex flex-col select-none">
+      {/* Panel Điểm Danh - Phong cách Truy Kích & FoodFast Candlelit (Tối ưu Responsive Mobile: max-h-[92vh] overflow-y-auto) */}
+      <div className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl shadow-2xl border border-[#3b4c5a] dark:border-[#4a5f70] bg-[#1a232c] text-[#e3edf7] font-sans flex flex-col select-none scrollbar-thin">
         
         {/* =================================================================== */}
         {/* HEADER PANEL (Phong cách HUD Truy Kích) */}

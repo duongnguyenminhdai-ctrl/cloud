@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { LocationProvider } from './context/LocationContext';
 import Navbar from './components/Navbar';
+import BottomNavigation from './components/BottomNavigation';
 import Home from './pages/Home';
 import RestaurantDetail from './pages/RestaurantDetail';
 import Login from './pages/Login';
@@ -88,7 +89,7 @@ function AppContent() {
         )}
 
         {!isIntro && <Navbar />}
-        <main className={`flex-1 flex flex-col ${!isAuthPage && !isIntro ? 'relative z-10' : ''}`}>
+        <main className={`flex-1 flex flex-col ${!isAuthPage && !isIntro ? 'relative z-10 pb-16 md:pb-0' : ''}`}>
           <Routes>
             {/* Trang Intro mở đầu */}
             <Route path="/intro" element={<IntroPage />} />
@@ -156,6 +157,8 @@ function AppContent() {
             </div>
           </footer>
         )}
+        {/* Thanh Điều Hướng Đáy Màn Hình Cho Mobile (Bottom Navigation Bar) */}
+        {!isIntro && !isAuthPage && <BottomNavigation />}
       </div>
     </IntroGatekeeper>
   );

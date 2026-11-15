@@ -725,7 +725,7 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         {/* 2. TABS BAR CHUẨN FOODFAST: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
         {/* =================================================================== */}
-        <div className="border-b border-[rgba(43,39,33,0.12)] bg-[#f7f4ee]/95 sticky top-[53px] z-30">
+        <div className="border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 sticky top-[53px] z-30 transition-colors">
           <div className="flex items-center justify-between px-4 overflow-x-auto no-scrollbar gap-5 text-xs sm:text-sm">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -735,15 +735,15 @@ export default function OrdersPage({ initialTab }) {
                   onClick={() => handleTabChange(tab.id)}
                   className={`py-3 relative font-bold whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
                     isActive
-                      ? 'text-[#9a6a3e] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#9a6a3e]'
-                      : 'text-[#2b2721]/60 hover:text-[#2b2721] font-medium'
+                      ? 'text-[#9a6a3e] dark:text-[#f5c542] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#9a6a3e] dark:after:bg-[#f5c542]'
+                      : 'text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-[#2b2721] dark:hover:text-[#ede6d8] font-medium'
                   }`}
                 >
                   <span>{tab.label}</span>
                   {tab.count > 0 && (
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        isActive ? 'bg-[#9a6a3e] text-white' : 'bg-[#f2ece1] text-[#845831]'
+                        isActive ? 'bg-[#9a6a3e] text-white' : 'bg-[#f2ece1] dark:bg-[#2b2520] text-[#845831] dark:text-[#f5c542]'
                       }`}
                     >
                       {tab.count}

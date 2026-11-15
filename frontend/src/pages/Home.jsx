@@ -1005,15 +1005,15 @@ export default function Home() {
                 </button>
               </form>
 
-              {/* Danh sách Tags Danh mục FoodFast */}
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {/* Danh sách Tags Danh mục FoodFast: Vuốt ngang mượt mà trên Mobile, Wrap gọn trên Desktop */}
+              <div className="flex items-center overflow-x-auto no-scrollbar scroll-smooth gap-1.5 sm:gap-2 sm:flex-wrap pb-1 -mx-1 px-1 touch-pan-x">
                 {FOODFAST_CATEGORIES.map((cat) => {
                   const isActive = selectedCategory === cat.id;
                   return (
                     <button
                       key={cat.id}
                       onClick={() => handleSelectFoodfastCategory(cat.id)}
-                      className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                      className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer shrink-0 ${
                         isActive
                           ? 'bg-[#9a6a3e] text-white border-[#9a6a3e] shadow-xs font-bold scale-105'
                           : 'bg-[#f2ece1] dark:bg-[#25201a] hover:bg-[#ebdcc8] dark:hover:bg-[#2f2922] text-[#2b2721]/80 dark:text-[#ede6d8]/80 border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)]'
@@ -1255,9 +1255,9 @@ export default function Home() {
         {/* ===================================================================== */}
         {/* 5. TABS CHUẨN FOODFAST: GẦN TÔI | BÁN CHẠY | ĐÁNH GIÁ & CHỌN QUẬN */}
         {/* ===================================================================== */}
-        <div id="foodfast-restaurants-tabs" className="flex items-center justify-between border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] pb-2 mb-4 scroll-mt-24">
-          {/* Left: 3 Tabs (Gần tôi, Bán chạy, Đánh giá, Yêu thích) */}
-          <div className="flex items-center gap-6 sm:gap-8">
+        <div id="foodfast-restaurants-tabs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] pb-2 mb-4 scroll-mt-24">
+          {/* Left: 4 Tabs (Gần tôi, Bán chạy, Đánh giá, Yêu thích) */}
+          <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap py-0.5">
             <button
               onClick={() => setActiveTab('near')}
               className={`text-sm sm:text-base transition-colors relative pb-2 cursor-pointer ${
