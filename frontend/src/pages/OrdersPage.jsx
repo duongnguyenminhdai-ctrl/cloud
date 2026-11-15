@@ -767,17 +767,17 @@ export default function OrdersPage({ initialTab }) {
                 handleTabChange('reviews');
               }
             }}
-            className="bg-[#FFF9E6] border border-[#FFE8B3] rounded-xl px-3.5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-[#FFF3D1] transition-colors shadow-xs"
+            className="bg-[#FFF9E6] dark:bg-[#26211c] border border-[#FFE8B3] dark:border-[rgba(154,106,62,0.3)] rounded-xl px-3.5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-[#FFF3D1] dark:hover:bg-[#302a24] transition-colors shadow-xs"
           >
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[11px] flex items-center justify-center border border-amber-500 shadow-xs">
+              <span className="w-5 h-5 rounded-full bg-amber-400 dark:bg-amber-500 text-amber-950 font-black text-[11px] flex items-center justify-center border border-amber-500 shadow-xs">
                 F
               </span>
-              <span className="text-xs sm:text-sm font-semibold text-gray-800">
+              <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-[#ede6d8]">
                 Đánh giá quán, nhận ngay 500 xu FoodFast
               </span>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-gray-400 dark:text-stone-500" />
           </div>
         </div>
 
@@ -786,11 +786,11 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         {!isAuthenticated ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto min-h-[460px]">
-            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-4 text-[#EE4D2D]">
+            <div className="w-20 h-20 bg-orange-50 dark:bg-orange-950/40 rounded-full flex items-center justify-center mb-4 text-[#EE4D2D]">
               <User className="w-10 h-10 stroke-[1.8]" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Bạn chưa đăng nhập</h3>
-            <p className="text-sm text-gray-500 max-w-sm mb-6 leading-relaxed">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-[#ede6d8] mb-2">Bạn chưa đăng nhập</h3>
+            <p className="text-sm text-gray-500 dark:text-stone-400 max-w-sm mb-6 leading-relaxed">
               Vui lòng đăng nhập hoặc tạo tài khoản để theo dõi đơn hàng thời gian thực, quản lý voucher ưu đãi và xem lịch sử mua sắm của bạn trên FoodFast.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
@@ -802,7 +802,7 @@ export default function OrdersPage({ initialTab }) {
               </Link>
               <Link
                 to={`/register?redirect=/orders${activeTab ? `?tab=${activeTab}` : ''}`}
-                className="flex-1 py-2.5 px-4 bg-white border border-gray-300 hover:border-[#EE4D2D] hover:text-[#EE4D2D] text-gray-700 font-semibold rounded-xl text-center text-sm transition-colors"
+                className="flex-1 py-2.5 px-4 bg-white dark:bg-[#26211c] border border-gray-300 dark:border-stone-700 hover:border-[#EE4D2D] hover:text-[#EE4D2D] text-gray-700 dark:text-[#ede6d8] font-semibold rounded-xl text-center text-sm transition-colors"
               >
                 Đăng ký
               </Link>
@@ -817,9 +817,9 @@ export default function OrdersPage({ initialTab }) {
           <div className="flex-1 p-4 space-y-3">
             {activeOrders.length === 0 ? (
               <div className="text-center py-16 space-y-3 my-auto">
-                <Truck className="w-12 h-12 text-gray-300 mx-auto" />
-                <p className="text-sm font-bold text-gray-800">Không có đơn hàng nào đang đến</p>
-                <p className="text-xs text-gray-500">Món ăn của bạn sẽ hiển thị tiến độ trực tiếp tại đây khi đặt hàng.</p>
+                <Truck className="w-12 h-12 text-gray-300 dark:text-stone-600 mx-auto" />
+                <p className="text-sm font-bold text-gray-800 dark:text-[#ede6d8]">Không có đơn hàng nào đang đến</p>
+                <p className="text-xs text-gray-500 dark:text-stone-400">Món ăn của bạn sẽ hiển thị tiến độ trực tiếp tại đây khi đặt hàng.</p>
                 <Link
                   to="/"
                   className="inline-block px-5 py-2 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
@@ -846,10 +846,10 @@ export default function OrdersPage({ initialTab }) {
                 {paginatedActiveOrders.items.map((ord) => (
                   <div
                     key={ord._id}
-                    className="p-4 bg-white rounded-2xl border border-orange-200 shadow-sm space-y-3 hover:border-orange-300 transition-all"
+                    className="p-4 bg-white dark:bg-[#1f1b18] rounded-2xl border border-orange-200 dark:border-orange-900/40 shadow-sm space-y-3 hover:border-orange-300 dark:hover:border-orange-800/60 transition-all"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-orange-100 shadow-xs">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-stone-800 overflow-hidden shrink-0 border border-orange-100 dark:border-orange-950 shadow-xs">
                         <img
                           src={getOrderDishImage(ord)}
                           alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
@@ -858,31 +858,31 @@ export default function OrdersPage({ initialTab }) {
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-orange-600 flex items-center gap-1.5 animate-pulse">
+                          <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 animate-pulse">
                             <Truck className="w-4 h-4" /> Đang điều phối & giao hàng
                           </span>
-                          <span className="text-xs font-extrabold text-gray-900">
+                          <span className="text-xs font-extrabold text-gray-900 dark:text-[#ede6d8]">
                             {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
                           </span>
                         </div>
-                        <p className="text-xs text-gray-800 line-clamp-1 font-semibold">
+                        <p className="text-xs text-gray-800 dark:text-[#ede6d8] line-clamp-1 font-semibold">
                           {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'Món ăn ngon'}
                         </p>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-gray-400 dark:text-stone-400">
                           {ord.restaurantName || 'Quán đối tác FoodFast'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-gray-50">
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-50 dark:border-stone-800">
                       <Link
                         to={`/orders/${ord._id}`}
-                        className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs text-center rounded-xl transition-colors"
+                        className="flex-1 py-2 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-bold text-xs text-center rounded-xl transition-colors"
                       >
                         Xem tiến độ trực tiếp (Live Tracking) →
                       </Link>
                       <button
                         onClick={() => handleCompleteSingleOrder(ord._id)}
-                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl transition-colors shrink-0 flex items-center gap-1 border border-emerald-200 cursor-pointer"
+                        className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl transition-colors shrink-0 flex items-center gap-1 border border-emerald-200 dark:border-emerald-800/60 cursor-pointer"
                         title="Xác nhận đã nhận hàng"
                       >
                         <Check className="w-3.5 h-3.5" />
@@ -914,9 +914,9 @@ export default function OrdersPage({ initialTab }) {
           <div className="flex-1 p-4 space-y-3">
             {orders.length === 0 ? (
               <div className="text-center py-16 space-y-3 my-auto">
-                <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto" />
-                <p className="text-sm font-bold text-gray-800">Bạn chưa có đơn đã mua nào</p>
-                <p className="text-xs text-gray-500">Các món ăn và đơn bạn đã đặt sẽ được lưu trữ đầy đủ tại đây.</p>
+                <ShoppingBag className="w-12 h-12 text-gray-300 dark:text-stone-600 mx-auto" />
+                <p className="text-sm font-bold text-gray-800 dark:text-[#ede6d8]">Bạn chưa có đơn đã mua nào</p>
+                <p className="text-xs text-gray-500 dark:text-stone-400">Các món ăn và đơn bạn đã đặt sẽ được lưu trữ đầy đủ tại đây.</p>
                 <Link
                   to="/"
                   className="inline-block px-5 py-2.5 rounded-xl bg-[#EE4D2D] text-white text-xs font-bold shadow-md shadow-red-500/20"
@@ -935,23 +935,23 @@ export default function OrdersPage({ initialTab }) {
                 return (
                   <div
                     key={ord._id}
-                    className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3 hover:shadow-md transition-shadow"
+                    className="p-4 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)] shadow-sm space-y-3 hover:shadow-md transition-shadow"
                   >
                     {/* Quán & Trạng thái đơn */}
-                    <div className="flex items-center justify-between border-b border-gray-50 pb-2.5">
-                      <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900 truncate">
+                    <div className="flex items-center justify-between border-b border-gray-50 dark:border-stone-800 pb-2.5">
+                      <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900 dark:text-[#ede6d8] truncate">
                         <span>{ord.restaurantName || 'Quán ăn ngon'}</span>
-                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                        <ChevronRight className="w-4 h-4 text-gray-400 dark:text-stone-500 shrink-0" />
                       </div>
                       <span
                         className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                           isDelivered
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60'
                             : isDelivering
-                            ? 'bg-orange-50 text-orange-600 border border-orange-200'
+                            ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60'
                             : isCancelled
-                            ? 'bg-gray-100 text-gray-600'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
+                            ? 'bg-gray-100 dark:bg-stone-800 text-gray-600 dark:text-stone-400'
+                            : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60'
                         }`}
                       >
                         {isDelivered
@@ -966,7 +966,7 @@ export default function OrdersPage({ initialTab }) {
 
                     {/* Chi tiết món & Hình ảnh */}
                     <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-stone-800 overflow-hidden shrink-0 border border-gray-100 dark:border-stone-800 shadow-xs">
                         <img
                           src={getOrderDishImage(ord)}
                           alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
@@ -974,15 +974,15 @@ export default function OrdersPage({ initialTab }) {
                         />
                       </div>
                       <div className="min-w-0 flex-1 space-y-1 text-xs">
-                        <div className="flex items-center justify-between text-gray-400 text-[11px]">
+                        <div className="flex items-center justify-between text-gray-400 dark:text-stone-500 text-[11px]">
                           <span>Mã đơn: #{(ord._id || '').slice(-8).toUpperCase()}</span>
                           <span>{new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}</span>
                         </div>
-                        <p className="text-gray-800 font-semibold line-clamp-2">
+                        <p className="text-gray-800 dark:text-[#ede6d8] font-semibold line-clamp-2">
                           {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
                         </p>
                         <div className="flex items-center justify-between pt-0.5">
-                          <span className="text-[11px] text-gray-500 font-medium">
+                          <span className="text-[11px] text-gray-500 dark:text-stone-400 font-medium">
                             {ord.paymentMethod === 'VNPAY' ? '💳 Đã thanh toán (VNPay)' : '💵 Thanh toán khi nhận (COD)'}
                           </span>
                           <span className="font-black text-sm text-[#EE4D2D]">
@@ -993,11 +993,11 @@ export default function OrdersPage({ initialTab }) {
                     </div>
 
                     {/* Các nút tương tác: Đặt lại & Xem chi tiết */}
-                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-50">
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-50 dark:border-stone-800">
                       {isDelivered && (
                         <button
                           onClick={() => setReviewOrderModal(ord)}
-                          className="px-3 py-1.5 rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-50 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-lg border border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
                           <span>Đánh giá</span>
@@ -1006,7 +1006,7 @@ export default function OrdersPage({ initialTab }) {
 
                       <Link
                         to={`/orders/${ord._id}`}
-                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 text-gray-700 dark:text-[#ede6d8] text-xs font-bold transition-colors"
                       >
                         Xem tiến độ
                       </Link>
@@ -1044,17 +1044,17 @@ export default function OrdersPage({ initialTab }) {
         {activeTab === 'history' && (
           <div className="flex-1 flex flex-col">
             {/* Hàng 3 Bộ lọc: Dịch vụ ∨ | Trạng thái ∨ | 10/08/26 - 08/11/26 ∨ */}
-            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between gap-2 text-xs text-gray-700 bg-white relative">
+            <div className="px-4 py-2.5 border-b border-gray-100 dark:border-[rgba(240,234,224,0.1)] flex items-center justify-between gap-2 text-xs text-gray-700 dark:text-[#ede6d8] bg-white dark:bg-[#1f1b18] relative transition-colors">
               {/* Lọc Dịch vụ */}
               <div className="relative">
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
-                  className="appearance-none bg-transparent hover:text-gray-900 pr-5 font-semibold cursor-pointer focus:outline-none"
+                  className="appearance-none bg-transparent hover:text-gray-900 dark:hover:text-white pr-5 font-semibold cursor-pointer focus:outline-none"
                 >
-                  <option value="ALL">Dịch vụ ∨</option>
-                  <option value="FOOD">Đồ ăn & Thức uống</option>
-                  <option value="MART">FoodFast Mart</option>
+                  <option value="ALL" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">Dịch vụ ∨</option>
+                  <option value="FOOD" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">Đồ ăn & Thức uống</option>
+                  <option value="MART" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">FoodFast Mart</option>
                 </select>
               </div>
 
@@ -1063,11 +1063,11 @@ export default function OrdersPage({ initialTab }) {
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="appearance-none bg-transparent hover:text-gray-900 pr-5 font-semibold cursor-pointer focus:outline-none"
+                  className="appearance-none bg-transparent hover:text-gray-900 dark:hover:text-white pr-5 font-semibold cursor-pointer focus:outline-none"
                 >
-                  <option value="ALL">Trạng thái ∨</option>
-                  <option value="COMPLETED">Đã hoàn tất</option>
-                  <option value="CANCELLED">Đã hủy</option>
+                  <option value="ALL" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">Trạng thái ∨</option>
+                  <option value="COMPLETED" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">Đã hoàn tất</option>
+                  <option value="CANCELLED" className="dark:bg-[#1f1b18] dark:text-[#ede6d8]">Đã hủy</option>
                 </select>
               </div>
 
@@ -1076,7 +1076,7 @@ export default function OrdersPage({ initialTab }) {
                 type="button"
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                 className={`font-semibold flex items-center gap-1 cursor-pointer transition-colors ${
-                  isCalendarOpen || dateRange.applied ? 'text-[#EE4D2D]' : 'hover:text-gray-900'
+                  isCalendarOpen || dateRange.applied ? 'text-[#EE4D2D]' : 'hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <span>
@@ -1088,13 +1088,13 @@ export default function OrdersPage({ initialTab }) {
 
             {/* Bộ chọn lịch thời gian */}
             {isCalendarOpen && (
-              <div className="bg-white border-b border-gray-200 p-4 space-y-5 animate-fadeIn shadow-inner">
+              <div className="bg-white dark:bg-[#1f1b18] border-b border-gray-200 dark:border-[rgba(240,234,224,0.12)] p-4 space-y-5 animate-fadeIn shadow-inner transition-colors">
                 {/* Tháng Chín 2026 */}
                 <div className="space-y-2">
-                  <h4 className="text-center text-xs sm:text-sm font-semibold text-gray-700">
+                  <h4 className="text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-[#ede6d8]">
                     Tháng Chín 2026
                   </h4>
-                  <div className="grid grid-cols-7 text-center text-[11px] text-gray-400 font-medium">
+                  <div className="grid grid-cols-7 text-center text-[11px] text-gray-400 dark:text-stone-500 font-medium">
                     <span>CN</span>
                     <span>T2</span>
                     <span>T3</span>
@@ -1104,8 +1104,8 @@ export default function OrdersPage({ initialTab }) {
                     <span>T7</span>
                   </div>
                   <div className="grid grid-cols-7 text-center text-xs font-semibold gap-y-2">
-                    <span className="text-gray-300"></span>
-                    <span className="text-gray-300"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
                     {[...Array(30)].map((_, i) => {
                       const day = i + 1;
                       const isSelected = day >= 10;
@@ -1115,8 +1115,8 @@ export default function OrdersPage({ initialTab }) {
                           onClick={() => setTempDateRange((prev) => ({ ...prev, startDay: day, startMonth: 9 }))}
                           className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
                             isSelected
-                              ? 'bg-red-50 text-[#EE4D2D] font-bold'
-                              : 'text-gray-700 hover:bg-gray-100'
+                              ? 'bg-red-50 dark:bg-red-950/50 text-[#EE4D2D] font-bold'
+                              : 'text-gray-700 dark:text-[#ede6d8] hover:bg-gray-100 dark:hover:bg-stone-800'
                           }`}
                         >
                           {day}
@@ -1127,11 +1127,11 @@ export default function OrdersPage({ initialTab }) {
                 </div>
 
                 {/* Tháng Mười 2026 */}
-                <div className="space-y-2 pt-2 border-t border-gray-100">
-                  <h4 className="text-center text-xs sm:text-sm font-semibold text-gray-700">
+                <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-stone-800">
+                  <h4 className="text-center text-xs sm:text-sm font-semibold text-gray-700 dark:text-[#ede6d8]">
                     Tháng Mười 2026
                   </h4>
-                  <div className="grid grid-cols-7 text-center text-[11px] text-gray-400 font-medium">
+                  <div className="grid grid-cols-7 text-center text-[11px] text-gray-400 dark:text-stone-500 font-medium">
                     <span>CN</span>
                     <span>T2</span>
                     <span>T3</span>
@@ -1141,10 +1141,10 @@ export default function OrdersPage({ initialTab }) {
                     <span>T7</span>
                   </div>
                   <div className="grid grid-cols-7 text-center text-xs font-semibold gap-y-2">
-                    <span className="text-gray-300"></span>
-                    <span className="text-gray-300"></span>
-                    <span className="text-gray-300"></span>
-                    <span className="text-gray-300"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
+                    <span className="text-gray-300 dark:text-stone-700"></span>
                     {[...Array(31)].map((_, i) => {
                       const day = i + 1;
                       const isSelected = day <= 31;
@@ -1154,8 +1154,8 @@ export default function OrdersPage({ initialTab }) {
                           onClick={() => setTempDateRange((prev) => ({ ...prev, endDay: day, endMonth: 10 }))}
                           className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
                             isSelected
-                              ? 'bg-red-50 text-[#EE4D2D] font-bold'
-                              : 'text-gray-700 hover:bg-gray-100'
+                              ? 'bg-red-50 dark:bg-red-950/50 text-[#EE4D2D] font-bold'
+                              : 'text-gray-700 dark:text-[#ede6d8] hover:bg-gray-100 dark:hover:bg-stone-800'
                           }`}
                         >
                           {day}
@@ -1166,10 +1166,10 @@ export default function OrdersPage({ initialTab }) {
                 </div>
 
                 {/* Hai nút hành động: Xóa & Chọn */}
-                <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-3 pt-3 border-t border-gray-100 dark:border-stone-800">
                   <button
                     onClick={handleClearCalendar}
-                    className="flex-1 py-2.5 rounded-xl border border-[#EE4D2D] text-[#EE4D2D] font-bold text-xs sm:text-sm hover:bg-red-50 transition-colors cursor-pointer"
+                    className="flex-1 py-2.5 rounded-xl border border-[#EE4D2D] text-[#EE4D2D] font-bold text-xs sm:text-sm hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
                   >
                     Xóa
                   </button>
@@ -1213,10 +1213,10 @@ export default function OrdersPage({ initialTab }) {
 
                 {/* Đoạn văn bản chuẩn FoodFast */}
                 <div className="space-y-2 max-w-sm">
-                  <h3 className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
+                  <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-[#ede6d8] leading-snug">
                     Cùng FoodFast tạo thật nhiều kỷ niệm ăn uống tưng bừng bạn nhé!
                   </h3>
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  <p className="text-xs text-gray-500 dark:text-stone-400 leading-relaxed">
                     Bạn sẽ nhìn thấy các món đã đặt tại đây để có thể thưởng thức lại món yêu thích bất cứ lúc nào!
                   </p>
                 </div>
@@ -1230,21 +1230,21 @@ export default function OrdersPage({ initialTab }) {
               </div>
             ) : (
               <div className="p-4 space-y-3">
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-stone-800">
                   {paginatedHistoryOrders.map((ord) => (
                     <div key={ord._id} className="pt-3 first:pt-0 space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900">
+                        <div className="flex items-center gap-1.5 font-bold text-sm text-gray-900 dark:text-[#ede6d8]">
                           <span>{ord.restaurantName || 'Quán ăn ngon'}</span>
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-stone-500" />
                         </div>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
                           Đã giao thành công
                         </span>
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                        <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-stone-800 overflow-hidden shrink-0 border border-gray-100 dark:border-stone-800 shadow-xs">
                           <img
                             src={getOrderDishImage(ord)}
                             alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
@@ -1252,13 +1252,13 @@ export default function OrdersPage({ initialTab }) {
                           />
                         </div>
                         <div className="min-w-0 flex-1 space-y-1 text-xs">
-                          <p className="text-gray-500">
+                          <p className="text-gray-500 dark:text-stone-400">
                             {new Date(ord.createdAt || Date.now()).toLocaleString('vi-VN')}
                           </p>
-                          <p className="text-gray-700 line-clamp-1 font-medium">
+                          <p className="text-gray-700 dark:text-[#ede6d8] line-clamp-1 font-medium">
                             {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ăn ngon'}
                           </p>
-                          <p className="font-extrabold text-sm text-gray-900">
+                          <p className="font-extrabold text-sm text-gray-900 dark:text-[#ede6d8]">
                             {(ord.totalPrice || 0).toLocaleString('vi-VN')} đ
                           </p>
                         </div>
@@ -1268,7 +1268,7 @@ export default function OrdersPage({ initialTab }) {
                       <div className="flex items-center justify-end gap-2 pt-1">
                         <button
                           onClick={() => setReviewOrderModal(ord)}
-                          className="px-3.5 py-1.5 rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-50 text-xs font-bold transition-colors cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-lg border border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-xs font-bold transition-colors cursor-pointer"
                         >
                           Đánh giá
                         </button>
@@ -1304,25 +1304,25 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         {activeTab === 'reviews' && (
           <div className="flex-1 p-4 space-y-3">
-            <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex items-center gap-2.5">
+            <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-[#26211c] dark:to-[#2b2520] rounded-2xl border border-amber-200/80 dark:border-[rgba(154,106,62,0.3)] flex items-center gap-2.5 transition-colors">
               <Coins className="w-5 h-5 text-amber-500 shrink-0" />
-              <p className="text-xs text-amber-900 font-medium">
+              <p className="text-xs text-amber-900 dark:text-[#ede6d8] font-medium">
                 Mỗi đánh giá đơn hàng kèm nhận xét sẽ nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy (Áp dụng cho đơn giao thành công trong vòng 7 ngày).
               </p>
             </div>
 
             {reviewableOrders.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 text-xs space-y-2">
-                <Star className="w-8 h-8 text-gray-300 mx-auto" />
+              <div className="text-center py-12 text-gray-500 dark:text-stone-400 text-xs space-y-2">
+                <Star className="w-8 h-8 text-gray-300 dark:text-stone-600 mx-auto" />
                 <p>Bạn chưa có đơn hàng nào cần đánh giá.</p>
               </div>
             ) : (
               <>
                 <div className="space-y-3">
                   {paginatedReviews.map((ord) => (
-                    <div key={ord._id} className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-2.5">
+                    <div key={ord._id} className="p-3.5 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)] shadow-sm space-y-2.5 transition-colors">
                       <div className="flex items-start gap-3">
-                        <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                        <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-stone-800 overflow-hidden shrink-0 border border-gray-100 dark:border-stone-800 shadow-xs">
                           <img
                             src={getOrderDishImage(ord)}
                             alt={ord.items?.[0]?.name || ord.restaurantName || 'Món ăn'}
@@ -1331,12 +1331,12 @@ export default function OrdersPage({ initialTab }) {
                         </div>
                         <div className="min-w-0 flex-1 space-y-0.5">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-gray-900">{ord.restaurantName || 'Quán ăn'}</p>
-                            <span className="text-[10px] text-gray-400">
+                            <p className="text-xs font-bold text-gray-900 dark:text-[#ede6d8]">{ord.restaurantName || 'Quán ăn'}</p>
+                            <span className="text-[10px] text-gray-400 dark:text-stone-500">
                               {new Date(ord.createdAt || Date.now()).toLocaleDateString('vi-VN')}
                             </span>
                           </div>
-                          <p className="text-[11px] text-gray-600 line-clamp-1 font-medium">
+                          <p className="text-[11px] text-gray-600 dark:text-stone-400 line-clamp-1 font-medium">
                             {ord.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || '1x Món ngon đặc biệt'}
                           </p>
                         </div>
@@ -1345,7 +1345,7 @@ export default function OrdersPage({ initialTab }) {
                       {ord.isExpired ? (
                         <button
                           disabled
-                          className="w-full py-2 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"
+                          className="w-full py-2 rounded-xl bg-gray-100 dark:bg-stone-800 text-gray-400 dark:text-stone-500 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"
                         >
                           <Clock className="w-3.5 h-3.5" />
                           <span>Đã hết hạn đánh giá (quá 7 ngày)</span>
@@ -1353,7 +1353,7 @@ export default function OrdersPage({ initialTab }) {
                       ) : (
                         <button
                           onClick={() => setReviewOrderModal(ord)}
-                          className="w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 border border-orange-200/80"
+                          className="w-full py-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 border border-orange-200/80 dark:border-orange-800/60"
                         >
                           <Star className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
                           <span>Viết đánh giá nhận 1.000 Xu (Còn {ord.daysLeft} ngày)</span>
@@ -1399,18 +1399,18 @@ export default function OrdersPage({ initialTab }) {
               </p>
 
               {/* Ô nhập mã Voucher */}
-              <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm">
+              <div className="flex items-center gap-2 bg-white dark:bg-[#1a1714] rounded-xl p-1 shadow-sm border border-transparent dark:border-[rgba(240,234,224,0.12)]">
                 <input
                   type="text"
                   value={inputVoucherCode}
                   onChange={(e) => setInputVoucherCode(e.target.value.toUpperCase())}
                   placeholder="Nhập mã voucher (VD: FREESHIP50...)"
-                  className="w-full px-3 py-1.5 text-xs text-gray-800 focus:outline-none uppercase font-bold tracking-wider placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
+                  className="w-full px-3 py-1.5 text-xs text-gray-800 dark:text-[#ede6d8] bg-transparent focus:outline-none uppercase font-bold tracking-wider placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
                 />
                 <button
                   onClick={handleSaveVoucher}
                   disabled={!inputVoucherCode.trim()}
-                  className="px-4 py-2 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] disabled:bg-gray-300 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
+                  className="px-4 py-2 rounded-lg bg-[#EE4D2D] hover:bg-[#d73f21] disabled:bg-gray-300 dark:disabled:bg-stone-700 text-white font-bold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
                 >
                   Lưu mã
                 </button>
@@ -1422,14 +1422,14 @@ export default function OrdersPage({ initialTab }) {
               <div
                 className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fadeIn ${
                   voucherMsg.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
                     : voucherMsg.type === 'info'
-                    ? 'bg-blue-50 text-blue-800 border border-blue-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
+                    ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
+                    : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/60'
                 }`}
               >
                 {voucherMsg.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <Tag className="w-4 h-4 shrink-0" />
                 )}
@@ -1451,7 +1451,7 @@ export default function OrdersPage({ initialTab }) {
                   className={`px-3 py-1.5 rounded-full transition-all whitespace-nowrap cursor-pointer ${
                     voucherCategory === cat.id
                       ? 'bg-[#EE4D2D] text-white shadow-xs'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-stone-800 text-gray-700 dark:text-[#ede6d8] hover:bg-gray-200 dark:hover:bg-stone-700'
                   }`}
                 >
                   {cat.label}
@@ -1461,13 +1461,13 @@ export default function OrdersPage({ initialTab }) {
 
             {/* Danh sách thẻ Voucher (Chuẩn Style Coupon FoodFast 100% Real Database) */}
             {vouchersLoading ? (
-              <div className="py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
+              <div className="py-12 text-center text-gray-400 dark:text-stone-500 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)]">
                 <RotateCcw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#EE4D2D]" />
                 Đang đồng bộ ví voucher từ hệ thống...
               </div>
             ) : paginatedVouchers.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
-                <Tag className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+              <div className="py-12 text-center text-gray-400 dark:text-stone-500 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)]">
+                <Tag className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-stone-600" />
                 Không có mã giảm giá nào trong danh mục này.
               </div>
             ) : (
@@ -1480,11 +1480,11 @@ export default function OrdersPage({ initialTab }) {
                   return (
                     <div
                       key={voucher.code}
-                      className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex items-stretch hover:border-orange-300 transition-all group"
+                      className="relative bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-200 dark:border-[rgba(240,234,224,0.1)] shadow-sm overflow-hidden flex items-stretch hover:border-orange-300 dark:hover:border-orange-800/60 transition-all group"
                     >
                       {/* Phần Coupon Left Badge */}
                       <div
-                        className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-300 ${
+                        className={`w-24 sm:w-28 p-3 flex flex-col items-center justify-center text-center text-white shrink-0 relative border-r border-dashed border-gray-300 dark:border-stone-700 ${
                           isFreeship
                             ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
                             : isStore
@@ -1504,31 +1504,31 @@ export default function OrdersPage({ initialTab }) {
                         </span>
 
                         {/* Nốt khuyết vé coupon ở viền trên & dưới */}
-                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
-                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-gray-50 rounded-full border border-gray-200/80 z-10" />
+                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-[#ece7dc] dark:bg-[#161412] rounded-full border border-gray-200/80 dark:border-stone-800 z-10" />
+                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-[#ece7dc] dark:bg-[#161412] rounded-full border border-gray-200/80 dark:border-stone-800 z-10" />
                       </div>
 
                       {/* Phần nội dung chi tiết bên phải */}
                       <div className="flex-1 p-3.5 flex flex-col justify-between space-y-2 min-w-0">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[11px] font-mono font-extrabold text-[#EE4D2D] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                            <span className="text-[11px] font-mono font-extrabold text-[#EE4D2D] bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-md border border-orange-200 dark:border-orange-900/60">
                               {voucher.code}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-medium">{voucher.expiry}</span>
+                            <span className="text-[10px] text-gray-400 dark:text-stone-500 font-medium">{voucher.expiry}</span>
                           </div>
-                          <h4 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">
+                          <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-[#ede6d8] leading-snug">
                             {voucher.title}
                           </h4>
-                          <p className="text-[11px] text-gray-500 font-medium line-clamp-1">
+                          <p className="text-[11px] text-gray-500 dark:text-stone-400 font-medium line-clamp-1">
                             {voucher.condition}
                           </p>
                         </div>
 
                         {/* Thanh phần trăm sử dụng & Nút Sao chép / Dùng ngay */}
-                        <div className="pt-1 flex items-center justify-between gap-2 border-t border-gray-50">
+                        <div className="pt-1 flex items-center justify-between gap-2 border-t border-gray-50 dark:border-stone-800">
                           <div className="space-y-1 flex-1 max-w-[120px]">
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="w-full bg-gray-100 dark:bg-stone-800 rounded-full h-1.5 overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
                                   isFreeship ? 'bg-emerald-500' : 'bg-[#EE4D2D]'
@@ -1536,7 +1536,7 @@ export default function OrdersPage({ initialTab }) {
                                 style={{ width: `${voucher.usedPercent || 10}%` }}
                               />
                             </div>
-                            <span className="text-[10px] text-gray-400 block">
+                            <span className="text-[10px] text-gray-400 dark:text-stone-500 block">
                               Đã dùng {voucher.usedPercent || 0}%
                             </span>
                           </div>
@@ -1546,14 +1546,14 @@ export default function OrdersPage({ initialTab }) {
                               onClick={() => handleCopyCode(voucher.code)}
                               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                 isCopied
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                                  : 'bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 text-gray-700 dark:text-[#ede6d8]'
                               }`}
                               title="Sao chép mã"
                             >
                               {isCopied ? (
                                 <>
-                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                   <span>Đã chép</span>
                                 </>
                               ) : (
@@ -1592,11 +1592,11 @@ export default function OrdersPage({ initialTab }) {
             />
 
             {/* Mẹo sử dụng voucher */}
-            <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 space-y-1">
-              <p className="font-bold flex items-center gap-1 text-amber-950">
+            <div className="p-3 bg-amber-50/70 dark:bg-[#26211c] rounded-xl border border-amber-200/70 dark:border-[rgba(154,106,62,0.3)] text-[11px] text-amber-900 dark:text-[#ede6d8] space-y-1 transition-colors">
+              <p className="font-bold flex items-center gap-1 text-amber-950 dark:text-amber-400">
                 <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Mẹo tiết kiệm cùng FoodFast:
               </p>
-              <p className="text-amber-800 leading-relaxed">
+              <p className="text-amber-800 dark:text-stone-300 leading-relaxed">
                 Bạn có thể sao chép mã hoặc chọn trực tiếp tại màn hình <strong>Thanh toán</strong> để giảm trừ ngay vào tổng đơn. Hệ thống hỗ trợ hoàn trả mã khi hủy đơn!
               </p>
             </div>
@@ -1610,12 +1610,12 @@ export default function OrdersPage({ initialTab }) {
           <div className="flex-1 p-4 space-y-4">
             {cartItems.length === 0 ? (
               <div className="text-center py-16 space-y-4 my-auto">
-                <div className="w-16 h-16 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center mx-auto">
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-bold text-gray-900">Chưa có món nào trong đơn nháp</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-base font-bold text-gray-900 dark:text-[#ede6d8]">Chưa có món nào trong đơn nháp</p>
+                  <p className="text-xs text-gray-500 dark:text-stone-400">
                     Hãy dạo quanh một vòng và chọn những món ăn khoái khẩu của bạn nhé!
                   </p>
                 </div>
@@ -1630,16 +1630,16 @@ export default function OrdersPage({ initialTab }) {
               <div className="space-y-4">
                 {/* Thông tin Quán đang chọn món */}
                 {currentRestaurant && (
-                  <div className="p-3 bg-orange-50/80 rounded-2xl border border-orange-200/80 flex items-center justify-between">
+                  <div className="p-3 bg-orange-50/80 dark:bg-orange-950/40 rounded-2xl border border-orange-200/80 dark:border-orange-900/60 flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <UtensilsCrossed className="w-4 h-4 text-orange-600 shrink-0" />
-                      <span className="text-xs font-bold text-gray-900 truncate">
+                      <UtensilsCrossed className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                      <span className="text-xs font-bold text-gray-900 dark:text-[#ede6d8] truncate">
                         {currentRestaurant.name}
                       </span>
                     </div>
                     <button
                       onClick={clearCart}
-                      className="text-xs text-red-600 hover:underline shrink-0 font-semibold cursor-pointer"
+                      className="text-xs text-red-600 dark:text-red-400 hover:underline shrink-0 font-semibold cursor-pointer"
                     >
                       Xóa giỏ
                     </button>
@@ -1647,7 +1647,7 @@ export default function OrdersPage({ initialTab }) {
                 )}
 
                 {/* Danh sách các món trong giỏ */}
-                <div className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 space-y-3">
+                <div className="divide-y divide-gray-100 dark:divide-stone-800 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)] shadow-sm p-3 space-y-3 transition-colors">
                   {paginatedCartItems.items.map((item) => {
                     const itemKey = item.cartItemId || item.menuItemId || item._id;
                     const optionTexts = [
@@ -1666,18 +1666,18 @@ export default function OrdersPage({ initialTab }) {
                             <img
                               src={item.image}
                               alt={item.name}
-                              className="w-12 h-12 rounded-lg object-cover shrink-0 mt-0.5 border border-gray-100"
+                              className="w-12 h-12 rounded-lg object-cover shrink-0 mt-0.5 border border-gray-100 dark:border-stone-800"
                             />
                           )}
                           <div className="min-w-0 flex-1 space-y-0.5">
-                            <p className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">{item.name}</p>
+                            <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-[#ede6d8] leading-snug">{item.name}</p>
                             {optionTexts.length > 0 && (
-                              <p className="text-[11px] text-gray-500 line-clamp-2">
+                              <p className="text-[11px] text-gray-500 dark:text-stone-400 line-clamp-2">
                                 {optionTexts.join(' • ')}
                               </p>
                             )}
                             {item.note && (
-                              <p className="text-[11px] text-amber-700 italic">
+                              <p className="text-[11px] text-amber-700 dark:text-amber-400 italic">
                                 Ghi chú: {item.note}
                               </p>
                             )}
@@ -1691,16 +1691,16 @@ export default function OrdersPage({ initialTab }) {
                         <div className="flex items-center gap-2 shrink-0 pt-1">
                           <button
                             onClick={() => updateQuantity(itemKey, item.quantity - 1)}
-                            className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 cursor-pointer"
+                            className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 flex items-center justify-center text-gray-700 dark:text-[#ede6d8] cursor-pointer"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="text-xs font-bold text-gray-900 w-5 text-center">
+                          <span className="text-xs font-bold text-gray-900 dark:text-[#ede6d8] w-5 text-center">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() => updateQuantity(itemKey, item.quantity + 1)}
-                            className="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-200 flex items-center justify-center text-orange-700 cursor-pointer"
+                            className="w-6 h-6 rounded-lg bg-orange-100 dark:bg-orange-950/60 hover:bg-orange-200 dark:hover:bg-orange-900/80 flex items-center justify-center text-orange-700 dark:text-orange-400 cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -1721,17 +1721,17 @@ export default function OrdersPage({ initialTab }) {
                 </div>
 
                 {/* Tổng tiền & Nút Đặt hàng */}
-                <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between text-xs text-gray-600">
+                <div className="p-4 bg-white dark:bg-[#1f1b18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)] shadow-sm space-y-3">
+                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-stone-400">
                     <span>Tạm tính ({totalItems} món):</span>
-                    <span className="font-bold text-gray-900">{subtotal.toLocaleString('vi-VN')} đ</span>
+                    <span className="font-bold text-gray-900 dark:text-[#ede6d8]">{subtotal.toLocaleString('vi-VN')} đ</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-600">
+                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-stone-400">
                     <span>Phí giao hàng:</span>
-                    <span className="font-semibold text-emerald-600">15.000 đ</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">15.000 đ</span>
                   </div>
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-900">Tổng thanh toán:</span>
+                  <div className="pt-2 border-t border-gray-100 dark:border-stone-800 flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-900 dark:text-[#ede6d8]">Tổng thanh toán:</span>
                     <span className="text-base sm:text-lg font-extrabold text-[#EE4D2D]">
                       {(subtotal + 15000).toLocaleString('vi-VN')} đ
                     </span>
@@ -1754,61 +1754,25 @@ export default function OrdersPage({ initialTab }) {
       </div>
 
       {/* ===================================================================== */}
-      {/* 10. BOTTOM NAVIGATION BAR CHUẨN FOODFAST */}
-      {/* ===================================================================== */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-around py-1.5 shadow-lg max-w-2xl mx-auto">
-        <Link
-          to="/"
-          className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <UtensilsCrossed className="w-5 h-5 stroke-[2]" />
-          <span className="text-[10px] font-semibold">Trang chủ</span>
-        </Link>
-
-        <Link
-          to="/orders?tab=history"
-          className="flex flex-col items-center gap-0.5 text-[#EE4D2D] font-bold transition-colors"
-        >
-          <div className="relative">
-            <FileText className="w-5 h-5 stroke-[2.2]" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-[#EE4D2D] text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px]">Đơn hàng</span>
-        </Link>
-
-        <Link
-          to={isAuthenticated ? (user?.role === 'ADMIN' ? '/admin' : '/merchant/status') : '/login'}
-          className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <User className="w-5 h-5 stroke-[2]" />
-          <span className="text-[10px] font-semibold">Tôi</span>
-        </Link>
-      </div>
-
-      {/* ===================================================================== */}
       {/* 11. MODAL ĐÁNH GIÁ QUÁN ĂN (Nhận 1.000 Xu Shopee Style) */}
-      {/* =================================================================== */}
+      {/* ===================================================================== */}
       {reviewOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-[#1c1916] rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl border border-transparent dark:border-[rgba(240,234,224,0.14)] text-gray-900 dark:text-[#ede6d8] transition-colors">
             <div className="text-center space-y-1">
-              <h3 className="font-bold text-base text-gray-900">
+              <h3 className="font-bold text-base text-gray-900 dark:text-[#ede6d8]">
                 Đánh giá đơn hàng & Nhận 1.000 Xu
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-stone-400">
                 {reviewOrderModal.restaurantName || 'Quán ăn'}
               </p>
             </div>
 
             {reviewedSuccess ? (
-              <div className="py-6 text-center space-y-2 text-emerald-600">
+              <div className="py-6 text-center space-y-2 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="w-12 h-12 mx-auto animate-bounce" />
                 <p className="font-extrabold text-sm">Đã nhận 1.000 Xu FoodFast!</p>
-                <p className="text-xs text-gray-500">Xu đã được cộng vào tài khoản của bạn để trừ tiền cho đơn hàng tiếp theo.</p>
+                <p className="text-xs text-gray-500 dark:text-stone-400">Xu đã được cộng vào tài khoản của bạn để trừ tiền cho đơn hàng tiếp theo.</p>
               </div>
             ) : (
               <>
@@ -1818,11 +1782,11 @@ export default function OrdersPage({ initialTab }) {
                     <button
                       key={star}
                       onClick={() => setRatingScore(star)}
-                      className="p-1 hover:scale-110 transition-transform"
+                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
                     >
                       <Star
                         className={`w-7 h-7 ${
-                          star <= ratingScore ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 text-gray-200'
+                          star <= ratingScore ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 dark:fill-stone-700 text-gray-200 dark:text-stone-700'
                         }`}
                       />
                     </button>
@@ -1833,22 +1797,22 @@ export default function OrdersPage({ initialTab }) {
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Món ăn ngon, giao nhanh, đóng gói cẩn thận..."
-                  className="w-full h-20 p-3 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE4D2D]"
+                  className="w-full h-20 p-3 text-xs border border-gray-200 dark:border-stone-700 bg-transparent dark:bg-[#151210] text-gray-800 dark:text-[#ede6d8] rounded-xl focus:outline-none focus:border-[#EE4D2D]"
                 />
 
                 {/* Tải lên hình ảnh món ăn thực tế (Tối đa 5 ảnh) */}
                 <div className="space-y-1.5 text-left">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-gray-700 flex items-center gap-1">
+                    <span className="font-bold text-gray-700 dark:text-[#ede6d8] flex items-center gap-1">
                       <Camera className="w-3.5 h-3.5 text-[#EE4D2D]" />
                       Ảnh chụp món ăn ({reviewImages.length}/5)
                     </span>
-                    <span className="text-[11px] text-gray-400">JPG, PNG</span>
+                    <span className="text-[11px] text-gray-400 dark:text-stone-500">JPG, PNG</span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     {reviewImages.map((img, idx) => (
-                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 shadow-2xs group">
+                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 dark:border-stone-700 shadow-2xs group">
                         <img src={img} alt="review upload" className="w-full h-full object-cover" />
                         <button
                           type="button"
@@ -1865,7 +1829,7 @@ export default function OrdersPage({ initialTab }) {
                         type="button"
                         onClick={() => reviewFileInputRef.current?.click()}
                         disabled={uploadingReviewImg}
-                        className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 hover:text-[#EE4D2D] cursor-pointer transition"
+                        className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 dark:border-stone-700 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 dark:text-stone-500 hover:text-[#EE4D2D] cursor-pointer transition"
                       >
                         {uploadingReviewImg ? (
                           <div className="w-4 h-4 border-2 border-[#EE4D2D] border-t-transparent rounded-full animate-spin" />
@@ -1894,13 +1858,13 @@ export default function OrdersPage({ initialTab }) {
                       setReviewOrderModal(null);
                       setReviewImages([]);
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold"
+                    className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 text-gray-700 dark:text-[#ede6d8] text-xs font-bold cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     onClick={handleSendReview}
-                    className="flex-1 py-2.5 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold shadow-md shadow-red-500/20"
+                    className="flex-1 py-2.5 rounded-xl bg-[#EE4D2D] hover:bg-[#d73f21] text-white text-xs font-bold shadow-md shadow-red-500/20 cursor-pointer"
                   >
                     Gửi đánh giá (+1.000 xu)
                   </button>

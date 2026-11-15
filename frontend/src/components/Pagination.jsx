@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 /**
  * Helper cắt trang an toàn cho danh sách client-side (tự động kẹp trang về biên hợp lệ)
@@ -78,7 +79,8 @@ export default function Pagination({
     return pages;
   };
 
-  const isDark = theme === 'dark';
+  const { isDark: contextIsDark } = useTheme();
+  const isDark = theme === 'dark' || (theme !== 'force-light' && contextIsDark);
 
   const containerStyles = isDark
     ? 'border-slate-800 text-slate-300'
