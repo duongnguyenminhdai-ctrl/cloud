@@ -521,9 +521,9 @@ export default function MerchantRegister() {
   ];
 
   return (
-    <div className="min-h-screen pb-16 text-[#2b2721]">
+    <div className="min-h-screen pb-16 text-[#2b2721] dark:text-[#ede6d8] transition-colors">
       {/* Top Header Minimalist */}
-      <div className="bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] sticky top-16 z-40">
+      <div className="bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] sticky top-16 z-40 transition-colors">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
@@ -534,13 +534,13 @@ export default function MerchantRegister() {
               />
             </div>
             <div>
-              <h1 className="sketch-title text-2xl font-bold text-[#2b2721] leading-tight">Đăng ký trở thành Người Bán</h1>
-              <p className="text-xs text-[#2b2721]/60">Quy trình mở gian hàng đối tác FoodFast tiêu chuẩn</p>
+              <h1 className="sketch-title text-2xl font-bold text-[#2b2721] dark:text-[#ede6d8] leading-tight">Đăng ký trở thành Người Bán</h1>
+              <p className="text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60">Quy trình mở gian hàng đối tác FoodFast tiêu chuẩn</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/')}
-            className="text-xs text-[#2b2721]/70 hover:text-[#2b2721] px-3.5 py-1.5 rounded-xl bg-[#f2ece1] border border-[rgba(154,106,62,0.2)] cursor-pointer transition-colors"
+            className="text-xs text-[#2b2721]/70 dark:text-[#ede6d8]/70 hover:text-[#2b2721] dark:hover:text-[#ede6d8] px-3.5 py-1.5 rounded-xl bg-[#f2ece1] dark:bg-[#25201a] border border-[rgba(154,106,62,0.2)] dark:border-[rgba(240,234,224,0.15)] cursor-pointer transition-colors"
           >
             Về trang chủ
           </button>

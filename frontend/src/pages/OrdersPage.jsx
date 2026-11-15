@@ -665,23 +665,23 @@ export default function OrdersPage({ initialTab }) {
   ];
 
   return (
-    <div className="min-h-screen pb-20 md:pb-12 text-[#2b2721]">
+    <div className="min-h-screen pb-20 md:pb-12 text-[#2b2721] dark:text-[#ede6d8] transition-colors">
       {/* Khung chính tối đa 640px để tạo chuẩn màn hình ứng dụng FoodFast */}
       <div className="max-w-2xl mx-auto sketch-panel min-h-screen my-4 rounded-3xl shadow-md flex flex-col">
         
         {/* =================================================================== */}
         {/* 1. TOP HEADER CHUẨN FOODFAST */}
         {/* =================================================================== */}
-        <header className="sticky top-0 z-40 bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.12)] px-4 py-3.5 flex items-center justify-between rounded-t-3xl">
+        <header className="sticky top-0 z-40 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] px-4 py-3.5 flex items-center justify-between rounded-t-3xl transition-colors">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="p-1 -ml-1 text-[#2b2721] hover:text-[#9a6a3e] rounded-full transition-colors cursor-pointer"
+              className="p-1 -ml-1 text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#f5c542] rounded-full transition-colors cursor-pointer"
               title="Quay lại"
             >
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </button>
-            <h1 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] tracking-tight">
+            <h1 className="sketch-title text-xl sm:text-2xl font-bold text-[#2b2721] dark:text-[#ede6d8] tracking-tight">
               Đơn hàng
             </h1>
           </div>
@@ -689,7 +689,7 @@ export default function OrdersPage({ initialTab }) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsSearching(!isSearching)}
-              className="p-2 text-[#2b2721] hover:text-[#9a6a3e] rounded-full transition-colors cursor-pointer"
+              className="p-2 text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#f5c542] rounded-full transition-colors cursor-pointer"
               title="Tìm kiếm đơn hàng"
             >
               <Search className="w-5 h-5 stroke-[2.2]" />
@@ -699,21 +699,21 @@ export default function OrdersPage({ initialTab }) {
 
         {/* Thanh tìm kiếm khi nhấn vào icon Search */}
         {isSearching && (
-          <div className="p-3 bg-[#f2ece1] border-b border-[rgba(43,39,33,0.12)] animate-fadeIn">
-            <div className="relative flex items-center bg-[#fffdfa] rounded-xl border border-[rgba(43,39,33,0.18)] px-3 py-1.5 focus-within:border-[#9a6a3e] transition-colors">
-              <Search className="w-4 h-4 text-[#2b2721]/40 mr-2 shrink-0" />
+          <div className="p-3 bg-[#f2ece1] dark:bg-[#231e19] border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] animate-fadeIn transition-colors">
+            <div className="relative flex items-center bg-[#fffdfa] dark:bg-[#1a1714] rounded-xl border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.18)] px-3 py-1.5 focus-within:border-[#9a6a3e] dark:focus-within:border-[#f5c542] transition-colors">
+              <Search className="w-4 h-4 text-[#2b2721]/40 dark:text-[#ede6d8]/40 mr-2 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm theo tên quán ăn hoặc tên món..."
-                className="w-full text-xs sm:text-sm text-[#2b2721] focus:outline-none bg-transparent"
+                className="w-full text-xs sm:text-sm text-[#2b2721] dark:text-[#ede6d8] placeholder-[#2b2721]/40 dark:placeholder-[#ede6d8]/40 focus:outline-none bg-transparent"
                 autoFocus
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-xs text-[#2b2721]/40 hover:text-[#2b2721] font-bold px-1"
+                  className="text-xs text-[#2b2721]/40 hover:text-[#2b2721] dark:text-[#ede6d8]/40 dark:hover:text-[#ede6d8] font-bold px-1"
                 >
                   ✕
                 </button>

@@ -35,14 +35,14 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#ece7dc] text-[#2b2721] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#ece7dc] dark:bg-[#161412] text-[#2b2721] dark:text-[#ede6d8] flex items-center justify-center p-4 relative overflow-hidden transition-colors">
       {/* Lớp nền Wash màu nước nghệ thuật */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-40 bg-cover bg-top"
+        className="fixed inset-0 pointer-events-none z-0 opacity-40 dark:opacity-10 bg-cover bg-top"
         style={{ backgroundImage: 'url("/landing-pages/meng-to-sketchbook/bg-wash.jpg")' }}
         aria-hidden="true"
       />
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] opacity-90" aria-hidden="true" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#ece7dc]/30 via-[#ece7dc]/70 to-[#ece7dc] dark:from-[#161412]/40 dark:via-[#161412]/80 dark:to-[#161412] opacity-90 transition-colors" aria-hidden="true" />
 
       <div className="max-w-md w-full relative z-10">
         {/* Logo Card */}

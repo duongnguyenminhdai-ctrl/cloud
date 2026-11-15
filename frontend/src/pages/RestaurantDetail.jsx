@@ -621,14 +621,14 @@ export default function RestaurantDetail() {
 
         {/* Thanh danh mục Sticky phong cách FoodFast */}
         {categoriesList.length > 0 && (
-          <div className="sticky top-16 z-20 bg-[#f7f4ee]/95 backdrop-blur-md py-2 px-1 border-b border-[rgba(43,39,33,0.14)] flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl">
+          <div className="sticky top-16 z-20 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md py-2 px-1 border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xs rounded-2xl transition-colors">
             <button
               type="button"
               onClick={() => setActiveCategoryTab('ALL')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeCategoryTab === 'ALL'
                   ? 'bg-[#9a6a3e] text-white shadow-sm'
-                  : 'bg-[#fffdfa] text-[#2b2721] hover:bg-[#f2ece1] border border-[rgba(43,39,33,0.1)]'
+                  : 'bg-[#fffdfa] dark:bg-[#25201a] text-[#2b2721] dark:text-[#ede6d8] hover:bg-[#f2ece1] dark:hover:bg-[#2e2820] border border-[rgba(43,39,33,0.1)] dark:border-[rgba(240,234,224,0.12)]'
               }`}
             >
               Tất cả ({restaurant.menuItems?.length || 0})
@@ -643,7 +643,7 @@ export default function RestaurantDetail() {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     activeCategoryTab === catId
                       ? 'bg-[#9a6a3e] text-white shadow-sm'
-                      : 'bg-[#fffdfa] text-[#2b2721] hover:bg-[#f2ece1] border border-[rgba(43,39,33,0.1)]'
+                      : 'bg-[#fffdfa] dark:bg-[#25201a] text-[#2b2721] dark:text-[#ede6d8] hover:bg-[#f2ece1] dark:hover:bg-[#2e2820] border border-[rgba(43,39,33,0.1)] dark:border-[rgba(240,234,224,0.12)]'
                   }`}
                 >
                   {cat.name}

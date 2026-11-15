@@ -59,9 +59,9 @@ export default function MerchantStatus() {
   const status = storeStatus?.store_status || 'NOT_REGISTERED';
 
   return (
-    <div className="min-h-screen pb-16 text-[#2b2721]">
+    <div className="min-h-screen pb-16 text-[#2b2721] dark:text-[#ede6d8] transition-colors">
       {/* Header Sổ Tay Ký Họa Tiêu Chuẩn FoodFast */}
-      <div className="bg-[#f7f4ee]/95 border-b border-[rgba(43,39,33,0.14)] text-[#2b2721] shadow-2xs">
+      <div className="bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 drop-shadow-xs">
@@ -72,8 +72,8 @@ export default function MerchantStatus() {
               />
             </div>
             <div>
-              <h1 className="sketch-title text-2xl font-bold text-[#2b2721]">Đăng Ký Quán</h1>
-              <p className="text-xs text-[#2b2721]/60">Cổng tiếp nhận và theo dõi tiến độ duyệt gian hàng</p>
+              <h1 className="sketch-title text-2xl font-bold text-[#2b2721] dark:text-[#ede6d8]">Đăng Ký Quán</h1>
+              <p className="text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60">Cổng tiếp nhận và theo dõi tiến độ duyệt gian hàng</p>
             </div>
           </div>
           <button
