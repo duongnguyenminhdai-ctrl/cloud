@@ -701,7 +701,7 @@ export default function ProfilePage() {
                   disabled={savingAvatar}
                   onClick={() => avatarInputRef.current?.click()}
                   title="Đổi ảnh đại diện"
-                  className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white flex items-center justify-center border-2 border-white shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                  className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white flex items-center justify-center border-2 border-white dark:border-[#221e1a] shadow-sm transition-all cursor-pointer disabled:opacity-60"
                 >
                   {savingAvatar ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -719,13 +719,13 @@ export default function ProfilePage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="sketch-title text-xl font-bold text-[#2b2721] truncate">
+                <h3 className="sketch-title text-xl font-bold text-[#2b2721] dark:text-[#ede6d8] truncate">
                   {profileForm.name || 'Người dùng FoodFast'}
                 </h3>
-                <p className="text-xs text-[#2b2721]/60 truncate">{profileForm.email || 'user@foodfast.vn'}</p>
+                <p className="text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60 truncate">{profileForm.email || 'user@foodfast.vn'}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] text-[#845831] border border-[rgba(154,106,62,0.25)]"
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] dark:bg-[#28231d] text-[#845831] dark:text-[#f5c542] border border-[rgba(154,106,62,0.25)] dark:border-[rgba(245,197,66,0.3)] transition-colors"
                   >
                     {user?.role === 'ADMIN' ? 'Quản trị viên Hệ thống' : 'Thành viên FoodFast'}
                   </span>
@@ -734,7 +734,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Danh sách Menu điều hướng */}
-            <div className="border-t border-[rgba(43,39,33,0.12)] pt-3 space-y-1">
+            <div className="border-t border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pt-3 space-y-1">
               <button
                 onClick={() => handleTabChange('profile')}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'profile'
@@ -1189,13 +1189,13 @@ export default function ProfilePage() {
           {/* TAB 3: ĐỊA CHỈ NHẬN HÀNG */}
           {activeTab === 'address' && (
             <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] pb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pb-5 transition-colors">
                 <div>
-                  <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-[#9a6a3e]" />
+                  <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] dark:text-[#ede6d8] flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-[#9a6a3e] dark:text-[#f5c542]" />
                     <span>Sổ Địa Chỉ Nhận Hàng</span>
                   </h2>
-                  <p className="text-xs sm:text-sm text-[#2b2721]/65 mt-1">
+                  <p className="text-xs sm:text-sm text-[#2b2721]/65 dark:text-[#ede6d8]/65 mt-1">
                     Lưu nhiều địa chỉ (nhà riêng, công ty...) và click chọn địa chỉ mặc định để đổi nhanh khi đặt món.
                   </p>
                 </div>
@@ -1211,17 +1211,17 @@ export default function ProfilePage() {
 
               {/* Danh sách địa chỉ */}
               {loadingAddresses ? (
-                <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+                <div className="py-12 flex flex-col items-center justify-center text-gray-400 dark:text-stone-500 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-orange-600 dark:text-orange-400" />
                   <p className="text-xs sm:text-sm font-semibold">Đang tải danh sách địa chỉ nhận hàng...</p>
                 </div>
               ) : addresses.length === 0 ? (
-                <div className="py-12 px-4 rounded-3xl bg-gray-50 border border-dashed border-gray-200 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+                <div className="py-12 px-4 rounded-3xl bg-[#f7f4ee]/80 dark:bg-[#1a1714] border border-dashed border-[rgba(43,39,33,0.2)] dark:border-stone-800 text-center space-y-3 transition-colors">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center mx-auto">
                     <MapPin className="w-6 h-6" />
                   </div>
-                  <h3 className="font-bold text-gray-800 text-sm sm:text-base">Chưa có địa chỉ nhận hàng</h3>
-                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                  <h3 className="font-bold text-[#2b2721] dark:text-[#ede6d8] text-sm sm:text-base">Chưa có địa chỉ nhận hàng</h3>
+                  <p className="text-xs text-[#2b2721]/60 dark:text-stone-400 max-w-sm mx-auto">
                     Hãy thêm địa chỉ nhận hàng của bạn để FoodFast gợi ý món ăn gần bạn và giao hàng nhanh chóng nhất.
                   </p>
                   <button
@@ -1247,16 +1247,16 @@ export default function ProfilePage() {
                         key={addr._id}
                         className={`p-4 sm:p-5 rounded-2xl border transition-all ${
                           isDefault
-                            ? 'bg-orange-50/60 border-orange-300 ring-1 ring-orange-200 shadow-xs'
-                            : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-xs'
+                            ? 'bg-orange-50/60 dark:bg-orange-950/30 border-orange-300 dark:border-orange-800 ring-1 ring-orange-200 dark:ring-orange-900/40 shadow-xs'
+                            : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-stone-800 hover:border-gray-300 dark:hover:border-stone-700 hover:shadow-xs'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                           {/* Thông tin địa chỉ */}
                           <div className="space-y-2 flex-1 min-w-0">
                             <div className="flex items-center flex-wrap gap-2">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-800 text-xs font-bold">
-                                <LabelIcon className="w-3.5 h-3.5 text-orange-600" />
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-stone-800 text-gray-800 dark:text-[#ede6d8] text-xs font-bold">
+                                <LabelIcon className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                                 <span>{addr.label || 'Địa chỉ'}</span>
                               </span>
 
@@ -1267,18 +1267,18 @@ export default function ProfilePage() {
                                 </span>
                               )}
 
-                              <div className="h-3 w-px bg-gray-300 hidden sm:block" />
+                              <div className="h-3 w-px bg-gray-300 dark:bg-stone-700 hidden sm:block" />
 
-                              <span className="text-xs sm:text-sm font-black text-gray-900">
+                              <span className="text-xs sm:text-sm font-black text-gray-900 dark:text-[#ede6d8]">
                                 {addr.receiverName || profileForm.name || 'Người nhận'}
                               </span>
 
-                              <span className="text-xs text-gray-500 font-medium">
+                              <span className="text-xs text-gray-500 dark:text-stone-400 font-medium">
                                 ({addr.receiverPhone || profileForm.phone || 'Chưa có SĐT'})
                               </span>
                             </div>
 
-                            <p className="text-xs sm:text-sm text-gray-800 font-medium leading-relaxed">
+                            <p className="text-xs sm:text-sm text-gray-800 dark:text-[#ede6d8]/90 font-medium leading-relaxed">
                               {addr.fullAddress}
                             </p>
                           </div>
@@ -1290,7 +1290,7 @@ export default function ProfilePage() {
                                 type="button"
                                 disabled={isOperating}
                                 onClick={() => handleSetDefaultAddress(addr)}
-                                className="px-3 py-1.5 rounded-xl border border-orange-500 text-orange-600 hover:bg-orange-600 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                className="px-3 py-1.5 rounded-xl border border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-600 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
                                 title="Click để chọn làm địa chỉ giao hàng mặc định"
                               >
                                 {isOperating ? (
@@ -1301,7 +1301,7 @@ export default function ProfilePage() {
                                 <span>Thiết lập mặc định</span>
                               </button>
                             ) : (
-                              <span className="text-xs font-bold text-orange-700 bg-orange-100/70 px-2.5 py-1 rounded-xl">
+                              <span className="text-xs font-bold text-orange-700 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-950/60 px-2.5 py-1 rounded-xl">
                                 Đang chọn giao
                               </span>
                             )}
@@ -1309,7 +1309,7 @@ export default function ProfilePage() {
                             <button
                               type="button"
                               onClick={() => handleOpenEditAddress(addr)}
-                              className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-stone-800 text-gray-600 dark:text-stone-400 hover:text-gray-900 dark:hover:text-[#ede6d8] transition-colors cursor-pointer"
                               title="Chỉnh sửa địa chỉ"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -1319,7 +1319,7 @@ export default function ProfilePage() {
                               type="button"
                               disabled={isOperating}
                               onClick={() => handleDeleteAddress(addr)}
-                              className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
+                              className="p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer disabled:opacity-50"
                               title="Xóa địa chỉ"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1338,8 +1338,16 @@ export default function ProfilePage() {
 
       {/* MODAL THÊM / CHỈNH SỬA ĐỊA CHỈ NHẬN HÀNG */}
       {showAddressModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1e1b18] text-[#2b2721] dark:text-[#ede6d8] rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.14)] space-y-5 animate-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/70 dark:bg-black/85 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddressModal(false);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-[#1e1b18] text-[#2b2721] dark:text-[#ede6d8] rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.14)] space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header Modal */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-[rgba(240,234,224,0.12)] pb-4">
               <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-[#ede6d8] flex items-center gap-2">
