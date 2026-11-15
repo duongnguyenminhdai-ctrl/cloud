@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rouletteController = require('../controllers/rouletteController');
-const { verifyToken } = require('../middlewares/authMiddleware');
+const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * Decision Roulette Routes
@@ -19,5 +19,11 @@ router.get(['/session/:sessionId'], rouletteController.getRouletteSession);
 
 // 4. Xác thực và tiêu thụ phiên quay thưởng khi tạo đơn hàng (Order Service gọi)
 router.post(['/session/:sessionId/consume'], rouletteController.consumeRouletteSession);
+
+// 5. Lấy danh sách config hòm quay (public, không cần auth)
+router.get('/config', rouletteController.getRouletteConfig);
+
+// 6. Admin cập nhật config hòm quay (cần đăng nhập + quyền ADMIN)
+router.put('/config', verifyToken, requireAdmin, rouletteController.updateRouletteConfig);
 
 module.exports = router;

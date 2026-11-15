@@ -7,10 +7,10 @@ import {
   Building, User, CreditCard, TrendingUp, FileText, Check, ExternalLink,
   ZoomIn, MapPin, Phone, Mail, FileCheck, Calendar, Info,
   Unlock, AlertTriangle, Bell, Send, Ban, Ticket, Tag, Percent, DollarSign, ToggleLeft, ToggleRight,
-  Gift, Wallet, Flame, Upload, Image as ImageIcon, Loader2
+  Gift, Wallet, Flame, Upload, Image as ImageIcon, Loader2, Package, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi, uploadApi } from '../api/client';
+import { adminApi, uploadApi, rouletteApi } from '../api/client';
 import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtimeSync';
 import { compressReviewImage } from '../utils/imageHelpers';
 import UserProfileModal from '../components/UserProfileModal';
@@ -116,6 +116,29 @@ export default function AdminDashboard() {
   const [grantReason, setGrantReason] = useState('Admin FoodFast tặng ngân sách kiểm thử tính năng Ví, Rút tiền & Voucher Hộ KD');
   const [grantingWallet, setGrantingWallet] = useState(false);
 
+  // ── STATE: Quản lý Hòm Quay (Admin Roulette Config) ────────────────────────
+  const [rouletteConfig, setRouletteConfig] = useState([]);
+  const [isLoadingRoulette, setIsLoadingRoulette] = useState(false);
+  const [isSavingRoulette, setIsSavingRoulette] = useState(false);
+  const [rouletteMsg, setRouletteMsg] = useState({ type: '', text: '' });
+  const [editingRouletteItem, setEditingRouletteItem] = useState(null); // null | item object
+  const [showRouletteItemModal, setShowRouletteItemModal] = useState(false);
+  const RARITY_OPTIONS = [
+    { value: 'COMMON', label: 'Phổ biến (<35k)', color: '#4b69ff' },
+    { value: 'RARE', label: 'Hiếm (35k-70k)', color: '#8847ff' },
+    { value: 'LEGENDARY', label: 'Huyền thoại (>70k)', color: '#ffd700' }
+  ];
+  const DEFAULT_ROULETTE_ITEMS = [
+    { name: 'Bánh Mì Thịt Nướng', description: 'Bánh mì giòn nhân thịt nướng thơm', image: 'https://images.unsplash.com/photo-1549611016-3a70d82b5040?w=400&auto=format&fit=crop', priceRange: '25.000đ - 35.000đ', rarity: 'COMMON', isActive: true },
+    { name: 'Trà Sữa Trân Châu', description: 'Trà sữa trân châu ấm dẻo thơm ngon', image: 'https://images.unsplash.com/photo-1558857563-b37cf5290a1?w=400&auto=format&fit=crop', priceRange: '30.000đ - 45.000đ', rarity: 'COMMON', isActive: true },
+    { name: 'Cơm Tấm Sườn Bì Chả', description: 'Cơm tấm sườn bì chả trứng ốp la', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&auto=format&fit=crop', priceRange: '45.000đ - 65.000đ', rarity: 'RARE', isActive: true },
+    { name: 'Phở Bò Tái Nạm Gầu', description: 'Phở bò truyền thống nước dùng đậm đà', image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&auto=format&fit=crop', priceRange: '55.000đ - 70.000đ', rarity: 'RARE', isActive: true },
+    { name: 'Pizza Hải Sản', description: 'Pizza hải sản phong cách Ý thượng hạng', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop', priceRange: '79.000đ - 129.000đ', rarity: 'LEGENDARY', isActive: true },
+    { name: 'Gà Rán Giòn Cay', description: 'Gà rán giòn ướp sốt cay Hàn Quốc', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&auto=format&fit=crop', priceRange: '55.000đ - 85.000đ', rarity: 'RARE', isActive: true },
+    { name: 'Mì Ramen Tonkotsu', description: 'Mì Ramen Nhật nước dùng xương hầm đậm vị', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&auto=format&fit=crop', priceRange: '65.000đ - 95.000đ', rarity: 'RARE', isActive: true },
+    { name: 'Lẩu Thái Hải Sản', description: 'Lẩu Thái chua cay hải sản tươi sống', image: 'https://images.unsplash.com/photo-1547496502-affa22d38842?w=400&auto=format&fit=crop', priceRange: '89.000đ - 150.000đ', rarity: 'LEGENDARY', isActive: true },
+  ];
+
   // Modal Thêm / Sửa Quán (Admin CRUD)
   const [showStoreEditModal, setShowStoreEditModal] = useState(false);
   const [editingStoreId, setEditingStoreId] = useState(null);
@@ -127,6 +150,102 @@ export default function AdminDashboard() {
     image: '',
     status: 'ACTIVE',
   });
+
+  // Tải danh sách cấu hình món trong Hòm Quay
+  const fetchRouletteConfig = async () => {
+    setIsLoadingRoulette(true);
+    try {
+      const res = await rouletteApi.getConfig();
+      const items = res?.data?.data?.items || [];
+      if (items.length > 0) {
+        setRouletteConfig(items);
+      } else {
+        setRouletteConfig(DEFAULT_ROULETTE_ITEMS);
+      }
+    } catch {
+      setRouletteConfig(DEFAULT_ROULETTE_ITEMS);
+    } finally {
+      setIsLoadingRoulette(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'roulette') {
+      fetchRouletteConfig();
+    }
+  }, [activeTab]);
+
+  const handleSaveRouletteConfig = async (newItems) => {
+    setIsSavingRoulette(true);
+    setRouletteMsg({ type: '', text: '' });
+    try {
+      const itemsToSave = newItems || rouletteConfig;
+      const res = await rouletteApi.updateConfig(itemsToSave);
+      setRouletteConfig(res.data?.data?.items || itemsToSave);
+      showNotif('success', 'Đã lưu danh sách món trong hòm quay thành công!');
+      setRouletteMsg({ type: 'success', text: 'Đã lưu cấu hình hòm lên hệ thống thành công!' });
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi lưu cấu hình hòm';
+      showNotif('error', msg);
+      setRouletteMsg({ type: 'error', text: msg });
+    } finally {
+      setIsSavingRoulette(false);
+    }
+  };
+
+  const handleToggleRouletteItem = (index) => {
+    const updated = [...rouletteConfig];
+    updated[index].isActive = !updated[index].isActive;
+    setRouletteConfig(updated);
+  };
+
+  const handleDeleteRouletteItem = (index) => {
+    if (rouletteConfig.length <= 3) {
+      showNotif('error', 'Hòm quay cần tối thiểu 3 món ăn để hoạt động chuẩn!');
+      return;
+    }
+    const updated = rouletteConfig.filter((_, idx) => idx !== index);
+    setRouletteConfig(updated);
+  };
+
+  const handleResetRouletteDefaults = () => {
+    if (window.confirm('Khôi phục danh sách 8 món mẫu chuẩn FoodFast cho hòm quay?')) {
+      setRouletteConfig(DEFAULT_ROULETTE_ITEMS);
+      handleSaveRouletteConfig(DEFAULT_ROULETTE_ITEMS);
+    }
+  };
+
+  const handleSaveItemModal = (e) => {
+    e.preventDefault();
+    if (!editingRouletteItem.name?.trim()) {
+      alert('Vui lòng nhập tên món ăn!');
+      return;
+    }
+    if (editingRouletteItem.index !== undefined && editingRouletteItem.index >= 0) {
+      const updated = [...rouletteConfig];
+      updated[editingRouletteItem.index] = {
+        name: editingRouletteItem.name.trim(),
+        description: editingRouletteItem.description || '',
+        image: editingRouletteItem.image || '',
+        priceRange: editingRouletteItem.priceRange || '',
+        rarity: editingRouletteItem.rarity || 'COMMON',
+        isActive: editingRouletteItem.isActive !== false
+      };
+      setRouletteConfig(updated);
+    } else {
+      const newItem = {
+        name: editingRouletteItem.name.trim(),
+        description: editingRouletteItem.description || '',
+        image: editingRouletteItem.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&auto=format&fit=crop',
+        priceRange: editingRouletteItem.priceRange || '35.000đ - 65.000đ',
+        rarity: editingRouletteItem.rarity || 'COMMON',
+        isActive: true
+      };
+      setRouletteConfig([...rouletteConfig, newItem]);
+    }
+    setShowRouletteItemModal(false);
+    setEditingRouletteItem(null);
+  };
 
   const fetchPendingCount = async () => {
     try {
@@ -953,6 +1072,17 @@ export default function AdminDashboard() {
           >
             <Ticket className="w-4 h-4" />
             Quản lý Voucher
+          </button>
+
+          <button
+            onClick={() => setActiveTab('roulette')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'roulette'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+              }`}
+          >
+            <Zap className="w-4 h-4 text-amber-300" />
+            Hòm Quay Món Ngon ({rouletteConfig.length || 0})
           </button>
         </div>
 
@@ -1925,6 +2055,229 @@ export default function AdminDashboard() {
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 5: QUẢN LÝ HÒM QUAY MÓN NGON (ADMIN ROULETTE CONFIG) */}
+        {/* ================================================================= */}
+        {activeTab === 'roulette' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-400" /> Quản lý Hòm Món Ngon FoodFast
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Cấu hình các món tiêu biểu trong hòm quay thưởng. Khách quay ra món nào, đặt món có tên tương tự tại bất kỳ quán nào trong 10 phút sẽ nhận ưu đãi x2 Xu.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleResetRouletteDefaults}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Khôi phục món mẫu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRouletteItem({
+                      name: '',
+                      description: '',
+                      image: '',
+                      priceRange: '',
+                      rarity: 'COMMON',
+                      isActive: true
+                    });
+                    setShowRouletteItemModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition shadow-md"
+                >
+                  <Plus className="w-4 h-4" /> Thêm món vào hòm
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingRoulette}
+                  onClick={() => handleSaveRouletteConfig()}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md disabled:opacity-50"
+                >
+                  {isSavingRoulette ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" /> Lưu cấu hình hòm
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Thông báo trạng thái lưu */}
+            {rouletteMsg.text && (
+              <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
+                rouletteMsg.type === 'success'
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                  : 'bg-red-950/40 border-red-500/40 text-red-300'
+              }`}>
+                {rouletteMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                <span>{rouletteMsg.text}</span>
+              </div>
+            )}
+
+            {/* Thanh thống kê nhanh */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                <span className="text-[11px] text-slate-400 font-medium">Tổng món trong hòm</span>
+                <p className="text-xl font-extrabold text-white mt-1">{rouletteConfig.length} món</p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                <span className="text-[11px] text-slate-400 font-medium">Đang kích hoạt</span>
+                <p className="text-xl font-extrabold text-emerald-400 mt-1">
+                  {rouletteConfig.filter(d => d.isActive !== false).length} món
+                </p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                <span className="text-[11px] text-slate-400 font-medium">Hiếm & Huyền thoại</span>
+                <p className="text-xl font-extrabold text-amber-400 mt-1">
+                  {rouletteConfig.filter(d => d.rarity === 'RARE' || d.rarity === 'LEGENDARY').length} món
+                </p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                <span className="text-[11px] text-slate-400 font-medium">Cơ chế x2 Xu</span>
+                <p className="text-xs font-bold text-amber-300 mt-1 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> 10 phút sau khi quay
+                </p>
+              </div>
+            </div>
+
+            {/* Lưới các món ăn trong hòm */}
+            {isLoadingRoulette ? (
+              <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                <RefreshCw className="w-6 h-6 animate-spin text-amber-400" />
+                <span>Đang tải danh sách món trong hòm...</span>
+              </div>
+            ) : rouletteConfig.length === 0 ? (
+              <div className="p-10 text-center rounded-2xl bg-slate-800/50 border border-slate-700/60 text-slate-400">
+                <p className="text-sm font-semibold">Chưa có món nào trong hòm quay.</p>
+                <button
+                  type="button"
+                  onClick={handleResetRouletteDefaults}
+                  className="mt-3 px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold"
+                >
+                  Khôi phục 8 món mẫu chuẩn
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                {rouletteConfig.map((item, idx) => {
+                  const rarityConf = RARITY_OPTIONS.find(r => r.value === item.rarity) || RARITY_OPTIONS[0];
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-2xl border bg-slate-800/90 overflow-hidden flex flex-col justify-between transition-all ${
+                        item.isActive !== false
+                          ? 'border-slate-700/80 hover:border-slate-600 shadow-md'
+                          : 'border-slate-800 opacity-60'
+                      }`}
+                      style={{ borderBottom: `4px solid ${rarityConf.color}` }}
+                    >
+                      <div className="p-3.5 space-y-2.5">
+                        {/* Ảnh và Badge độ hiếm */}
+                        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/50">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&auto=format&fit=crop';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <Package className="w-8 h-8" />
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2">
+                            <span
+                              className="text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded shadow"
+                              style={{
+                                color: rarityConf.color,
+                                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                                border: `1px solid ${rarityConf.color}60`
+                              }}
+                            >
+                              {rarityConf.label.split(' ')[0]}
+                            </span>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRouletteItem(idx)}
+                              title={item.isActive !== false ? 'Bấm để tắt' : 'Bấm để bật'}
+                              className={`p-1 rounded-lg backdrop-blur-md transition ${
+                                item.isActive !== false
+                                  ? 'bg-emerald-500/80 text-white hover:bg-emerald-600'
+                                  : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700'
+                              }`}
+                            >
+                              {item.isActive !== false ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Thông tin món */}
+                        <div>
+                          <h4 className="font-bold text-white text-sm truncate" title={item.name}>
+                            {item.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5" title={item.description}>
+                            {item.description || 'Chưa có mô tả'}
+                          </p>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700/50 text-[11px]">
+                            <span className="text-slate-400">Khoảng giá:</span>
+                            <strong className="text-amber-300 font-mono">{item.priceRange || 'Tùy quán'}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Nút hành động */}
+                      <div className="px-3.5 py-2.5 bg-slate-900/60 border-t border-slate-700/60 flex items-center justify-between">
+                        <span className={`text-[10px] font-bold ${item.isActive !== false ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          {item.isActive !== false ? '● Đang mở hòm' : '○ Tạm ẩn'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRouletteItem({ ...item, index: idx });
+                              setShowRouletteItemModal(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                            title="Sửa món này"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRouletteItem(idx)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition"
+                            title="Xóa khỏi hòm"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -4068,6 +4421,161 @@ export default function AdminDashboard() {
                       <Gift className="w-4 h-4" /> Xác nhận tặng +{formatVND(grantAmount)}
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Thêm / Chỉnh Sửa Món Trong Hòm Quay (Admin Roulette Item Modal) */}
+      {showRouletteItemModal && editingRouletteItem && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-slate-700 text-slate-200 shadow-2xl relative animate-fadeIn max-h-[92vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setShowRouletteItemModal(false);
+                setEditingRouletteItem(null);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {editingRouletteItem.index !== undefined ? 'Chỉnh sửa món trong hòm' : 'Thêm món mới vào hòm'}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Món tiêu biểu để người dùng quay và đặt tại bất kỳ quán nào nhận x2 Xu
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveItemModal} className="space-y-4 text-xs">
+              {/* Tên món */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  Tên món ăn <span className="text-red-400">*</span>:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingRouletteItem.name || ''}
+                  onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, name: e.target.value })}
+                  placeholder="VD: Cơm Tấm Sườn Bì Chả, Gà Rán Giòn Cay..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500 font-semibold"
+                />
+              </div>
+
+              {/* Mô tả */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  Mô tả ngắn:
+                </label>
+                <input
+                  type="text"
+                  value={editingRouletteItem.description || ''}
+                  onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, description: e.target.value })}
+                  placeholder="VD: Sườn nướng thơm lừng, bì dai giòn trứng ốp la"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* URL Ảnh */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  Link ảnh món ăn (URL):
+                </label>
+                <input
+                  type="url"
+                  value={editingRouletteItem.image || ''}
+                  onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, image: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500 font-mono text-[11px]"
+                />
+                {editingRouletteItem.image && (
+                  <div className="mt-2 w-24 h-24 rounded-xl overflow-hidden border border-slate-700 bg-slate-900">
+                    <img
+                      src={editingRouletteItem.image}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&auto=format&fit=crop';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Khoảng giá tham khảo */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">
+                    Khoảng giá tham khảo:
+                  </label>
+                  <input
+                    type="text"
+                    value={editingRouletteItem.priceRange || ''}
+                    onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, priceRange: e.target.value })}
+                    placeholder="VD: 45.000đ - 65.000đ"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {/* Độ hiếm */}
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">
+                    Phân khúc / Độ hiếm:
+                  </label>
+                  <select
+                    value={editingRouletteItem.rarity || 'COMMON'}
+                    onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, rarity: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="COMMON">Phổ biến (&lt;35k)</option>
+                    <option value="RARE">Hiếm (35k - 70k)</option>
+                    <option value="LEGENDARY">Huyền thoại (&gt;70k)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Trạng thái hoạt động */}
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="item_is_active"
+                  checked={editingRouletteItem.isActive !== false}
+                  onChange={(e) => setEditingRouletteItem({ ...editingRouletteItem, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
+                />
+                <label htmlFor="item_is_active" className="text-xs text-slate-300 font-semibold cursor-pointer">
+                  Kích hoạt món này ngay trong hòm quay
+                </label>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRouletteItemModal(false);
+                    setEditingRouletteItem(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold flex items-center gap-1.5 shadow-md"
+                >
+                  <Check className="w-4 h-4" /> Xác nhận
                 </button>
               </div>
             </form>

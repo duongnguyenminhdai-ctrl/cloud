@@ -14,6 +14,35 @@ import { publishRealtimeSignal } from '../utils/realtimeSync';
 import PhoneVerificationBox from '../components/PhoneVerificationBox';
 import { isFirebasePhoneConfigured } from '../utils/firebase';
 
+// Hàm kiểm tra độ tương đồng tên món ăn (cho ưu đãi x2 Xu vòng quay Roulette)
+function isSimilarDishName(nameA, nameB) {
+  if (!nameA || !nameB) return false;
+  const stopWords = new Set([
+    'và', 'với', 'có', 'của', 'cho', 'các', 'một', 'món', 'ăn', 'uống',
+    'đặc', 'biệt', 'số', 'thêm', 'không', 'bao', 'gồm', 'size', 'phần',
+    'combo', 'set', 'mix', 'the', 'and', 'with', 'or', 'in', 'of', 'a', 'an'
+  ]);
+  const norm = (s) => String(s)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^\w\s\u0300-\u036f]/g, ' ')
+    .normalize('NFC')
+    .split(/\s+/)
+    .filter(w => w.length >= 2 && !stopWords.has(w));
+  const wA = norm(nameA);
+  const wB = norm(nameB);
+  const setA = new Set(wA);
+  for (const w of wB) {
+    if (setA.has(w)) return true;
+  }
+  for (const a of wA) {
+    for (const b of wB) {
+      if (a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a))) return true;
+    }
+  }
+  return false;
+}
+
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user, isAuthenticated, loginWithToken, updateUserProfile } = useAuth();
@@ -38,7 +67,8 @@ export default function Checkout() {
           const hasWinningItem = cartItems.some(
             (it) =>
               String(it.menuItemId || it._id) === String(parsed.menuItemId) ||
-              it.name === parsed.itemName
+              it.name === parsed.itemName ||
+              isSimilarDishName(it.name, parsed.itemName)
           );
           if (hasWinningItem) {
             setActiveRouletteSession(parsed);
@@ -789,7 +819,7 @@ export default function Checkout() {
         {/* Right: Order Summary */}
         <div className="space-y-6">
           {/* Card Áp dụng Voucher (FoodFast Style) */}
-          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-3 overflow-hidden w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                 <Tag className="w-4 h-4 text-orange-600" />
@@ -798,7 +828,7 @@ export default function Checkout() {
               <button
                 type="button"
                 onClick={() => setIsVoucherModalOpen(true)}
-                className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-xl border border-orange-200 transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-xl border border-orange-200 transition-colors shrink-0"
               >
                 <Ticket className="w-3.5 h-3.5" />
                 <span>Chọn từ Ví</span>
@@ -806,9 +836,9 @@ export default function Checkout() {
             </div>
 
             {appliedVoucher ? (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between animate-fadeIn">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between animate-fadeIn gap-2">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-extrabold text-sm text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300">
                       {appliedVoucher.voucher_code}
                     </span>
@@ -816,7 +846,7 @@ export default function Checkout() {
                       - {Number(appliedVoucher.discount_amount).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
-                  <p className="text-[11px] text-emerald-700">
+                  <p className="text-[11px] text-emerald-700 truncate">
                     {appliedVoucher.issuer_type === 'STORE'
                       ? 'Ưu đãi riêng của Quán — Đã áp dụng thành công'
                       : 'Ưu đãi tài trợ bởi FoodFast — Đã áp dụng thành công'}
@@ -825,33 +855,35 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={handleRemoveVoucher}
-                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-white transition-colors"
+                  className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-white transition-colors"
                 >
                   Gỡ bỏ
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={voucherCode}
-                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                    placeholder="VD: FREESHIP50, FOODFAST10"
-                    className="flex-1 px-3 py-2 text-xs sm:text-sm uppercase font-mono tracking-wider rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  />
+              <div className="space-y-2 w-full">
+                <div className="flex items-center gap-2 w-full">
+                  <div className="relative flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                      placeholder="VD: FREESHIP50..."
+                      className="w-full px-3 py-2 text-xs sm:text-sm uppercase font-mono tracking-wider rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 truncate"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleApplyVoucher()}
                     disabled={applyingVoucher || !voucherCode.trim()}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm"
+                    className="shrink-0 whitespace-nowrap px-3.5 sm:px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm"
                   >
                     {applyingVoucher ? 'Đang áp dụng...' : 'Áp dụng'}
                   </button>
                 </div>
                 {voucherError && (
                   <p className="text-xs text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{voucherError}</span>
                   </p>
                 )}

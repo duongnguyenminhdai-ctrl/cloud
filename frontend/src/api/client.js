@@ -1198,6 +1198,33 @@ export const rouletteApi = {
       }
       throw err;
     }
+  },
+  getConfig: async () => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/config'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get('http://localhost:3001/api/v1/restaurants/roulette/config');
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  updateConfig: async (items) => {
+    try {
+      return await apiClient.put(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/config'), { items });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.put('http://localhost:3001/api/v1/restaurants/roulette/config', { items }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
   }
 };
 

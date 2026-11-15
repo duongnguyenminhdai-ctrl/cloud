@@ -3,6 +3,46 @@ const { publishEvent, DEFAULT_EXCHANGE } = require('../rabbitmq');
 const { subscribe, emitOrderEvent } = require('../utils/realtimeHub');
 
 /**
+ * Hàm helper kiểm tra độ tương đồng tên món ăn (cho ưu đãi vòng quay Roulette)
+ */
+function nameSimilarityMatch(nameA, nameB) {
+  if (!nameA || !nameB) return false;
+
+  const STOP_WORDS = new Set([
+    'và', 'với', 'có', 'của', 'cho', 'các', 'một', 'món', 'ăn', 'uống',
+    'đặc', 'biệt', 'số', 'thêm', 'không', 'bao', 'gồm', 'size', 'phần',
+    'combo', 'set', 'mix', 'the', 'and', 'with', 'or', 'in', 'of', 'a', 'an',
+    'trúng', 'thưởng', 'quay'
+  ]);
+
+  const normalize = (str) => String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^\w\s\u0300-\u036f]/g, ' ')
+    .normalize('NFC')
+    .split(/\s+/)
+    .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+
+  const wordsA = normalize(nameA);
+  const wordsB = normalize(nameB);
+
+  const setA = new Set(wordsA);
+  for (const word of wordsB) {
+    if (setA.has(word)) return true;
+  }
+
+  for (const wA of wordsA) {
+    for (const wB of wordsB) {
+      if (wA.length >= 3 && wB.length >= 3 && (wA.includes(wB) || wB.includes(wA))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Tra cứu thông tin phiên quay Roulette từ restaurant-service hoặc trực tiếp từ MongoDB Atlas
  */
 async function fetchRouletteSession(sessionId) {
@@ -45,7 +85,7 @@ async function fetchRouletteSession(sessionId) {
 /**
  * Đánh dấu tiêu thụ phiên quay Roulette sau khi đơn hàng được tạo thành công
  */
-async function consumeRouletteSession(sessionId, { orderId, userId, menuItemId }) {
+async function consumeRouletteSession(sessionId, { orderId, userId, menuItemId, orderItemName }) {
   if (!sessionId) return false;
   const restaurantUrl = process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3001';
   try {
@@ -57,7 +97,8 @@ async function consumeRouletteSession(sessionId, { orderId, userId, menuItemId }
       body: JSON.stringify({
         orderId: orderId ? String(orderId) : null,
         userId: userId ? String(userId) : null,
-        menuItemId: menuItemId ? String(menuItemId) : null
+        menuItemId: menuItemId ? String(menuItemId) : null,
+        orderItemName: orderItemName ? String(orderItemName) : null
       }),
       signal: controller.signal
     });
@@ -223,6 +264,7 @@ exports.createOrder = async (req, res) => {
     let coinBonusMultiplier = 1;
     let validatedRouletteSession = null;
     let rouletteMenuItemId = null;
+    let rouletteMatchedItemName = null;
 
     if (rouletteSessionId) {
       const sessId = String(rouletteSessionId).trim();
@@ -251,30 +293,40 @@ exports.createOrder = async (req, res) => {
         });
       }
 
-      // Check 3: Chưa quá hạn (5 phút)
+      // Check 3: Chưa quá hạn (10 phút)
       if (session.expiresAt && new Date(session.expiresAt).getTime() <= Date.now()) {
         return res.status(400).json({
           success: false,
-          message: 'Phiên quay thưởng đã hết hạn (quá thời hạn 5 phút).'
+          message: 'Phiên quay thưởng đã hết hạn (quá thời hạn 10 phút).'
         });
       }
 
-      // Check 4: Giỏ hàng có chứa đúng menuItemId đã trúng thưởng
-      const hasWinningItem = items.some((it) => {
+      // Check 4: Giỏ hàng có chứa món tương tự hoặc đúng menuItemId đã trúng thưởng
+      const isAnyMenuItem = !session.menuItemId || session.menuItemId === 'ANY';
+      const winningName = session.menuItemName || session.menuItemId || 'Món trúng thưởng';
+
+      const matchedItem = items.find((it) => {
         const itId = it.menuItemId || it._id || it.id;
-        return itId && String(itId) === String(session.menuItemId);
+        // Trùng id
+        if (itId && session.menuItemId && String(itId) === String(session.menuItemId)) {
+          return true;
+        }
+        // Hoặc tên món tương tự
+        if (session.menuItemName && it.name && nameSimilarityMatch(session.menuItemName, it.name)) {
+          return true;
+        }
+        return false;
       });
 
-      if (!hasWinningItem) {
-        const winningName = session.menuItemName || session.menuItemId;
+      if (!matchedItem && !isAnyMenuItem) {
         return res.status(400).json({
           success: false,
-          message: `Giỏ hàng phải chứa món ăn trúng thưởng [${winningName}] để kích hoạt ưu đãi.`
+          message: `Giỏ hàng phải chứa món ăn trúng thưởng [${winningName}] (hoặc món có tên tương tự) trong vòng 10 phút để kích hoạt ưu đãi x2 Xu.`
         });
       }
 
-      // Check 5: Quán ăn khớp nếu phiên có restaurantId
-      if (session.restaurantId && String(restaurantId) !== String(session.restaurantId)) {
+      // Check 5: Quán ăn: Chỉ kiểm tra nếu phiên chỉ định cụ thể một quán (khác ANY)
+      if (session.restaurantId && session.restaurantId !== 'ANY' && String(restaurantId) !== String(session.restaurantId)) {
         return res.status(400).json({
           success: false,
           message: 'Quán ăn không khớp với món ăn trúng thưởng từ vòng quay.'
@@ -283,7 +335,8 @@ exports.createOrder = async (req, res) => {
 
       coinBonusMultiplier = 2;
       validatedRouletteSession = session;
-      rouletteMenuItemId = session.menuItemId;
+      rouletteMenuItemId = matchedItem ? (matchedItem.menuItemId || matchedItem._id || matchedItem.id || 'ANY') : (session.menuItemId || 'ANY');
+      rouletteMatchedItemName = matchedItem ? matchedItem.name : session.menuItemName;
     }
 
     const grossItemsTotal = items.reduce(
@@ -350,7 +403,8 @@ exports.createOrder = async (req, res) => {
         await consumeRouletteSession(validatedRouletteSession.sessionId, {
           orderId: savedOrder._id,
           userId: resolvedCustomerId,
-          menuItemId: validatedRouletteSession.menuItemId
+          menuItemId: validatedRouletteSession.menuItemId,
+          orderItemName: rouletteMatchedItemName || validatedRouletteSession.menuItemName
         });
       } catch (consumeErr) {
         console.warn('[orderController] ⚠️ Lỗi tiêu thụ session quay roulette:', consumeErr.message);

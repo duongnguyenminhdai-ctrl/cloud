@@ -24,6 +24,7 @@ jest.mock('../src/rabbitmq', () => ({
 jest.mock('../src/models/Restaurant');
 jest.mock('../src/models/RouletteSession');
 jest.mock('../src/models/RouletteSpinLog');
+jest.mock('../src/models/RouletteConfig');
 jest.mock('../src/models/Voucher');
 jest.mock('../src/models/Review');
 jest.mock('../src/models/CustomerNotification');
@@ -31,6 +32,7 @@ jest.mock('../src/models/CustomerNotification');
 const Restaurant = require('../src/models/Restaurant');
 const RouletteSession = require('../src/models/RouletteSession');
 const RouletteSpinLog = require('../src/models/RouletteSpinLog');
+const RouletteConfig = require('../src/models/RouletteConfig');
 const app = require('../app');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_123';
@@ -59,6 +61,11 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
     jest.clearAllMocks();
     mockSessions = [];
     mockSpinLogs = [];
+
+    // Mock RouletteConfig.findOne → trả về null để dùng FALLBACK_CONFIG_ITEMS
+    RouletteConfig.findOne = jest.fn().mockReturnValue({
+      sort: jest.fn().mockResolvedValue(null)
+    });
 
     // Cài đặt hành vi Mock thực tế cho Restaurant.aggregate
     Restaurant.aggregate = jest.fn().mockImplementation(async () => {
@@ -174,18 +181,21 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
     expect(winnerIndex).toBeGreaterThanOrEqual(0);
     expect(winnerIndex).toBeLessThan(8);
 
-    // Món trúng thưởng phải khớp với ô chỉ định
-    expect(winnerItem.menuItemId).toBe(items[winnerIndex].menuItemId);
+    // Món trúng thưởng phải có name, priceRange, rarity (không còn menuItemId)
+    expect(winnerItem.name).toBeDefined();
+    expect(winnerItem.priceRange).toBeDefined();
+    expect(winnerItem.rarity).toMatch(/COMMON|RARE|LEGENDARY/);
+    // name phải khớp với tên ô chỉ định
     expect(winnerItem.name).toBe(items[winnerIndex].name);
 
     // Session thông số hợp lệ
     expect(sessionId).toMatch(/^rsess_\d+_[a-f0-9]+$/);
     expect(bonusType).toBe('DOUBLE_COINS');
 
-    // Thời gian hết hạn là khoảng 5 phút trong tương lai
+    // Thời gian hết hạn là khoảng 10 phút trong tương lai
     const diffMs = new Date(expiresAt).getTime() - Date.now();
-    expect(diffMs).toBeGreaterThan(4 * 60 * 1000);
-    expect(diffMs).toBeLessThanOrEqual(5 * 60 * 1000 + 2000);
+    expect(diffMs).toBeGreaterThan(9 * 60 * 1000);
+    expect(diffMs).toBeLessThanOrEqual(10 * 60 * 1000 + 2000);
 
     // Lượt quay còn lại giảm xuống 2 (ban đầu 3 - 1)
     expect(spinsRemaining).toBe(2);
@@ -281,7 +291,9 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
     expect(inspectRes.statusCode).toBe(200);
     expect(inspectRes.body.success).toBe(true);
     expect(inspectRes.body.data.sessionId).toBe(sessionId);
-    expect(inspectRes.body.data.menuItemId).toBe(winnerItem.menuItemId);
+    // menuItemId là 'ANY' (không ràng buộc quán) và menuItemName chứa tên món trúng
+    expect(inspectRes.body.data.menuItemId).toBe('ANY');
+    expect(inspectRes.body.data.menuItemName).toBe(winnerItem.name);
     expect(inspectRes.body.data.bonusType).toBe('DOUBLE_COINS');
     expect(inspectRes.body.data.isValid).toBe(true);
     expect(inspectRes.body.data.isExpired).toBe(false);
@@ -303,13 +315,13 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
 
     const { sessionId, winnerItem } = spinRes.body.data;
 
-    // Lần tiêu thụ 1: Hợp lệ
+    // Lần tiêu thụ 1: Hợp lệ — dùng orderItemName tên tương tự (tên trúng thưởng)
     const consumeRes = await request(app)
       .post(`/api/v1/restaurants/roulette/session/${sessionId}/consume`)
       .send({
         userId: testUserId,
         orderId: 'order_test_888',
-        menuItemId: winnerItem.menuItemId
+        orderItemName: winnerItem.name   // khớp tên món trúng thưởng
       });
 
     expect(consumeRes.statusCode).toBe(200);
@@ -323,7 +335,7 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
       .send({
         userId: testUserId,
         orderId: 'order_test_999',
-        menuItemId: winnerItem.menuItemId
+        orderItemName: winnerItem.name
       });
 
     expect(secondConsumeRes.statusCode).toBe(400);
@@ -347,19 +359,19 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
       .send({
         userId: 'intruder_user_999',
         orderId: 'order_hacker',
-        menuItemId: winnerItem.menuItemId
+        orderItemName: winnerItem.name
       });
 
     expect(wrongUserRes.statusCode).toBe(403);
     expect(wrongUserRes.body.code).toBe('USER_MISMATCH');
 
-    // 6.2 Sai món ăn (Item Mismatch)
+    // 6.2 Sai món ăn (Item Mismatch) — dùng orderItemName hoàn toàn không khớp
     const wrongItemRes = await request(app)
       .post(`/api/v1/restaurants/roulette/session/${sessionId}/consume`)
       .send({
         userId: testUserId,
         orderId: 'order_test_777',
-        menuItemId: 'dish_completely_different_999'
+        orderItemName: 'Món hoàn toàn xa lạ không tên nào khớp xyz123'
       });
 
     expect(wrongItemRes.statusCode).toBe(400);
@@ -374,7 +386,7 @@ describe('Decision Roulette (Requirement R1) - Unit & Integration Tests', () => 
       .send({
         userId: testUserId,
         orderId: 'order_late',
-        menuItemId: winnerItem.menuItemId
+        orderItemName: winnerItem.name
       });
 
     expect(expiredRes.statusCode).toBe(400);
