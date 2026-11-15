@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, ArrowRight, ShoppingBag, X, Sun, Moon } from 'lucide-react';
+import { UtensilsCrossed, ArrowRight, ShoppingBag, X, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import UserAvatar from '../components/UserAvatar';
 import '../styles/intro.css';
 
 const FOOD_ITEMS = [
@@ -125,6 +127,7 @@ function buildRoundedQuadPath(pts, radius) {
 export default function IntroPage() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user, isAuthenticated, logout } = useAuth();
   const trackRef = useRef(null);
   const stageRef = useRef(null);
   const [selectedFood, setSelectedFood] = useState(null);
@@ -423,18 +426,57 @@ export default function IntroPage() {
             )}
           </button>
 
-          <button type="button" className="intro-btn-login" onClick={() => handleProceed('/login')}>
-            Đăng nhập
-          </button>
-          <button type="button" className="intro-btn-signup" onClick={() => handleProceed('/register')}>
-            Đăng ký
-          </button>
+          {/* Nếu đã có token đăng nhập: hiển thị avatar & tên người dùng; nếu chưa: hiển thị Đăng nhập & Đăng ký */}
+          {isAuthenticated ? (
+            <div className="intro-user-pill">
+              <div
+                className="intro-user-info"
+                onClick={() => handleProceed('/profile')}
+                title="Xem hồ sơ cá nhân"
+                role="button"
+                tabIndex={0}
+              >
+                <div className="intro-user-avatar-wrap">
+                  <UserAvatar
+                    src={user?.avatar}
+                    name={user?.name}
+                    fallbackChar="U"
+                    className="w-full h-full rounded-full text-xs shadow-none"
+                  />
+                </div>
+                <span className="intro-user-name" title={user?.name}>
+                  {user?.name || 'Thành viên'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="intro-btn-logout"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  logout();
+                }}
+                title="Đăng xuất"
+                aria-label="Đăng xuất tài khoản"
+              >
+                <LogOut className="intro-logout-icon" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button type="button" className="intro-btn-login" onClick={() => handleProceed('/login')}>
+                Đăng nhập
+              </button>
+              <button type="button" className="intro-btn-signup" onClick={() => handleProceed('/register')}>
+                Đăng ký
+              </button>
+            </>
+          )}
         </header>
 
         {/* Headline & Subline */}
         <div className="intro-mobile-copy">
           <div className="intro-badge">
-            ✨ Sổ Tay Mỹ Vị · Đặt Món Giao Nhanh 15 Phút
+            Sổ Tay Mỹ Vị · Đặt Món Giao Nhanh
           </div>
 
           <h1 className="intro-headline">

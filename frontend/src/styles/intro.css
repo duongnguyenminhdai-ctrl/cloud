@@ -292,6 +292,90 @@ html.dark .intro-page-container::after {
   box-shadow: 0 6px 18px rgba(154, 106, 62, 0.35);
 }
 
+/* User Profile Pill khi đã có token đăng nhập */
+.intro-user-pill {
+  position: absolute;
+  left: calc(1185 * var(--ff-intro-u));
+  top: calc(29 * var(--ff-intro-u));
+  height: calc(40 * var(--ff-intro-u));
+  padding: 0 calc(8 * var(--ff-intro-u)) 0 calc(4 * var(--ff-intro-u));
+  border-radius: 9999px;
+  background: var(--ff-intro-btn-bg);
+  border: 1px solid var(--ff-intro-hairline);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6 * var(--ff-intro-u));
+  box-shadow: 0 2px 6px rgba(43, 39, 33, 0.06);
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: calc(230 * var(--ff-intro-u));
+  z-index: 10;
+}
+
+.intro-user-pill:hover {
+  background: var(--ff-intro-btn-hover);
+  border-color: var(--ff-intro-earth);
+  transform: translateY(-1px);
+}
+
+.intro-user-info {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8 * var(--ff-intro-u));
+  cursor: pointer;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.intro-user-avatar-wrap {
+  width: calc(32 * var(--ff-intro-u));
+  height: calc(32 * var(--ff-intro-u));
+  border-radius: 9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1.5px solid var(--ff-intro-earth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intro-user-name {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: calc(13.5 * var(--ff-intro-u));
+  font-weight: 600;
+  color: var(--ff-intro-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(125 * var(--ff-intro-u));
+}
+
+.intro-btn-logout {
+  width: calc(28 * var(--ff-intro-u));
+  height: calc(28 * var(--ff-intro-u));
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  color: var(--ff-intro-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+  padding: 0;
+  margin-left: calc(2 * var(--ff-intro-u));
+}
+
+.intro-btn-logout:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.intro-logout-icon {
+  width: calc(15 * var(--ff-intro-u));
+  height: calc(15 * var(--ff-intro-u));
+}
+
 /* Badge */
 .intro-badge {
   position: absolute;
@@ -751,6 +835,42 @@ html.dark .intro-page-container::after {
     height: 36px;
     padding: 0 16px;
     font-size: 13px;
+  }
+
+  .intro-user-pill {
+    display: inline-flex;
+    position: static;
+    height: 36px;
+    padding: 0 6px 0 3px;
+    gap: 6px;
+    max-width: 145px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .intro-user-info {
+    gap: 6px;
+  }
+
+  .intro-user-avatar-wrap {
+    width: 28px;
+    height: 28px;
+  }
+
+  .intro-user-name {
+    font-size: 12px;
+    max-width: 75px;
+  }
+
+  .intro-btn-logout {
+    width: 24px;
+    height: 24px;
+    margin-left: 0;
+  }
+
+  .intro-logout-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .intro-mobile-copy {
