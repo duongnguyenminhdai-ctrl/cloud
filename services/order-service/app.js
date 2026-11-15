@@ -5,13 +5,16 @@ require('dotenv').config();
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const orderRoutes = require('./src/routes/orderRoutes');
+const { sanitizeNoSql, securityHeaders } = require('./src/middlewares/securityMiddleware');
 
 const app = express();
 const SERVICE_NAME = 'order-service';
 
-// Middleware
+// Security Headers & CORS
+app.use(securityHeaders);
 app.use(cors());
 app.use(express.json());
+app.use(sanitizeNoSql);
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {

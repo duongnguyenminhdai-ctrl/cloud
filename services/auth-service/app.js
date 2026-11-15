@@ -13,11 +13,15 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const authRoutes = require('./src/routes/authRoutes');
+const { sanitizeNoSql, securityHeaders } = require('./src/middlewares/securityMiddleware');
 
 const app = express();
 const SERVICE_NAME = 'auth-service';
 
-// 1. Bật CORS đầy đủ ngay trên đầu
+// 1. HTTP Security Headers & NoSQL Injection Protection
+app.use(securityHeaders);
+
+// 2. Bật CORS đầy đủ ngay trên đầu
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -26,6 +30,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(sanitizeNoSql);
 
 // 2. Health Check Endpoint
 app.get('/health', (req, res) => {

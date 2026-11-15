@@ -82,7 +82,10 @@ function createVNPayUrl(req, { orderId, amount, orderInfo, bankCode }) {
 }
 
 /**
- * Kiểm tra tính hợp lệ của chữ ký phản hồi từ VNPay (Return URL)
+ * Kiểm tra tính hợp lệ của chữ ký phản hồi từ VNPay (Return URL / IPN)
+ * Bảo mật STRIDE (Tampering & Spoofing):
+ * - Kiểm tra nghiêm ngặt secretKey và secureHash
+ * - Sử dụng crypto.timingSafeEqual chống tấn công dò thời gian (Timing Attacks)
  */
 function verifyVNPayReturn(queryParams) {
   const vnp_Params = { ...queryParams };
@@ -91,13 +94,32 @@ function verifyVNPayReturn(queryParams) {
   delete vnp_Params['vnp_SecureHash'];
   delete vnp_Params['vnp_SecureHashType'];
 
-  const sortedParams = sortObject(vnp_Params);
   const secretKey = process.env.VNP_HASH_SECRET;
+  if (!secretKey || !secureHash) {
+    return {
+      isValid: false,
+      message: 'Thiếu chữ ký hoặc thiếu biến môi trường VNP_HASH_SECRET',
+      orderId: vnp_Params['vnp_TxnRef'],
+      amount: Number(vnp_Params['vnp_Amount']) / 100,
+      responseCode: vnp_Params['vnp_ResponseCode']
+    };
+  }
+
+  const sortedParams = sortObject(vnp_Params);
   const signData = qs.stringify(sortedParams, { encode: false });
   const hmac = crypto.createHmac('sha512', secretKey);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-  const isValid = secureHash === signed;
+  let isValid = false;
+  try {
+    const secureHashBuf = Buffer.from(String(secureHash), 'utf-8');
+    const signedBuf = Buffer.from(String(signed), 'utf-8');
+    if (secureHashBuf.length === signedBuf.length) {
+      isValid = crypto.timingSafeEqual(secureHashBuf, signedBuf);
+    }
+  } catch (err) {
+    isValid = false;
+  }
 
   return {
     isValid,

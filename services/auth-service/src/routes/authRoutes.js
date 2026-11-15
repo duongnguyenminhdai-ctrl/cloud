@@ -3,34 +3,40 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const checkInController = require('../controllers/checkInController');
 const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
+const { authRateLimiter, otpRateLimiter } = require('../middlewares/securityMiddleware');
 
-// 1. Gửi mã OTP (đăng ký hoặc quên mật khẩu)
+// 1. Gửi mã OTP (đăng ký hoặc quên mật khẩu) - Chống DoS OTP
 router.post(
   ['/otp/send', '/auth/otp/send', '/api/auth/otp/send', '/api/v1/auth/otp/send'],
+  otpRateLimiter,
   authController.sendOTP
 );
 
 // 2. Xác thực mã OTP
 router.post(
   ['/otp/verify', '/auth/otp/verify', '/api/auth/otp/verify', '/api/v1/auth/otp/verify'],
+  authRateLimiter,
   authController.verifyOTP
 );
 
 // 3. Đăng ký tài khoản (kèm xác thực OTP)
 router.post(
   ['/register', '/auth/register', '/api/auth/register', '/api/v1/auth/register'],
+  authRateLimiter,
   authController.register
 );
 
 // 4. Quên mật khẩu / Đặt lại mật khẩu
 router.post(
   ['/reset-password', '/auth/reset-password', '/api/auth/reset-password', '/api/v1/auth/reset-password'],
+  authRateLimiter,
   authController.resetPassword
 );
 
-// 5. Đăng nhập
+// 5. Đăng nhập - Chống Brute-force mật khẩu
 router.post(
   ['/login', '/auth/login', '/api/auth/login', '/api/v1/auth/login'],
+  authRateLimiter,
   authController.login
 );
 
@@ -63,9 +69,10 @@ router.post(
 // QUẢN TRỊ VIÊN (ADMIN ROUTES)
 // -----------------------------------------------------------------------------
 
-// Đăng nhập Admin
+// Đăng nhập Admin - Chống Brute-force tài khoản quản trị
 router.post(
   ['/admin/login', '/auth/admin/login', '/api/auth/admin/login', '/api/v1/auth/admin/login'],
+  authRateLimiter,
   authController.adminLogin
 );
 

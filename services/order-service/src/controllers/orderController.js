@@ -32,11 +32,25 @@ exports.createOrder = async (req, res) => {
       shippingFee
     } = req.body;
 
-    if (!restaurantId || !customerId || !items || !Array.isArray(items) || items.length === 0) {
+    const resolvedCustomerId = (req.user && req.user.userId) ? req.user.userId : customerId;
+
+    if (!restaurantId || !resolvedCustomerId || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng cung cấp đầy đủ: restaurantId, customerId và danh sách items'
       });
+    }
+
+    // Bảo mật STRIDE (Tampering): Kiểm tra giá tiền và số lượng từng món ăn không được âm
+    for (const item of items) {
+      const price = Number(item.price);
+      const qty = Number(item.quantity);
+      if (isNaN(price) || price < 0 || isNaN(qty) || qty < 1 || !Number.isInteger(qty)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Dữ liệu món ăn không hợp lệ: Số lượng phải là số nguyên dương (>= 1) và giá tiền không được âm.'
+        });
+      }
     }
 
     const grossItemsTotal = items.reduce(
@@ -45,9 +59,9 @@ exports.createOrder = async (req, res) => {
     );
 
     // Tự động tính toán tổng tiền nếu client không gửi
-    const calculatedTotal = totalPrice !== undefined ? Number(totalPrice) : grossItemsTotal;
-    const resolvedOriginalTotal = originalTotal !== undefined ? Number(originalTotal) : grossItemsTotal;
-    const totalVoucherDisc = Number(voucherDiscount) || 0;
+    const calculatedTotal = totalPrice !== undefined ? Math.max(0, Number(totalPrice)) : grossItemsTotal;
+    const resolvedOriginalTotal = originalTotal !== undefined ? Math.max(0, Number(originalTotal)) : grossItemsTotal;
+    const totalVoucherDisc = Math.max(0, Number(voucherDiscount) || 0);
     const resolvedIssuerType =
       voucherIssuerType === 'STORE' || voucherIssuerType === 'PLATFORM'
         ? voucherIssuerType
@@ -57,7 +71,7 @@ exports.createOrder = async (req, res) => {
 
     const resolvedStoreDiscount =
       resolvedIssuerType === 'STORE'
-        ? Math.min(resolvedOriginalTotal, Number(storeVoucherDiscount ?? totalVoucherDisc) || 0)
+        ? Math.min(resolvedOriginalTotal, Math.max(0, Number(storeVoucherDiscount ?? totalVoucherDisc) || 0))
         : 0;
     const resolvedPlatformDiscount =
       resolvedIssuerType === 'PLATFORM'
@@ -67,7 +81,7 @@ exports.createOrder = async (req, res) => {
     // Tạo đơn hàng trạng thái PENDING
     const newOrder = new Order({
       restaurantId,
-      customerId,
+      customerId: resolvedCustomerId,
       restaurantName: restaurantName || null,
       restaurantImage: restaurantImage || null,
       items,
@@ -76,13 +90,13 @@ exports.createOrder = async (req, res) => {
       status: 'PENDING',
       paymentMethod: paymentMethod || 'VNPAY',
       driverNote: driverNote || '',
-      coinDiscount: Number(coinDiscount) || 0,
+      coinDiscount: Math.max(0, Number(coinDiscount) || 0),
       voucherDiscount: totalVoucherDisc,
       voucherCode: voucherCode || null,
       voucherIssuerType: resolvedIssuerType,
       storeVoucherDiscount: resolvedStoreDiscount,
       platformVoucherDiscount: resolvedPlatformDiscount,
-      shippingFee: Number(shippingFee) || 16000
+      shippingFee: Math.max(0, Number(shippingFee) || 16000)
     });
 
     const savedOrder = await newOrder.save();
@@ -207,9 +221,16 @@ exports.getAllOrders = async (req, res) => {
       filter.status = req.query.status;
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    // Bảo mật STRIDE (Denial of Service): Giới hạn số lượng bản ghi trả về tối đa 100
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100);
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
     return res.status(200).json({
       success: true,
+      page,
+      limit,
       count: orders.length,
       data: orders
     });
@@ -270,6 +291,47 @@ exports.updateOrderStatus = async (req, res) => {
     if (!order) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
+
+    // Bảo mật STRIDE (Tampering): Whitelist các trạng thái hợp lệ
+    const validStatuses = [
+      'PENDING', 'CONFIRMED', 'PREPARING', 'READY',
+      'FINDING_DRIVER', 'DRIVER_ASSIGNED', 'DELIVERING',
+      'DELIVERED', 'COMPLETED', 'CANCELLED'
+    ];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Trạng thái không hợp lệ: ${status}`
+      });
+    }
+
+    // Bảo mật STRIDE (Elevation of Privilege): Kiểm tra quyền nếu có token định danh
+    if (req.user) {
+      const userRole = req.user.role || req.user.userRole;
+      const userId = req.user.userId || req.user.id;
+      // Khách hàng thông thường chỉ có thể hủy đơn (CANCELLED) khi đơn đang ở PENDING
+      if (userRole === 'CUSTOMER' || userRole === 'USER') {
+        if (order.customerId && String(order.customerId) !== String(userId)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Bạn không có quyền can thiệp vào đơn hàng của người khác!'
+          });
+        }
+        if (status !== 'CANCELLED') {
+          return res.status(403).json({
+            success: false,
+            message: 'Khách hàng chỉ được phép hủy đơn hàng!'
+          });
+        }
+        if (order.status !== 'PENDING') {
+          return res.status(400).json({
+            success: false,
+            message: 'Đơn hàng đã được quán xác nhận hoặc đang chuẩn bị, không thể tự hủy!'
+          });
+        }
+      }
+    }
+
     if (status) order.status = status;
     if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
     await order.save();
@@ -313,6 +375,18 @@ exports.modifyOrderItems = async (req, res) => {
     }
 
     if (items && Array.isArray(items)) {
+      // Bảo mật STRIDE (Tampering): Kiểm tra giá và số lượng món ăn khi sửa
+      for (const item of items) {
+        const price = Number(item.price);
+        const qty = Number(item.quantity);
+        if (isNaN(price) || price < 0 || isNaN(qty) || qty < 1 || !Number.isInteger(qty)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Dữ liệu món ăn không hợp lệ: Số lượng phải là số nguyên dương và giá không âm.'
+          });
+        }
+      }
+
       order.items = items;
       const newItemsTotal = items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
       const discount = (order.coinDiscount || 0) + (order.voucherDiscount || 0);

@@ -296,8 +296,9 @@ exports.register = async (req, res) => {
       };
     }
 
-    // Tạo người dùng mới
-    const userRole = role && ['CUSTOMER', 'RESTAURANT_OWNER', 'USER', 'ADMIN'].includes(role) ? role : 'USER';
+    // Tạo người dùng mới (Chặn tuyệt đối leo thang đặc quyền role ADMIN qua API đăng ký công khai)
+    const allowedPublicRoles = ['CUSTOMER', 'RESTAURANT_OWNER', 'USER'];
+    const userRole = role && allowedPublicRoles.includes(role) ? role : 'USER';
     const newUser = await User.create({
       name,
       email: cleanEmail,

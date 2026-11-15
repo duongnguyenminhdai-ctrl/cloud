@@ -10,6 +10,7 @@ const restaurantRoutes = require('./src/routes/restaurantRoutes');
 const voucherRoutes = require('./src/routes/voucherRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const customerNotificationRoutes = require('./src/routes/customerNotificationRoutes');
+const { sanitizeNoSql, securityHeaders } = require('./src/middlewares/securityMiddleware');
 
 const app = express();
 const SERVICE_NAME = 'restaurant-service';
@@ -21,8 +22,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
+// Bảo mật STRIDE: Headers bảo vệ chống Clickjacking, MIME Sniffing & XSS
+app.use(securityHeaders);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Bảo mật STRIDE (Tampering): Chống NoSQL Injection
+app.use(sanitizeNoSql);
 
 // 2. Endpoint kiểm tra sức khỏe chuẩn
 app.get('/health', (req, res) => {
