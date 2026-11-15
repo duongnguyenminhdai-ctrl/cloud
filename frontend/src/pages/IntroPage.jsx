@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, ArrowRight, ShoppingBag, X } from 'lucide-react';
+import { UtensilsCrossed, ArrowRight, ShoppingBag, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import '../styles/intro.css';
 
 const FOOD_ITEMS = [
@@ -123,6 +124,7 @@ function buildRoundedQuadPath(pts, radius) {
 
 export default function IntroPage() {
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
   const trackRef = useRef(null);
   const stageRef = useRef(null);
   const [selectedFood, setSelectedFood] = useState(null);
@@ -400,6 +402,27 @@ export default function IntroPage() {
             </button>
           </nav>
 
+          {/* Nút chuyển đổi Dark / Light Mode ("Candlelit Studio") */}
+          <button
+            type="button"
+            className="intro-btn-theme"
+            onClick={toggleTheme}
+            title={`Chuyển sang chế độ ${isDark ? 'Sáng' : 'Tối'}`}
+            aria-label="Chuyển chế độ Sáng / Tối"
+          >
+            {isDark ? (
+              <>
+                <Sun className="intro-theme-icon text-amber-400 stroke-[1.8]" />
+                <span className="intro-theme-label">Sáng</span>
+              </>
+            ) : (
+              <>
+                <Moon className="intro-theme-icon text-[#9a6a3e] stroke-[1.8]" />
+                <span className="intro-theme-label">Tối</span>
+              </>
+            )}
+          </button>
+
           <button type="button" className="intro-btn-login" onClick={() => handleProceed('/login')}>
             Đăng nhập
           </button>
@@ -427,8 +450,8 @@ export default function IntroPage() {
 
         {/* Nét vẽ nghệ thuật // */}
         <svg className="intro-doodle-slash" viewBox="0 0 34 36" fill="none" aria-hidden="true">
-          <path d="M12.5 5.5C10.2 13.8 7.5 22.5 5.2 30.8" stroke="#9a6a3e" strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M27.5 6.8C24.8 14.9 22.1 23.4 19.5 31.4" stroke="#9a6a3e" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M12.5 5.5C10.2 13.8 7.5 22.5 5.2 30.8" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M27.5 6.8C24.8 14.9 22.1 23.4 19.5 31.4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
         </svg>
 
         {/* Ghi chú chữ viết tay: Món ngon nóng hổi */}
@@ -440,8 +463,8 @@ export default function IntroPage() {
 
         {/* Mũi tên uốn lượn hướng vào băng chuyền món ăn */}
         <svg className="intro-arrow-beseen" viewBox="0 0 120 145" fill="none" aria-hidden="true">
-          <path d="M72 6C96 34 94 82 54 112C40 122 27 127 16 131" stroke="#9a6a3e" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M27 119L14 132L31 137" stroke="#9a6a3e" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M72 6C96 34 94 82 54 112C40 122 27 127 16 131" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M27 119L14 132L31 137" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
 
         {/* Vòng quay món ăn cong 3D Physics */}
@@ -463,8 +486,8 @@ export default function IntroPage() {
           </div>
 
           <svg className="intro-arrow-zerocost" viewBox="0 0 56 40" fill="none" aria-hidden="true">
-            <path d="M6 28C18 14 34 12 49 20" stroke="#9a6a3e" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M41 12L50 20.5L38 23.5" stroke="#9a6a3e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6 28C18 14 34 12 49 20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M41 12L50 20.5L38 23.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </main>
