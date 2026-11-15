@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -200,6 +201,18 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
   }, []);
+
+  // Khóa cuộn trang nền khi modal mở
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   // ─── 5. Lọc danh sách theo ngân sách & chay ────────────────────────────────
   const eligibleItems = useMemo(() => {
@@ -414,15 +427,15 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-hidden animate-fadeIn">
       <div
-        className="relative w-full max-w-5xl my-auto rounded-2xl overflow-hidden shadow-2xl border border-[#303844]
-          bg-[#13171d] text-[#e3e6eb] flex flex-col max-h-[95vh]"
-        style={{ boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)' }}
+        className="relative w-full max-w-5xl h-full max-h-[92vh] rounded-2xl overflow-hidden shadow-2xl border border-[#303844]
+          bg-[#13171d] text-[#e3e6eb] flex flex-col my-auto"
+        style={{ boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)' }}
       >
-        {/* ── HEADER ──────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-[#242b35] bg-[#171d24]">
+        {/* ── HEADER CỐ ĐỊNH Ở TRÊN ĐỈNH MODAL (shrink-0) ────────────────── */}
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-[#242b35] bg-[#171d24]">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 rounded-lg bg-[#dfc681]/15 text-[#dfc681] flex items-center justify-center">
               <Zap className="w-5 h-5 text-[#dfc681]" />
@@ -479,16 +492,16 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* ── THÔNG BÁO LỖI / HẾT LƯỢT ───────────────────────────────────── */}
+        {/* ── THÔNG BÁO LỖI / HẾT LƯỢT (shrink-0) ───────────────────────── */}
         {errorMsg && (
-          <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
+          <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {spinsRemaining <= 0 && resetCountdown && (
-          <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-amber-950/30 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-200">
+          <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-amber-950/30 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-200">
             <Clock className="w-4 h-4 shrink-0 text-[#dfc681]" />
             <span>
               Bạn đã mở hết 3/3 lượt hòm hôm nay. Lượt mới sẽ được làm mới sau:{' '}
@@ -497,8 +510,8 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* ── INFO BANNER: CƠ CHẾ ƯU ĐÃI ────────────────────────────────── */}
-        <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-[#dfc681]/8 border border-[#dfc681]/25 flex items-start gap-2.5 text-xs text-[#c8b97a]">
+        {/* ── INFO BANNER: CƠ CHẾ ƯU ĐÃI (shrink-0) ─────────────────────── */}
+        <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-[#dfc681]/8 border border-[#dfc681]/25 flex items-start gap-2.5 text-xs text-[#c8b97a]">
           <CheckCircle2 className="w-4 h-4 shrink-0 text-[#dfc681] mt-0.5" />
           <div>
             <span className="font-bold text-[#dfc681]">Cơ chế x2 Xu:</span>{' '}
@@ -508,7 +521,8 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        {/* ── THÂN MODAL CUỘN ĐƯỢC ĐỘC LẬP (flex-1 overflow-y-auto) ─────── */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 min-h-0">
 
           {/* ── KHUNG BĂNG CHUYỀN ───────────────────────────────────────── */}
           <div className="relative rounded-xl overflow-hidden border border-[#2b3542] bg-[#171a20] shadow-inner">
@@ -854,4 +868,8 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
