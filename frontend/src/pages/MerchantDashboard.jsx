@@ -1553,49 +1553,49 @@ export default function MerchantDashboard() {
       {/* ===================================================================== */}
       {/* 1. HEADER CHỦ QUÁN (FOODFAST PARTNER HERO BAR) */}
       {/* ===================================================================== */}
-      <div className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-md">
+      <div className="bg-[#fffdfa]/95 dark:bg-slate-950 border-b border-[rgba(154,106,62,0.2)] dark:border-slate-800 sticky top-0 z-30 shadow-xs backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
           {/* Thông tin quán + Nút đổi trạng thái Mở/Đóng/Quán Bận */}
           <div className="flex items-center gap-3.5 min-w-0">
             <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${
               isStoreBanned
-                ? 'bg-red-600/20 border-red-500/40 text-red-400'
-                : 'bg-orange-600/20 border-orange-500/30 text-orange-400'
+                ? 'bg-red-600/20 border-red-500/40 text-red-500'
+                : 'bg-orange-600/20 border-orange-500/30 text-orange-600 dark:text-orange-400'
             }`}>
               {isStoreBanned ? <Lock className="w-6 h-6" /> : <Store className="w-6 h-6" />}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-extrabold text-white truncate max-w-[200px] sm:max-w-md">
+                <h1 className="text-base sm:text-lg font-extrabold text-[#2b2721] dark:text-white truncate max-w-[200px] sm:max-w-md">
                   {store.name}
                 </h1>
                 {/* Trạng thái hiện tại */}
                 {isStoreBanned ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40 animate-pulse flex items-center gap-1">
                     <Lock className="w-3 h-3" /> ĐÃ BỊ KHÓA ({store.banInfo?.banDurationDays || 7} NGÀY)
                   </span>
                 ) : isStoreBusy ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40 animate-pulse">
                     Quán Bận
                   </span>
                 ) : isStoreOpen ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40">
                     Đang mở cửa
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/40">
                     Đã đóng cửa
                   </span>
                 )}
                 <span
-                  className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30"
+                  className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30"
                   title="Tự động đồng bộ thông báo, đơn hàng, ví và số liệu theo thời gian thực"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                   Live
                 </span>
               </div>
-              <p className="text-xs text-slate-400 truncate max-w-sm">
+              <p className="text-xs text-[#7d7165] dark:text-slate-400 truncate max-w-sm">
                 {store.address || 'TP. Hồ Chí Minh'}
               </p>
             </div>
@@ -1607,12 +1607,12 @@ export default function MerchantDashboard() {
             <button
               onClick={handleToggleStoreOpen}
               disabled={isStoreBanned}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-xs ${
                 isStoreBanned
                   ? 'bg-red-500/10 text-red-400/60 border-red-500/20 cursor-not-allowed opacity-60'
                   : isStoreOpen
-                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
-                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
               }`}
               title={isStoreBanned ? 'Quán đang trong thời gian bị khóa hoạt động' : undefined}
             >
@@ -1624,7 +1624,7 @@ export default function MerchantDashboard() {
             {!isStoreBanned && (
               <button
                 onClick={() => setShowBusyModal(true)}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5"
               >
                 <Coffee className="w-3.5 h-3.5" />
                 <span>Quán bận</span>
@@ -1638,12 +1638,12 @@ export default function MerchantDashboard() {
                 await fetchNotifications();
                 handleMarkAllNotifsAsRead();
               }}
-              className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+              className="relative p-2 rounded-xl bg-[#f2ece1] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#2b2721] dark:text-slate-300 border border-[rgba(154,106,62,0.2)] dark:border-slate-700 transition-all"
               title="Thông báo từ Ban quản trị FoodFast"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce shadow">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce shadow-xs">
                   {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                 </span>
               )}
@@ -1661,7 +1661,7 @@ export default function MerchantDashboard() {
                 ]);
                 showToast('Đã đồng bộ toàn bộ dữ liệu đối tác mới nhất!');
               }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+              className="p-2 rounded-xl bg-[#f2ece1] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#2b2721] dark:text-slate-300 border border-[rgba(154,106,62,0.2)] dark:border-slate-700 transition-all"
               title="Làm mới dữ liệu"
             >
               <RotateCw className="w-4 h-4" />
@@ -1673,28 +1673,28 @@ export default function MerchantDashboard() {
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Banner Quán Bị Khóa Hoạt Động (Lệnh cấm có thời hạn của Admin) */}
         {isStoreBanned && (
-          <div className="bg-gradient-to-r from-red-950/80 via-red-900/60 to-slate-900 border-2 border-red-500/80 rounded-3xl p-5 sm:p-6 shadow-2xl text-red-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-fadeIn">
+          <div className="bg-red-50 dark:bg-gradient-to-r dark:from-red-950/80 dark:via-red-900/60 dark:to-slate-900 border-2 border-red-400 dark:border-red-500/80 rounded-3xl p-5 sm:p-6 shadow-2xl text-red-900 dark:text-red-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-fadeIn">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-red-600/30 border border-red-500/60 text-red-400 flex items-center justify-center shrink-0 shadow-lg shadow-red-950">
+              <div className="w-14 h-14 rounded-2xl bg-red-600/20 border border-red-500/60 text-red-500 dark:text-red-400 flex items-center justify-center shrink-0 shadow-lg shadow-red-950">
                 <Lock className="w-7 h-7" />
               </div>
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-base sm:text-xl font-black text-white tracking-wide">
+                  <h2 className="text-base sm:text-xl font-black text-red-950 dark:text-white tracking-wide">
                     QUÁN ĐANG BỊ TẠM KHÓA HOẠT ĐỘNG
                   </h2>
                   <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-red-600 text-white shadow-md border border-red-400/40">
                     Bị cấm {store.banInfo?.banDurationDays || 7} ngày
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-red-200 leading-relaxed">
-                  <strong className="text-white">Lý do khóa:</strong> {store.banInfo?.banReason || 'Vi phạm chính sách hoạt động của nền tảng FoodFast'}
+                <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 leading-relaxed">
+                  <strong className="text-red-950 dark:text-white">Lý do khóa:</strong> {store.banInfo?.banReason || 'Vi phạm chính sách hoạt động của nền tảng FoodFast'}
                 </p>
-                <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-red-300/90 pt-1 border-t border-red-800/40 font-medium">
+                <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-red-700 dark:text-red-300/90 pt-1 border-t border-red-300 dark:border-red-800/40 font-medium">
                   <span>
                     📅 Thời điểm bắt đầu cấm: {store.banInfo?.bannedAt ? new Date(store.banInfo.bannedAt).toLocaleString('vi-VN') : 'Gần đây'}
                   </span>
-                  <span className="text-amber-300 font-bold flex items-center gap-1">
+                  <span className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     Thời hạn mở cấm dự kiến: {store.banInfo?.banUntil ? new Date(store.banInfo.banUntil).toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' }) : 'Chưa xác định'}
                   </span>
@@ -1717,65 +1717,65 @@ export default function MerchantDashboard() {
         {/* 2. THỐNG KÊ NHANH KPI (Doanh thu hôm nay, Số đơn, Đánh giá, Ví) */}
         {/* ===================================================================== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400 font-medium">Doanh thu hôm nay</p>
-              <p className="text-lg sm:text-xl font-black text-white mt-0.5">
+              <p className="text-xs text-[#7d7165] dark:text-slate-400 font-medium">Doanh thu hôm nay</p>
+              <p className="text-lg sm:text-xl font-black text-[#2b2721] dark:text-white mt-0.5">
                 {formatVND(realMetrics.todayRevenue)}
               </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-[10px] text-[#9c8e7f] dark:text-slate-500 mt-0.5">
                 Tính từ đơn hoàn tất trong ngày
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400 font-medium">Đơn thành công</p>
-              <p className="text-lg sm:text-xl font-black text-white mt-0.5">
+              <p className="text-xs text-[#7d7165] dark:text-slate-400 font-medium">Đơn thành công</p>
+              <p className="text-lg sm:text-xl font-black text-[#2b2721] dark:text-white mt-0.5">
                 {realMetrics.completedOrdersCount} đơn
               </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-[10px] text-[#9c8e7f] dark:text-slate-500 mt-0.5">
                 Đơn đã giao cho khách hàng
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400 font-medium">Đánh giá quán</p>
-              <p className="text-lg sm:text-xl font-black text-white mt-0.5 flex items-center gap-1">
+              <p className="text-xs text-[#7d7165] dark:text-slate-400 font-medium">Đánh giá quán</p>
+              <p className="text-lg sm:text-xl font-black text-[#2b2721] dark:text-white mt-0.5 flex items-center gap-1">
                 <span>{realMetrics.reviewCount > 0 ? realMetrics.avgRating.toFixed(1) : '0.0'}</span>
-                <span className="text-amber-400 text-sm">★</span>
+                <span className="text-amber-500 text-sm">★</span>
               </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-[10px] text-[#9c8e7f] dark:text-slate-500 mt-0.5">
                 {realMetrics.reviewCount > 0 ? `Từ ${realMetrics.reviewCount} lượt đánh giá` : 'Chưa có đánh giá nào'}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
             </div>
           </div>
 
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 shadow-sm flex items-center justify-between cursor-pointer hover:border-orange-500/50 transition-all"
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs flex items-center justify-between cursor-pointer hover:border-orange-500/50 transition-all"
             onClick={() => setActiveMainTab('wallet')}
           >
             <div>
-              <p className="text-xs text-slate-400 font-medium">Số dư Ví đối tác</p>
-              <p className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5">
+              <p className="text-xs text-[#7d7165] dark:text-slate-400 font-medium">Số dư Ví đối tác</p>
+              <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                 {formatVND(realMetrics.availableBalance)}
               </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-[10px] text-[#9c8e7f] dark:text-slate-500 mt-0.5">
                 {realTransactions.length} giao dịch ghi nhận
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5" />
             </div>
           </div>
@@ -1784,7 +1784,7 @@ export default function MerchantDashboard() {
         {/* ===================================================================== */}
         {/* 3. THANH ĐIỀU HƯỚNG 6 TABS CHUẨN FOODFAST PARTNER */}
         {/* ===================================================================== */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-[rgba(154,106,62,0.2)] dark:border-slate-800 pb-3 overflow-x-auto">
           {[
             { id: 'orders', label: '1. Đơn hàng (Live Orders)', icon: ShoppingBag, badge: orders.filter((o) => ['PENDING', 'NEW'].includes(o.status)).length },
             { id: 'menu', label: '2. Thực đơn & Topping', icon: UtensilsCrossed, badge: store.menuItems?.length || 0 },
@@ -1802,13 +1802,13 @@ export default function MerchantDashboard() {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 transition-all cursor-pointer ${
                   isActive
                     ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800'
+                    : 'bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#5c5044] hover:text-[#2b2721] border border-[rgba(154,106,62,0.18)] dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-300 dark:hover:text-white dark:border-slate-800'
                 }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`px-2 py-0.2 rounded-full text-[11px] font-extrabold ${isActive ? 'bg-white text-orange-600' : 'bg-orange-500/20 text-orange-400'}`}>
+                  <span className={`px-2 py-0.2 rounded-full text-[11px] font-extrabold ${isActive ? 'bg-white text-orange-600' : 'bg-orange-500/20 text-orange-600 dark:text-orange-400'}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -1824,7 +1824,7 @@ export default function MerchantDashboard() {
           <div className="space-y-4">
             {/* Sub-tabs trạng thái đơn */}
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto">
+              <div className="flex items-center gap-2 bg-[#f2ece1] dark:bg-slate-950 p-1.5 rounded-xl border border-[rgba(154,106,62,0.18)] dark:border-slate-800 overflow-x-auto">
                 {[
                   { id: 'new', label: 'Đơn mới', count: orders.filter((o) => ['PENDING', 'NEW'].includes(o.status)).length },
                   { id: 'preparing', label: 'Đang chuẩn bị', count: orders.filter((o) => ['CONFIRMED', 'PREPARING'].includes(o.status)).length },
@@ -1837,8 +1837,8 @@ export default function MerchantDashboard() {
                     onClick={() => setOrderSubTab(st.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       orderSubTab === st.id
-                        ? 'bg-orange-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        ? 'bg-orange-600 text-white shadow-xs'
+                        : 'text-[#7d7165] hover:text-[#2b2721] hover:bg-[#ebdcc8] dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
                     }`}
                   >
                     {st.label} ({st.count})
@@ -1846,18 +1846,18 @@ export default function MerchantDashboard() {
                 ))}
               </div>
 
-              <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <div className="text-xs text-[#7d7165] dark:text-slate-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 <span>Tự động cập nhật đơn thời gian thực</span>
               </div>
             </div>
 
             {/* Danh sách đơn hàng */}
             {filteredOrders.length === 0 ? (
-              <div className="bg-slate-800/40 rounded-3xl p-12 text-center border border-slate-800 space-y-3">
-                <ShoppingBag className="w-12 h-12 text-slate-600 mx-auto" />
-                <p className="text-base font-bold text-slate-300">Không có đơn hàng nào trong mục này</p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <div className="bg-white/80 dark:bg-slate-800/40 rounded-3xl p-12 text-center border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-3">
+                <ShoppingBag className="w-12 h-12 text-[#b8ab9d] dark:text-slate-600 mx-auto" />
+                <p className="text-base font-bold text-[#2b2721] dark:text-slate-300">Không có đơn hàng nào trong mục này</p>
+                <p className="text-xs text-[#7d7165] dark:text-slate-500 max-w-sm mx-auto">
                   Khi khách hàng đặt món, đơn hàng sẽ hiển thị tại đây kèm chuông báo và thời gian đếm ngược.
                 </p>
               </div>
@@ -1876,17 +1876,17 @@ export default function MerchantDashboard() {
                   return (
                     <div
                       key={ord._id}
-                      className={`bg-slate-800/90 rounded-2xl p-4 border transition-all space-y-3.5 shadow-md ${
-                        isNew ? 'border-orange-500 shadow-orange-500/10' : 'border-slate-700'
+                      className={`bg-white dark:bg-slate-800/90 rounded-2xl p-4 border transition-all space-y-3.5 shadow-2xs ${
+                        isNew ? 'border-orange-500 shadow-orange-500/10' : 'border-[rgba(154,106,62,0.18)] dark:border-slate-700'
                       }`}
                     >
                       {/* Header đơn */}
-                      <div className="flex items-center justify-between border-b border-slate-700 pb-2.5">
+                      <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.15)] dark:border-slate-700 pb-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-black text-xs">
+                          <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-600 dark:text-orange-400 font-black text-xs">
                             #{ord._id?.slice(-6).toUpperCase()}
                           </span>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-[#7d7165] dark:text-slate-400">
                             {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -1896,17 +1896,17 @@ export default function MerchantDashboard() {
                           </span>
                         )}
                         {isPreparing && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[11px] font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[11px] font-bold">
                             Đang làm món
                           </span>
                         )}
                         {isDelivering && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-bold">
                             Tài xế đang giao
                           </span>
                         )}
                         {isDelivered && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold">
                             Đã giao thành công
                           </span>
                         )}
@@ -1914,34 +1914,34 @@ export default function MerchantDashboard() {
 
                       {/* Ghi chú của khách hàng (Đóng khung cam nổi bật - Image 1) */}
                       {ord.driverNote && (
-                        <div className="p-2.5 rounded-xl bg-orange-950/40 border border-orange-500/30 text-xs text-orange-300 flex items-start gap-2">
-                          <BadgeAlert className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                        <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-500/30 text-xs text-orange-900 dark:text-orange-300 flex items-start gap-2">
+                          <BadgeAlert className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-bold text-orange-400">Ghi chú của khách: </span>
+                            <span className="font-bold text-orange-700 dark:text-orange-400">Ghi chú của khách: </span>
                             <span>{ord.driverNote}</span>
                           </div>
                         </div>
                       )}
 
                       {/* Danh sách món ăn trong đơn */}
-                      <div className="space-y-1.5 divide-y divide-slate-700/60">
+                      <div className="space-y-1.5 divide-y divide-[rgba(154,106,62,0.12)] dark:divide-slate-700/60">
                         {ord.items?.map((it, idx) => (
                           <div key={idx} className="pt-1.5 flex items-start justify-between text-xs">
                             <div className="space-y-0.5">
-                              <p className="font-bold text-white">
-                                <span className="text-orange-400 mr-1.5">{it.quantity || 1}x</span>
+                              <p className="font-bold text-[#2b2721] dark:text-white">
+                                <span className="text-orange-600 dark:text-orange-400 mr-1.5">{it.quantity || 1}x</span>
                                 {it.name}
                               </p>
                               {it.selectedSize && (
-                                <p className="text-[11px] text-slate-400">Kích cỡ: {it.selectedSize.name}</p>
+                                <p className="text-[11px] text-[#7d7165] dark:text-slate-400">Kích cỡ: {it.selectedSize.name}</p>
                               )}
                               {it.selectedToppings?.length > 0 && (
-                                <p className="text-[11px] text-slate-400">
+                                <p className="text-[11px] text-[#7d7165] dark:text-slate-400">
                                   Topping: {it.selectedToppings.map((t) => t.name).join(', ')}
                                 </p>
                               )}
                             </div>
-                            <span className="font-semibold text-slate-300">
+                            <span className="font-semibold text-[#5c5044] dark:text-slate-300">
                               {formatVND((it.price || 0) * (it.quantity || 1))}
                             </span>
                           </div>
@@ -1949,16 +1949,16 @@ export default function MerchantDashboard() {
                       </div>
 
                       {/* Thông tin tài xế */}
-                      <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-750 text-xs flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-[#fbf8f2] dark:bg-slate-900 border border-[rgba(154,106,62,0.15)] dark:border-slate-750 text-xs flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300">
+                          <div className="w-7 h-7 rounded-lg bg-[#f2ece1] dark:bg-slate-800 flex items-center justify-center text-[#2b2721] dark:text-slate-300">
                             🛵
                           </div>
                           <div>
-                            <p className="font-bold text-slate-200">
+                            <p className="font-bold text-[#2b2721] dark:text-slate-200">
                               {ord.driver_info?.name || 'Chưa chỉ định tài xế'}
                             </p>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-[#7d7165] dark:text-slate-400">
                               {ord.driver_info?.phone ? `SĐT: ${ord.driver_info.phone}` : 'Đang tìm tài xế gần quán...'}
                             </p>
                           </div>
@@ -1966,7 +1966,7 @@ export default function MerchantDashboard() {
                         {ord.driver_info?.phone && (
                           <a
                             href={`tel:${ord.driver_info.phone}`}
-                            className="p-1.5 rounded-lg bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 transition-colors"
+                            className="p-1.5 rounded-lg bg-orange-600/20 text-orange-600 dark:text-orange-400 hover:bg-orange-600/30 transition-colors"
                             title="Gọi tài xế"
                           >
                             <Phone className="w-3.5 h-3.5" />
@@ -1975,71 +1975,71 @@ export default function MerchantDashboard() {
                       </div>
 
                       {/* Bảng kê tài chính đơn (Công thức FoodFast Partner & Thuế Hộ Kinh Doanh) */}
-                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
-                        <div className="flex justify-between text-slate-300">
+                      <div className="p-3 rounded-xl bg-[#fbf8f2] dark:bg-slate-950 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 text-xs space-y-1.5">
+                        <div className="flex justify-between text-[#5c5044] dark:text-slate-300">
                           <span>Giá gốc món ăn:</span>
-                          <span className="font-semibold">{formatVND(settlement.grossFoodTotal)}</span>
+                          <span className="font-semibold text-[#2b2721] dark:text-white">{formatVND(settlement.grossFoodTotal)}</span>
                         </div>
 
                         {settlement.storeVoucherDiscount > 0 && (
                           <>
-                            <div className="flex justify-between items-center text-amber-300">
+                            <div className="flex justify-between items-center text-amber-700 dark:text-amber-300">
                               <span className="flex items-center gap-1">
                                 <span>(-) Voucher Quán [{settlement.voucherCode}]:</span>
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold">
                                   Giảm trừ thuế
                                 </span>
                               </span>
                               <span className="font-semibold">-{formatVND(settlement.storeVoucherDiscount)}</span>
                             </div>
-                            <div className="flex justify-between text-slate-200 border-t border-dashed border-slate-800 pt-1">
+                            <div className="flex justify-between text-[#5c5044] dark:text-slate-200 border-t border-dashed border-[rgba(154,106,62,0.18)] dark:border-slate-800 pt-1">
                               <span>Doanh thu sau giảm (Tính CK & Thuế):</span>
-                              <span className="font-bold text-white">{formatVND(settlement.taxableRevenue)}</span>
+                              <span className="font-bold text-[#2b2721] dark:text-white">{formatVND(settlement.taxableRevenue)}</span>
                             </div>
                           </>
                         )}
 
                         {settlement.platformVoucherDiscount > 0 && (
-                          <div className="flex justify-between items-center text-sky-300 bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-500/20">
+                          <div className="flex justify-between items-center text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-300 dark:border-sky-500/20">
                             <span className="text-[11px]">
                               Voucher Sàn [{settlement.voucherCode}]: FoodFast bù {formatVND(settlement.platformVoucherDiscount)}
                             </span>
-                            <span className="text-[10px] font-bold text-emerald-400 shrink-0 ml-2">Không trừ quán</span>
+                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0 ml-2">Không trừ quán</span>
                           </div>
                         )}
 
-                        <div className="flex justify-between text-slate-400">
+                        <div className="flex justify-between text-[#7d7165] dark:text-slate-400">
                           <span>
                             (-) Phí chiết khấu sàn ({Math.round(settlement.commissionRate * 100)}%):
                           </span>
-                          <span className="text-rose-400">-{formatVND(settlement.platformCommission)}</span>
+                          <span className="text-rose-600 dark:text-rose-400">-{formatVND(settlement.platformCommission)}</span>
                         </div>
 
                         {settlement.isTaxWithheld ? (
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-[#7d7165] dark:text-slate-400">
                             <span>
                               (-) Thuế khấu trừ hộ (Hộ KD 1.5%: 1% GTGT + 0.5% TNCN):
                             </span>
-                            <span className="text-rose-400">-{formatVND(settlement.withholdingTax)}</span>
+                            <span className="text-rose-600 dark:text-rose-400">-{formatVND(settlement.withholdingTax)}</span>
                           </div>
                         ) : (
-                          <div className="flex justify-between text-slate-500 text-[11px]">
+                          <div className="flex justify-between text-[#7d7165] dark:text-slate-500 text-[11px]">
                             <span>Thuế khấu trừ hộ (Doanh nghiệp tự kê khai):</span>
                             <span>0 đ</span>
                           </div>
                         )}
 
                         {settlement.taxSavedByStoreVoucher > 0 && (
-                          <div className="text-[10px] text-emerald-400/90 italic text-right">
+                          <div className="text-[10px] text-emerald-700 dark:text-emerald-400/90 italic text-right">
                             * Đã tiết kiệm {formatVND(settlement.taxSavedByStoreVoucher)} tiền thuế & {formatVND(settlement.commissionSavedByStoreVoucher)} chiết khấu nhờ giảm trừ Voucher Quán
                           </div>
                         )}
 
-                        <div className="border-t border-slate-800 pt-1.5 flex justify-between items-baseline font-bold text-sm text-emerald-400">
+                        <div className="border-t border-[rgba(154,106,62,0.18)] dark:border-slate-800 pt-1.5 flex justify-between items-baseline font-bold text-sm text-emerald-700 dark:text-emerald-400">
                           <div>
                             <span>Tiền Quán thực nhận về Ví:</span>
                             {settlement.isTaxWithheld && (
-                              <span className="block text-[10px] font-normal text-slate-400">
+                              <span className="block text-[10px] font-normal text-[#7d7165] dark:text-slate-400">
                                 (Chưa tính thuế: {formatVND(settlement.beforeTaxAmount)})
                               </span>
                             )}
@@ -2060,7 +2060,7 @@ export default function MerchantDashboard() {
                             </button>
                             <button
                               onClick={() => handleOpenModifyModal(ord)}
-                              className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                              className="px-3 py-2 bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721] dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 border border-[rgba(154,106,62,0.18)] dark:border-transparent rounded-xl font-bold text-xs transition-colors cursor-pointer"
                               title="Chỉnh sửa đơn do hết món/sai giá"
                             >
                               Sửa / Hủy đơn
@@ -2104,14 +2104,14 @@ export default function MerchantDashboard() {
         {activeMainTab === 'menu' && (
           <div className="space-y-4">
             {/* Thanh chuyển đổi Món ăn | Nhóm Topping */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.2)] dark:border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setMenuSubTab('items')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     menuSubTab === 'items'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-[#f2ece1] text-[#7d7165] hover:text-[#2b2721] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
                   Món ăn ({store.menuItems?.length || 0})
@@ -2120,8 +2120,8 @@ export default function MerchantDashboard() {
                   onClick={() => setMenuSubTab('topping_groups')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     menuSubTab === 'topping_groups'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-[#f2ece1] text-[#7d7165] hover:text-[#2b2721] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
                   Nhóm Topping ({store.toppingGroups?.length || 0})
@@ -2132,9 +2132,9 @@ export default function MerchantDashboard() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowCategoryOrderModal(true)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721] dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-[rgba(154,106,62,0.18)] dark:border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-orange-400" />
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                     <span>Sắp xếp danh mục</span>
                   </button>
                   <button
@@ -2167,8 +2167,8 @@ export default function MerchantDashboard() {
                     onClick={() => setSelectedCategory('ALL')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer ${
                       selectedCategory === 'ALL'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-[#9a6a3e] text-white dark:bg-white dark:text-slate-900 shadow-2xs'
+                        : 'bg-[#f2ece1] text-[#7d7165] hover:text-[#2b2721] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
                     }`}
                   >
                     Tất cả món
@@ -2179,8 +2179,8 @@ export default function MerchantDashboard() {
                       onClick={() => setSelectedCategory(cat.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer ${
                         selectedCategory === cat.id
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                          ? 'bg-[#9a6a3e] text-white dark:bg-white dark:text-slate-900 shadow-2xs'
+                          : 'bg-[#f2ece1] text-[#7d7165] hover:text-[#2b2721] hover:bg-[#ebdcc8] dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
                       }`}
                     >
                       {cat.name}
@@ -2195,25 +2195,25 @@ export default function MerchantDashboard() {
                       return (
                         <div
                           key={item._id}
-                          className={`p-3.5 rounded-2xl bg-slate-800/80 border transition-all flex flex-col justify-between space-y-3 ${
-                            isAvailable ? 'border-slate-700' : 'border-rose-900/60 opacity-70'
+                          className={`p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border transition-all flex flex-col justify-between space-y-3 shadow-2xs ${
+                            isAvailable ? 'border-[rgba(154,106,62,0.18)] dark:border-slate-700' : 'border-rose-900/60 opacity-70'
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <img
                               src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'}
                               alt={item.name}
-                              className="w-16 h-16 rounded-xl object-cover bg-slate-900 shrink-0"
+                              className="w-16 h-16 rounded-xl object-cover bg-[#f2ece1] dark:bg-slate-900 shrink-0"
                             />
                             <div className="min-w-0 flex-1 space-y-1">
-                              <h3 className="text-sm font-bold text-white truncate" title={item.name}>
+                              <h3 className="text-sm font-bold text-[#2b2721] dark:text-white truncate" title={item.name}>
                                 {item.name}
                               </h3>
-                              <p className="text-sm font-extrabold text-orange-400">
+                              <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400">
                                 {formatVND(item.price)}
                               </p>
                               {item.description && (
-                                <p className="text-[11px] text-slate-400 line-clamp-1">
+                                <p className="text-[11px] text-[#7d7165] dark:text-slate-400 line-clamp-1">
                                   {item.description}
                                 </p>
                               )}
@@ -2221,7 +2221,7 @@ export default function MerchantDashboard() {
                           </div>
 
                           {/* Toggle Còn món / Hết món 1 chạm & Thao tác Sửa/Xóa */}
-                          <div className="pt-2 border-t border-slate-700 flex items-center justify-between">
+                          <div className="pt-2 border-t border-[rgba(154,106,62,0.15)] dark:border-slate-700 flex items-center justify-between">
                             {/* Toggle Còn món / Hết món */}
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                               <input
@@ -2232,7 +2232,7 @@ export default function MerchantDashboard() {
                               />
                               <div
                                 className={`w-9 h-5 rounded-full transition-colors relative ${
-                                  isAvailable ? 'bg-emerald-500' : 'bg-slate-600'
+                                  isAvailable ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'
                                 }`}
                               >
                                 <div
@@ -2241,7 +2241,7 @@ export default function MerchantDashboard() {
                                   }`}
                                 />
                               </div>
-                              <span className={`text-xs font-bold ${isAvailable ? 'text-emerald-400' : 'text-slate-400'}`}>
+                              <span className={`text-xs font-bold ${isAvailable ? 'text-emerald-700 dark:text-emerald-400' : 'text-[#7d7165] dark:text-slate-400'}`}>
                                 {isAvailable ? 'Còn món' : 'Hết món'}
                               </span>
                             </label>
@@ -2250,14 +2250,14 @@ export default function MerchantDashboard() {
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => handleOpenEditItemModal(item)}
-                                className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors"
+                                className="p-1.5 rounded-lg bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721] dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 transition-colors"
                                 title="Chỉnh sửa món"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDeleteMenuItem(item._id, item.name)}
-                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
                                 title="Xóa món"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2276,7 +2276,6 @@ export default function MerchantDashboard() {
                   totalItems={paginatedMenuState.totalItems}
                   pageSize={paginatedMenuState.pageSize}
                   itemLabel="món ăn"
-                  theme="dark"
                   onPageChange={(p) => setMenuPage(p)}
                   className="mt-4"
                 />
@@ -2287,10 +2286,10 @@ export default function MerchantDashboard() {
             {menuSubTab === 'topping_groups' && (
               <div className="space-y-4">
                 {(store.toppingGroups || []).length === 0 ? (
-                  <div className="bg-slate-800/40 rounded-3xl p-10 text-center border border-slate-800 space-y-3">
-                    <Layers className="w-12 h-12 text-slate-600 mx-auto" />
-                    <p className="text-base font-bold text-slate-300">Chưa có Nhóm Topping nào</p>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  <div className="bg-white/80 dark:bg-slate-800/40 rounded-3xl p-10 text-center border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-3">
+                    <Layers className="w-12 h-12 text-[#b8ab9d] dark:text-slate-600 mx-auto" />
+                    <p className="text-base font-bold text-[#2b2721] dark:text-slate-300">Chưa có Nhóm Topping nào</p>
+                    <p className="text-xs text-[#7d7165] dark:text-slate-500 max-w-sm mx-auto">
                       Tạo các nhóm như: Kích cỡ (Size M/L), Độ ngọt (100%, 70%, 50%), Mức đá, hoặc Topping gọi thêm (Trân châu, Flan...).
                     </p>
                     <button
@@ -2307,20 +2306,20 @@ export default function MerchantDashboard() {
                       {paginatedToppingGroups.items.map((group) => (
                       <div
                         key={group.id}
-                        className="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3"
+                        className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs space-y-3"
                       >
-                        <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+                        <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.15)] dark:border-slate-700 pb-2">
                           <div>
-                            <h4 className="font-bold text-white text-sm">{group.name}</h4>
+                            <h4 className="font-bold text-[#2b2721] dark:text-white text-sm">{group.name}</h4>
                             <div className="flex items-center gap-2 mt-1">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                 group.isRequired
-                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                  : 'bg-slate-700 text-slate-300'
+                                  ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                                  : 'bg-[#f2ece1] dark:bg-slate-700 text-[#5c5044] dark:text-slate-300'
                               }`}>
                                 {group.isRequired ? `Bắt buộc (Chọn ${group.minChoices || 1})` : 'Không bắt buộc'}
                               </span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#f2ece1] dark:bg-slate-700 text-[#5c5044] dark:text-slate-300">
                                 {group.layout === 'HORIZONTAL' ? 'Dạng ngang' : 'Dạng dọc'}
                               </span>
                             </div>
@@ -2328,14 +2327,14 @@ export default function MerchantDashboard() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleOpenEditToppingGroupModal(group)}
-                              className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721] dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 transition-colors"
                               title="Sửa nhóm topping"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeleteToppingGroup(group.id, group.name)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
                               title="Xóa nhóm topping"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2348,10 +2347,10 @@ export default function MerchantDashboard() {
                           {group.toppings?.map((top, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-900 border border-slate-800"
+                              className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-[#fbf8f2] dark:bg-slate-900 border border-[rgba(154,106,62,0.15)] dark:border-slate-800"
                             >
-                              <span className="text-slate-200 font-medium">{top.name}</span>
-                              <span className="font-bold text-orange-400">
+                              <span className="text-[#2b2721] dark:text-slate-200 font-medium">{top.name}</span>
+                              <span className="font-bold text-orange-600 dark:text-orange-400">
                                 {top.extraPrice > 0 ? `+${formatVND(top.extraPrice)}` : '0 đ'}
                               </span>
                             </div>
@@ -2367,7 +2366,6 @@ export default function MerchantDashboard() {
                       totalItems={paginatedToppingGroups.totalItems}
                       pageSize={paginatedToppingGroups.pageSize}
                       itemLabel="nhóm topping"
-                      theme="dark"
                       onPageChange={(p) => setToppingGroupPage(p)}
                     />
                   </div>
@@ -2383,14 +2381,14 @@ export default function MerchantDashboard() {
         {activeMainTab === 'operations' && (
           <div className="space-y-6">
             {/* 1. Lịch thường ngày (Thứ 2 đến Chủ nhật - Images 10, 11) */}
-            <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+            <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.15)] dark:border-slate-700 pb-3">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-bold text-[#2b2721] dark:text-white text-base flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                     <span>Lịch đóng/mở cửa thường ngày</span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[#7d7165] dark:text-slate-400 mt-0.5">
                     Áp dụng cho việc cài đặt mặc định thời gian kinh doanh các ngày trong tuần
                   </p>
                 </div>
@@ -2403,7 +2401,7 @@ export default function MerchantDashboard() {
               </div>
 
               {/* Danh sách 7 ngày trong tuần */}
-              <div className="divide-y divide-slate-700/60">
+              <div className="divide-y divide-[rgba(154,106,62,0.12)] dark:divide-slate-700/60">
                 {[
                   { key: 'mon', label: 'Thứ Hai' },
                   { key: 'tue', label: 'Thứ Ba' },
@@ -2417,7 +2415,7 @@ export default function MerchantDashboard() {
                   return (
                     <div key={d.key} className="py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
                       <div className="w-24">
-                        <span className="font-bold text-white">{d.label}</span>
+                        <span className="font-bold text-[#2b2721] dark:text-white">{d.label}</span>
                       </div>
 
                       {/* Công tắc Mở/Đóng ngày này */}
@@ -2432,10 +2430,10 @@ export default function MerchantDashboard() {
                           }}
                           className="sr-only"
                         />
-                        <div className={`w-8 h-4.5 rounded-full transition-colors relative ${dayData.isOpen ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                        <div className={`w-8 h-4.5 rounded-full transition-colors relative ${dayData.isOpen ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`}>
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${dayData.isOpen ? 'right-0.5' : 'left-0.5'}`} />
                         </div>
-                        <span className={dayData.isOpen ? 'text-emerald-400 font-bold' : 'text-slate-500 font-bold'}>
+                        <span className={dayData.isOpen ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-[#7d7165] dark:text-slate-500 font-bold'}>
                           {dayData.isOpen ? 'Mở cửa' : 'Đóng cửa'}
                         </span>
                       </label>
@@ -2451,9 +2449,9 @@ export default function MerchantDashboard() {
                               updated[d.key] = { ...dayData, is24h: e.target.checked };
                               setStore({ ...store, weeklySchedule: updated });
                             }}
-                            className="rounded border-slate-700 text-orange-600 focus:ring-0"
+                            className="rounded border-[rgba(154,106,62,0.25)] dark:border-slate-700 text-orange-600 focus:ring-0"
                           />
-                          <span className="text-slate-300 font-semibold">Mở 24 giờ</span>
+                          <span className="text-[#5c5044] dark:text-slate-300 font-semibold">Mở 24 giờ</span>
                         </label>
                       )}
 
@@ -2469,9 +2467,9 @@ export default function MerchantDashboard() {
                               updated[d.key] = { ...dayData, shifts };
                               setStore({ ...store, weeklySchedule: updated });
                             }}
-                            className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs"
+                            className="bg-white dark:bg-slate-900 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 rounded-lg px-2 py-1 text-[#2b2721] dark:text-white text-xs"
                           />
-                          <span className="text-slate-400">đến</span>
+                          <span className="text-[#7d7165] dark:text-slate-400">đến</span>
                           <input
                             type="time"
                             value={dayData.shifts?.[0]?.close || '22:00'}
@@ -2481,7 +2479,7 @@ export default function MerchantDashboard() {
                               updated[d.key] = { ...dayData, shifts };
                               setStore({ ...store, weeklySchedule: updated });
                             }}
-                            className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs"
+                            className="bg-white dark:bg-slate-900 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 rounded-lg px-2 py-1 text-[#2b2721] dark:text-white text-xs"
                           />
                         </div>
                       )}
@@ -2492,14 +2490,14 @@ export default function MerchantDashboard() {
             </div>
 
             {/* 2. Lịch đóng/mở dịp đặc biệt (Images 12 - 14) */}
-            <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+            <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.15)] dark:border-slate-700 pb-3">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <CalendarDays className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-bold text-[#2b2721] dark:text-white text-base flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                     <span>Lịch đóng/mở cửa dịp đặc biệt</span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[#7d7165] dark:text-slate-400 mt-0.5">
                     Áp dụng cho ngày lễ, Tết, sự kiện hoặc có việc nghỉ kinh doanh đột xuất
                   </p>
                 </div>
@@ -2514,18 +2512,18 @@ export default function MerchantDashboard() {
 
               {/* Danh sách ngày đặc biệt */}
               {(store.specialSchedules || []).length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-4">Chưa có lịch đặc biệt nào được thiết lập.</p>
+                <p className="text-xs text-[#7d7165] dark:text-slate-500 text-center py-4">Chưa có lịch đặc biệt nào được thiết lập.</p>
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-2">
                     {paginatedSpecialSchedules.items.map((sc, idx) => {
                       const globalIdx = (paginatedSpecialSchedules.page - 1) * SCHEDULE_PAGE_SIZE + idx;
                       return (
-                        <div key={`${sc.date || 'sc'}-${globalIdx}`} className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                        <div key={`${sc.date || 'sc'}-${globalIdx}`} className="flex items-center justify-between p-3 rounded-xl bg-[#fbf8f2] dark:bg-slate-900 border border-[rgba(154,106,62,0.15)] dark:border-slate-800 text-xs">
                           <div>
-                            <span className="font-bold text-white">{sc.date}</span>
+                            <span className="font-bold text-[#2b2721] dark:text-white">{sc.date}</span>
                             <span className={`ml-3 px-2 py-0.5 rounded text-[10px] font-bold ${
-                              sc.status === 'CLOSED' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
+                              sc.status === 'CLOSED' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                             }`}>
                               {sc.status === 'CLOSED' ? 'Đóng cửa cả ngày' : 'Mở theo giờ riêng'}
                             </span>
@@ -2538,7 +2536,7 @@ export default function MerchantDashboard() {
                               fetchStoreData({ silent: true });
                               publishRealtimeSignal('restaurant', { type: 'store.operations_updated', storeId: store?._id });
                             }}
-                            className="text-rose-400 hover:text-rose-300"
+                            className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -2553,7 +2551,6 @@ export default function MerchantDashboard() {
                     totalItems={paginatedSpecialSchedules.totalItems}
                     pageSize={paginatedSpecialSchedules.pageSize}
                     itemLabel="lịch đặc biệt"
-                    theme="dark"
                     onPageChange={(p) => setSpecialSchedulePage(p)}
                   />
                 </div>
@@ -2567,13 +2564,13 @@ export default function MerchantDashboard() {
         {/* ===================================================================== */}
         {activeMainTab === 'staff' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-[rgba(154,106,62,0.15)] dark:border-slate-800 pb-3">
               <div>
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  <Users className="w-5 h-5 text-orange-400" />
+                <h3 className="font-bold text-[#2b2721] dark:text-white text-base flex items-center gap-2">
+                  <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   <span>Danh sách nhân viên cửa hàng</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#7d7165] dark:text-slate-400 mt-0.5">
                   Phân quyền tài khoản riêng cho nhân viên để quản lý đơn hàng và món ăn an toàn
                 </p>
               </div>
@@ -2587,10 +2584,10 @@ export default function MerchantDashboard() {
             </div>
 
             {(store.staff || []).length === 0 ? (
-              <div className="bg-slate-800/40 rounded-3xl p-10 text-center border border-slate-800 space-y-3">
-                <Users className="w-12 h-12 text-slate-600 mx-auto" />
-                <p className="text-base font-bold text-slate-300">Chưa có tài khoản nhân viên</p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <div className="bg-white/80 dark:bg-slate-800/40 rounded-3xl p-10 text-center border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-3">
+                <Users className="w-12 h-12 text-[#b8ab9d] dark:text-slate-600 mx-auto" />
+                <p className="text-base font-bold text-[#2b2721] dark:text-slate-300">Chưa có tài khoản nhân viên</p>
+                <p className="text-xs text-[#7d7165] dark:text-slate-500 max-w-sm mx-auto">
                   Tạo tài khoản riêng cho nhân viên đứng bếp hoặc thu ngân để nhận đơn và cập nhật hết món.
                 </p>
                 <button
@@ -2615,32 +2612,32 @@ export default function MerchantDashboard() {
                       const roleDisplay = roleMap[st.role] || 'Nhân viên (Staff)';
 
                       return (
-                        <div key={st.id || st._id} className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow-md space-y-3">
+                        <div key={st.id || st._id} className="bg-white dark:bg-slate-800/80 rounded-2xl p-4 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2.5">
                               {st.avatar ? (
                                 <img
                                   src={st.avatar}
                                   alt={st.name}
-                                  className="w-10 h-10 rounded-full object-cover border border-slate-600"
+                                  className="w-10 h-10 rounded-full object-cover border border-[rgba(154,106,62,0.2)] dark:border-slate-600"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-full bg-slate-700 text-white font-bold flex items-center justify-center text-sm">
+                                <div className="w-10 h-10 rounded-full bg-[#f2ece1] text-[#2b2721] dark:bg-slate-700 dark:text-white font-bold flex items-center justify-center text-sm border border-[rgba(154,106,62,0.2)] dark:border-transparent">
                                   {st.name?.slice(0, 1).toUpperCase()}
                                 </div>
                               )}
                               <div>
-                                <p className="font-bold text-white text-sm">{st.name}</p>
-                                <p className="text-xs text-slate-400 font-mono">{st.phone?.startsWith('0') ? st.phone : `0${st.phone}`}</p>
-                                {st.email && <p className="text-[11px] text-slate-500 truncate max-w-[150px]">{st.email}</p>}
+                                <p className="font-bold text-[#2b2721] dark:text-white text-sm">{st.name}</p>
+                                <p className="text-xs text-[#7d7165] dark:text-slate-400 font-mono">{st.phone?.startsWith('0') ? st.phone : `0${st.phone}`}</p>
+                                {st.email && <p className="text-[11px] text-[#9c8e7f] dark:text-slate-500 truncate max-w-[150px]">{st.email}</p>}
                               </div>
                             </div>
                             {isPending ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> Chờ chấp nhận
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" /> Hoạt động
                               </span>
                             )}
@@ -2697,13 +2694,13 @@ export default function MerchantDashboard() {
         {activeMainTab === 'vouchers' && (
           <div className="space-y-6">
             {/* Header & Nút tạo Voucher */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(154,106,62,0.18)] dark:border-slate-800 pb-4">
               <div>
-                <h3 className="font-bold text-white text-base sm:text-lg flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-orange-400" />
+                <h3 className="font-bold text-[#2b2721] dark:text-white text-base sm:text-lg flex items-center gap-2">
+                  <Ticket className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   <span>Quản lý Voucher khuyến mãi riêng của Quán</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#7d7165] dark:text-slate-400 mt-0.5">
                   Tự tạo mã giảm giá thu hút khách hàng — 0đ phí khởi tạo, chỉ trừ khi có đơn giao thành công.
                 </p>
               </div>
@@ -2717,39 +2714,39 @@ export default function MerchantDashboard() {
             </div>
 
             {/* Banner Chính sách Tài chính & Giảm trừ thuế Hộ Kinh Doanh */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border border-orange-500/30 space-y-3 text-xs">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#fffdfa] via-[#fff8ef] to-[#fcf4e8] dark:from-slate-800/90 dark:to-slate-900 border border-[rgba(154,106,62,0.25)] dark:border-orange-500/30 space-y-3 text-xs shadow-xs transition-colors">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 font-bold text-orange-400 text-sm">
-                  <ShieldCheck className="w-4 h-4" />
+                <div className="flex items-center gap-2 font-bold text-[#845831] dark:text-orange-400 text-sm">
+                  <ShieldCheck className="w-4 h-4 text-[#9a6a3e] dark:text-orange-400" />
                   <span>Cơ chế quyết toán Voucher & Khấu trừ thuế dành cho {store.merchantType === 'ENTERPRISE' ? 'Doanh nghiệp' : store.merchantType === 'INDIVIDUAL' ? 'Cá nhân' : 'Hộ Kinh Doanh'}</span>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] dark:bg-amber-500/20 text-[#845831] dark:text-amber-300 border border-[rgba(154,106,62,0.25)] dark:border-amber-500/30">
                   {MERCHANT_TYPE_LABELS[store.merchantType || 'HOUSEHOLD']}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] text-slate-300">
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
-                  <p className="font-bold text-emerald-400">1. Chỉ trừ khi có đơn thành công</p>
-                  <p className="text-slate-400 leading-relaxed">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] text-[#2b2721] dark:text-slate-300">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-950/70 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <p className="font-bold text-emerald-700 dark:text-emerald-400">1. Chỉ trừ khi có đơn thành công</p>
+                  <p className="text-[#6e6255] dark:text-slate-400 leading-relaxed">
                     Thoải mái cài đặt ngân sách voucher. FoodFast không thu phí khởi tạo và không giam tiền ví trước.
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
-                  <p className="font-bold text-amber-400">2. Công thức trừ trực tiếp</p>
-                  <p className="text-slate-400 leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-950/70 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <p className="font-bold text-amber-700 dark:text-amber-400">2. Công thức trừ trực tiếp</p>
+                  <p className="text-[#6e6255] dark:text-slate-400 leading-relaxed">
                     Tiền Quán Nhận = (Giá gốc - Voucher Quán) - Chiết khấu sàn ({Math.round((store.commissionRate ?? 0.25) * 100)}%) - Thuế hộ ({store.merchantType === 'ENTERPRISE' ? '0%' : '1.5%'}).
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
-                  <p className="font-bold text-blue-400">3. Giảm trừ doanh thu tính thuế</p>
-                  <p className="text-slate-400 leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-950/70 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <p className="font-bold text-blue-700 dark:text-blue-400">3. Giảm trừ doanh thu tính thuế</p>
+                  <p className="text-[#6e6255] dark:text-slate-400 leading-relaxed">
                     Voucher Quán tự tài trợ được trừ thẳng khỏi doanh thu chịu thuế GTGT (1%) &amp; TNCN (0.5%) và chiết khấu sàn!
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
-                  <p className="font-bold text-purple-400">4. Phân biệt Voucher Sàn</p>
-                  <p className="text-slate-400 leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-950/70 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <p className="font-bold text-purple-700 dark:text-purple-400">4. Phân biệt Voucher Sàn</p>
+                  <p className="text-[#6e6255] dark:text-slate-400 leading-relaxed">
                     Khi khách dùng mã của sàn FoodFast (Freeship, Đại tiệc...), Quán vẫn nhận đủ tiền món, FoodFast tự bù tiền giảm.
                   </p>
                 </div>
@@ -2758,15 +2755,15 @@ export default function MerchantDashboard() {
 
             {/* Danh sách Voucher Quán tự tạo */}
             {vouchersLoading ? (
-              <div className="py-12 text-center text-slate-400">
-                <RotateCw className="w-7 h-7 animate-spin text-orange-500 mx-auto mb-2" />
+              <div className="py-12 text-center text-[#7d7165] dark:text-slate-400">
+                <RotateCw className="w-7 h-7 animate-spin text-orange-600 dark:text-orange-500 mx-auto mb-2" />
                 <p className="text-xs">Đang tải danh sách mã khuyến mãi của quán...</p>
               </div>
             ) : merchantVouchers.length === 0 ? (
-              <div className="bg-slate-800/40 rounded-3xl p-10 text-center border border-slate-800 space-y-3">
-                <Ticket className="w-12 h-12 text-slate-600 mx-auto" />
-                <p className="text-base font-bold text-slate-200">Quán chưa phát hành mã Voucher nào</p>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <div className="bg-white/80 dark:bg-slate-800/40 rounded-3xl p-10 text-center border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-3">
+                <Ticket className="w-12 h-12 text-[#b8ab9d] dark:text-slate-600 mx-auto" />
+                <p className="text-base font-bold text-[#2b2721] dark:text-slate-200">Quán chưa phát hành mã Voucher nào</p>
+                <p className="text-xs text-[#7d7165] dark:text-slate-400 max-w-md mx-auto">
                   Hãy tạo mã giảm giá đầu tiên (VD: Giảm 15.000đ cho đơn từ 120.000đ) để tăng tỷ lệ chuyển đổi đơn hàng và được giảm trừ doanh thu tính thuế!
                 </p>
                 <button
@@ -2795,62 +2792,62 @@ export default function MerchantDashboard() {
                   return (
                     <div
                       key={v._id}
-                      className={`p-4 rounded-2xl bg-slate-800/80 border transition-all space-y-3 ${
-                        v.is_active ? 'border-slate-700 hover:border-orange-500/40' : 'border-slate-800 opacity-70'
+                      className={`p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs transition-all space-y-3 ${
+                        v.is_active ? 'hover:border-orange-500/40' : 'opacity-70'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-black text-sm text-orange-400 tracking-wider bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">
+                            <span className="font-mono font-black text-sm text-orange-600 dark:text-orange-400 tracking-wider bg-[#fbf8f2] dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-[rgba(154,106,62,0.18)] dark:border-slate-700">
                               {v.code}
                             </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] dark:bg-amber-500/20 text-[#845831] dark:text-amber-300 border border-[rgba(154,106,62,0.2)] dark:border-amber-500/30">
                               Voucher Quán
                             </span>
                             {isExpired && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30">
                                 Hết hạn
                               </span>
                             )}
                           </div>
-                          <p className="text-white font-bold text-sm mt-1.5">{v.title}</p>
+                          <p className="text-[#2b2721] dark:text-white font-bold text-sm mt-1.5">{v.title}</p>
                         </div>
 
                         <button
                           onClick={() => handleToggleVoucher(v._id)}
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition cursor-pointer shrink-0 ${
                             v.is_active
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                              : 'bg-slate-700 text-slate-400 border-slate-600'
+                              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                              : 'bg-[#f2ece1] dark:bg-slate-700 text-[#7d7165] dark:text-slate-400 border-[rgba(154,106,62,0.2)] dark:border-slate-600'
                           }`}
                         >
                           {v.is_active ? 'Đang bật' : 'Tạm tắt'}
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[#fbf8f2] dark:bg-slate-900/80 border border-[rgba(154,106,62,0.15)] dark:border-slate-800 text-xs">
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Mức giảm:</span>
-                          <strong className="text-emerald-400">
+                          <span className="text-[#7d7165] dark:text-slate-400 block text-[10px]">Mức giảm:</span>
+                          <strong className="text-emerald-700 dark:text-emerald-400">
                             {v.discount_type === 'PERCENTAGE'
                               ? `Giảm ${v.discount_value}%${v.max_discount_amount ? ` (tối đa ${formatVND(v.max_discount_amount)})` : ''}`
                               : `Giảm ${formatVND(v.discount_value)}`}
                           </strong>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Đơn tối thiểu:</span>
-                          <strong className="text-white">{formatVND(v.min_order_value || 0)}</strong>
+                          <span className="text-[#7d7165] dark:text-slate-400 block text-[10px]">Đơn tối thiểu:</span>
+                          <strong className="text-[#2b2721] dark:text-white">{formatVND(v.min_order_value || 0)}</strong>
                         </div>
                       </div>
 
                       {/* Tiến độ lượt dùng */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-slate-400">
-                          <span>Đã dùng: <strong className="text-white">{v.used_count || 0}</strong> / {v.usage_limit} lượt</span>
-                          <span className="text-orange-400 font-bold">{usagePct}%</span>
+                        <div className="flex justify-between text-[11px] text-[#7d7165] dark:text-slate-400">
+                          <span>Đã dùng: <strong className="text-[#2b2721] dark:text-white">{v.used_count || 0}</strong> / {v.usage_limit} lượt</span>
+                          <span className="text-orange-600 dark:text-orange-400 font-bold">{usagePct}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-[#f2ece1] dark:bg-slate-900 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
                             style={{ width: `${usagePct}%` }}
@@ -2859,25 +2856,25 @@ export default function MerchantDashboard() {
                       </div>
 
                       {/* Ước tính thực nhận trên đơn mẫu */}
-                      <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-[11px] flex items-center justify-between text-emerald-300">
+                      <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-500/20 text-[11px] flex items-center justify-between text-emerald-800 dark:text-emerald-300">
                         <span>Đơn {formatVND(sampleSim.grossFoodTotal)} sau trừ CK &amp; thuế:</span>
-                        <strong className="text-emerald-400">Ví nhận {formatVND(sampleSim.netMerchant)}</strong>
+                        <strong className="text-emerald-700 dark:text-emerald-400">Ví nhận {formatVND(sampleSim.netMerchant)}</strong>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                        <span className="text-[11px] text-slate-400">
+                      <div className="pt-2 border-t border-[rgba(154,106,62,0.15)] dark:border-slate-700/60 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-[#7d7165] dark:text-slate-400">
                           HSD: {v.end_date ? new Date(v.end_date).toLocaleDateString('vi-VN') : 'Vô thời hạn'}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleOpenEditVoucher(v)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg bg-[#f2ece1] hover:bg-[#ebdcc8] text-[#2b2721] dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 font-semibold flex items-center gap-1"
                           >
                             <Edit2 className="w-3 h-3" /> Sửa
                           </button>
                           <button
                             onClick={() => handleDeleteVoucher(v._id, v.code)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1"
                           >
                             <Trash2 className="w-3 h-3" /> Xóa
                           </button>
@@ -2894,7 +2891,6 @@ export default function MerchantDashboard() {
                   totalItems={paginatedMerchantVouchers.totalItems}
                   pageSize={paginatedMerchantVouchers.pageSize}
                   itemLabel="voucher"
-                  theme="dark"
                   onPageChange={(p) => setMerchantVoucherPage(p)}
                 />
               </div>
@@ -2908,22 +2904,22 @@ export default function MerchantDashboard() {
         {activeMainTab === 'wallet' && (
           <div className="space-y-6">
             {/* Thẻ ví tổng quan */}
-            <div className="bg-gradient-to-br from-orange-950/60 to-slate-900 rounded-3xl p-6 border border-orange-500/30 shadow-xl space-y-5">
+            <div className="bg-gradient-to-br from-[#fffdfa] via-[#fff8ef] to-[#fcf4e8] dark:from-orange-950/60 dark:to-slate-900 rounded-3xl p-6 border border-[rgba(154,106,62,0.25)] dark:border-orange-500/30 shadow-xs space-y-5 transition-colors">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4" />
+                    <span className="text-xs font-bold text-[#845831] dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-[#9a6a3e] dark:text-orange-400" />
                       <span>Ví Đối Tác FoodFast Partner</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ece1] dark:bg-amber-500/20 text-[#845831] dark:text-amber-300 border border-[rgba(154,106,62,0.25)] dark:border-amber-500/30">
                       {MERCHANT_TYPE_LABELS[store.merchantType || 'HOUSEHOLD']}
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-white">
+                  <p className="text-3xl font-black text-[#2b2721] dark:text-white">
                     {formatVND(realMetrics.availableBalance)}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#7d7165] dark:text-slate-400">
                     Số dư khả dụng thật (Sẵn sàng rút về tài khoản ngân hàng)
                   </p>
                 </div>
@@ -2938,26 +2934,26 @@ export default function MerchantDashboard() {
               </div>
 
               {/* Thông tin số dư đang chờ xử lý & Tài khoản ngân hàng */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
-                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-medium">Số dư đang chờ xử lý (Đơn đang giao):</span>
-                  <p className="text-base font-extrabold text-amber-400">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[rgba(154,106,62,0.15)] dark:border-slate-800 text-xs">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/80 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <span className="text-[#7d7165] dark:text-slate-400 font-medium">Số dư đang chờ xử lý (Đơn đang giao):</span>
+                  <p className="text-base font-extrabold text-amber-700 dark:text-amber-400">
                     {formatVND(realMetrics.pendingBalance)}
                   </p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-[#8c8073] dark:text-slate-500">
                     Tiền dự kiến từ các đơn đang giao hoặc được cấp chờ quyết toán vào Số dư khả dụng.
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-medium">Tài khoản ngân hàng thụ hưởng:</span>
-                  <p className="text-sm font-extrabold text-white">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/80 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <span className="text-[#7d7165] dark:text-slate-400 font-medium">Tài khoản ngân hàng thụ hưởng:</span>
+                  <p className="text-sm font-extrabold text-[#2b2721] dark:text-white">
                     {store.wallet?.bankAccount?.bankName || store.bankName || 'Chưa cập nhật ngân hàng'}{' '}
                     {(store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber) && (
                       <>• {store.wallet?.bankAccount?.accountNumber || store.bankAccountNumber}</>
                     )}
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-[#7d7165] dark:text-slate-400">
                     Chủ tài khoản: {store.wallet?.bankAccount?.accountHolder || store.bankAccountHolder || store.representativeName || 'Chưa cập nhật'}
                   </p>
                 </div>
@@ -2965,57 +2961,57 @@ export default function MerchantDashboard() {
             </div>
 
             {/* Bảng Quyết toán Tổng hợp Thuế & Voucher Hộ Kinh Doanh từ các đơn hoàn tất */}
-            <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-3">
+            <div className="bg-[#fffdfa] dark:bg-slate-800/80 rounded-2xl p-5 border border-[rgba(154,106,62,0.2)] dark:border-slate-700 space-y-4 shadow-xs transition-colors">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(154,106,62,0.15)] dark:border-slate-700 pb-3">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-bold text-[#2b2721] dark:text-white text-base flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-[#9a6a3e] dark:text-orange-400" />
                     <span>Tổng hợp Quyết toán Voucher &amp; Thuế Hộ Kinh Doanh ({walletSummary.orderCount} đơn thành công)</span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[#7d7165] dark:text-slate-400 mt-0.5">
                     Áp dụng giảm trừ doanh thu tính thuế &amp; chiết khấu cho các mã khuyến mãi do Quán tự tài trợ.
                   </p>
                 </div>
-                <span className="text-xs px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                <span className="text-xs px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 font-bold">
                   Chiết khấu sàn: {Math.round((store.commissionRate ?? 0.25) * 100)}%
                 </span>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                  <span className="text-slate-400">Tổng giá gốc món ăn</span>
-                  <p className="text-base font-black text-white">{formatVND(walletSummary.grossFoodTotal)}</p>
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 space-y-1 shadow-2xs">
+                  <span className="text-[#7d7165] dark:text-slate-400">Tổng giá gốc món ăn</span>
+                  <p className="text-base font-black text-[#2b2721] dark:text-white">{formatVND(walletSummary.grossFoodTotal)}</p>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30 space-y-1">
-                  <span className="text-amber-300">(-) Voucher Quán tài trợ</span>
-                  <p className="text-base font-black text-amber-400">-{formatVND(walletSummary.storeVoucherDiscount)}</p>
-                  <span className="text-[10px] text-slate-400 block">Đã trừ vào DT tính thuế</span>
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/30 space-y-1 shadow-2xs">
+                  <span className="text-amber-700 dark:text-amber-300 font-bold">(-) Voucher Quán tài trợ</span>
+                  <p className="text-base font-black text-amber-700 dark:text-amber-400">-{formatVND(walletSummary.storeVoucherDiscount)}</p>
+                  <span className="text-[10px] text-[#8c8073] dark:text-slate-400 block">Đã trừ vào DT tính thuế</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-sky-500/30 space-y-1">
-                  <span className="text-sky-300">Voucher Sàn FoodFast bù</span>
-                  <p className="text-base font-black text-sky-400">+{formatVND(walletSummary.platformVoucherDiscount)}</p>
-                  <span className="text-[10px] text-slate-400 block">Không trừ tiền Quán</span>
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-sky-500/30 space-y-1 shadow-2xs">
+                  <span className="text-sky-700 dark:text-sky-300 font-bold">Voucher Sàn FoodFast bù</span>
+                  <p className="text-base font-black text-sky-700 dark:text-sky-400">+{formatVND(walletSummary.platformVoucherDiscount)}</p>
+                  <span className="text-[10px] text-[#8c8073] dark:text-slate-400 block">Không trừ tiền Quán</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-1">
-                  <span className="text-emerald-300">Tổng thực nhận sau thuế</span>
-                  <p className="text-base font-black text-emerald-400">{formatVND(walletSummary.netMerchant)}</p>
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 space-y-1 shadow-2xs">
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold">Tổng thực nhận sau thuế</span>
+                  <p className="text-base font-black text-emerald-700 dark:text-emerald-400">{formatVND(walletSummary.netMerchant)}</p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
-                <div className="flex justify-between text-slate-300">
+              <div className="p-4 rounded-xl bg-[#fbf8f2] dark:bg-slate-950 border border-[rgba(154,106,62,0.18)] dark:border-slate-800 text-xs space-y-2">
+                <div className="flex justify-between text-[#5c5044] dark:text-slate-300">
                   <span>Doanh thu chịu thuế &amp; chiết khấu (= Giá gốc - Voucher Quán):</span>
-                  <strong className="text-white">{formatVND(walletSummary.taxableRevenue)}</strong>
+                  <strong className="text-[#2b2721] dark:text-white">{formatVND(walletSummary.taxableRevenue)}</strong>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-[#7d7165] dark:text-slate-400">
                   <span>(-) Phí chiết khấu sàn FoodFast ({Math.round((store.commissionRate ?? 0.25) * 100)}%):</span>
-                  <span className="text-rose-400 font-semibold">-{formatVND(walletSummary.platformCommission)}</span>
+                  <span className="text-rose-600 dark:text-rose-400 font-semibold">-{formatVND(walletSummary.platformCommission)}</span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-[#7d7165] dark:text-slate-400">
                   <span>
                     (-) Thuế khấu trừ hộ TMĐT ({store.merchantType === 'ENTERPRISE' ? '0% - DN tự kê khai' : '1.5% = 1% GTGT + 0.5% TNCN'}):
                   </span>
-                  <span className="text-rose-400 font-semibold">-{formatVND(walletSummary.withholdingTax)}</span>
+                  <span className="text-rose-600 dark:text-rose-400 font-semibold">-{formatVND(walletSummary.withholdingTax)}</span>
                 </div>
                 {(walletSummary.taxSavedByStoreVoucher > 0 || walletSummary.commissionSavedByStoreVoucher > 0) && (
                   <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-emerald-400">
@@ -3030,25 +3026,25 @@ export default function MerchantDashboard() {
             </div>
 
             {/* Bảng kê lịch sử giao dịch & Quyết toán THẬT (Không có dòng tiền ảo) */}
-            <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+            <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-[rgba(154,106,62,0.18)] dark:border-slate-700 shadow-2xs space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="font-bold text-white text-base">Lịch sử giao dịch &amp; Quyết toán ({realTransactions.length})</h3>
-                <span className="text-[11px] text-slate-400">
+                <h3 className="font-bold text-[#2b2721] dark:text-white text-base">Lịch sử giao dịch &amp; Quyết toán ({realTransactions.length})</h3>
+                <span className="text-[11px] text-[#7d7165] dark:text-slate-400">
                   Mọi biến động số dư từ Đơn hàng thật, Admin tặng tiền &amp; Rút tiền ngân hàng
                 </span>
               </div>
 
               {realTransactions.length === 0 ? (
-                <div className="py-10 text-center rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                  <Wallet className="w-10 h-10 text-slate-600 mx-auto" />
-                  <p className="text-sm font-bold text-slate-300">Chưa có giao dịch tài chính hoặc quyết toán nào</p>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                <div className="py-10 text-center rounded-2xl bg-[#fbf8f2] dark:bg-slate-900/60 border border-[rgba(154,106,62,0.15)] dark:border-slate-800 space-y-2">
+                  <Wallet className="w-10 h-10 text-[#b8ab9d] dark:text-slate-600 mx-auto" />
+                  <p className="text-sm font-bold text-[#2b2721] dark:text-slate-300">Chưa có giao dịch tài chính hoặc quyết toán nào</p>
+                  <p className="text-xs text-[#7d7165] dark:text-slate-500 max-w-md mx-auto">
                     Doanh thu thực nhận từ các đơn hàng hoàn tất hoặc tiền thưởng / quỹ kiểm thử do Admin FoodFast cấp sẽ hiển thị minh bạch tại đây.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="divide-y divide-slate-700/60">
+                  <div className="divide-y divide-[rgba(154,106,62,0.12)] dark:divide-slate-700/60">
                     {paginatedTransactions.items.map((tr, idx) => {
                     const isPositive = Number(tr.amount) > 0;
                     const isGrant = tr.type === 'ADMIN_GRANT';
@@ -3058,31 +3054,31 @@ export default function MerchantDashboard() {
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             {isGrant && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 flex items-center gap-1">
                                 <Gift className="w-3 h-3" /> Admin tặng tiền
                               </span>
                             )}
                             {isOrder && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                                 Quyết toán đơn hàng
                               </span>
                             )}
                             {!isGrant && !isOrder && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                                 Rút tiền ngân hàng
                               </span>
                             )}
-                            <p className="font-bold text-white">{tr.desc}</p>
+                            <p className="font-bold text-[#2b2721] dark:text-white">{tr.desc}</p>
                           </div>
 
-                          <p className="text-[11px] text-slate-400">
-                            Mã GD: <span className="font-mono text-slate-300">{tr.code}</span> •{' '}
+                          <p className="text-[11px] text-[#7d7165] dark:text-slate-400">
+                            Mã GD: <span className="font-mono text-[#2b2721] dark:text-slate-300">{tr.code}</span> •{' '}
                             {tr.createdAt ? new Date(tr.createdAt).toLocaleString('vi-VN') : ''}
                             {tr.createdBy && tr.createdBy !== 'SYSTEM' && ` • Bởi: ${tr.createdBy}`}
                           </p>
 
                           {isOrder && tr.grossAmount > 0 && (
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-[10px] text-[#7d7165] dark:text-slate-400">
                               Giá gốc: {formatVND(tr.grossAmount)}
                               {tr.storeVoucherDiscount > 0 && ` • Voucher quán: -${formatVND(tr.storeVoucherDiscount)}`}
                               {tr.commission > 0 && ` • Chiết khấu sàn: -${formatVND(tr.commission)}`}
@@ -3092,16 +3088,16 @@ export default function MerchantDashboard() {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <p className={`font-black text-sm ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <p className={`font-black text-sm ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {isPositive ? `+${formatVND(tr.amount)}` : formatVND(tr.amount)}
                           </p>
                           <span
                             className={`text-[10px] font-bold ${
                               tr.status === 'SUCCESS' || tr.status === 'Thành công'
-                                ? 'text-emerald-400'
+                                ? 'text-emerald-700 dark:text-emerald-400'
                                 : tr.status === 'REJECTED'
-                                ? 'text-rose-400'
-                                : 'text-amber-400'
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-amber-700 dark:text-amber-400'
                             }`}
                           >
                             {tr.status === 'SUCCESS' ? 'Thành công' : tr.status === 'PENDING' ? 'Đang xử lý' : tr.status}
@@ -3123,7 +3119,6 @@ export default function MerchantDashboard() {
                       setTxPage(1);
                     }}
                     itemLabel="giao dịch"
-                    theme="dark"
                     onPageChange={(p) => setTxPage(p)}
                   />
                 </div>

@@ -423,6 +423,36 @@ html:not(.dark) .merchant-sketchbook-theme.bg-slate-900 {
   color: #2b2721 !important;
 }
 
+/* Triệt tiêu 100% gradient đen tối màu trong Light Mode cho Admin & Merchant */
+html:not(.dark) .admin-sketchbook-theme [class*="bg-gradient-to-"],
+html:not(.dark) .merchant-sketchbook-theme [class*="bg-gradient-to-"] {
+  background-image: none !important;
+  background-color: rgba(255, 253, 250, 0.98) !important;
+  border-color: rgba(154, 106, 62, 0.22) !important;
+  color: #2b2721 !important;
+}
+
+/* Triệt tiêu tất cả các class bg-slate (kể cả có opacity /80, /70, /90) trong Light Mode */
+html:not(.dark) .admin-sketchbook-theme [class*="bg-slate-950"],
+html:not(.dark) .admin-sketchbook-theme [class*="bg-slate-900"],
+html:not(.dark) .admin-sketchbook-theme [class*="bg-slate-800"],
+html:not(.dark) .admin-sketchbook-theme [class*="bg-slate-750"],
+html:not(.dark) .merchant-sketchbook-theme [class*="bg-slate-950"],
+html:not(.dark) .merchant-sketchbook-theme [class*="bg-slate-900"],
+html:not(.dark) .merchant-sketchbook-theme [class*="bg-slate-800"],
+html:not(.dark) .merchant-sketchbook-theme [class*="bg-slate-750"] {
+  background-image: none !important;
+  background-color: rgba(255, 253, 250, 0.96) !important;
+  border-color: rgba(154, 106, 62, 0.16) !important;
+  color: #2b2721 !important;
+}
+
+/* Triệt tiêu viền đen border-slate trong Light Mode */
+html:not(.dark) .admin-sketchbook-theme [class*="border-slate-"],
+html:not(.dark) .merchant-sketchbook-theme [class*="border-slate-"] {
+  border-color: rgba(154, 106, 62, 0.18) !important;
+}
+
 /* Modal Popup & Fixed Containers trong Admin & Merchant (Light) */
 html:not(.dark) .admin-sketchbook-theme .fixed .bg-slate-900,
 html:not(.dark) .merchant-sketchbook-theme .fixed .bg-slate-900,
