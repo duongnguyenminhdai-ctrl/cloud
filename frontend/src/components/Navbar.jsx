@@ -103,183 +103,188 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo chính thức từ Google AI Studio & City Selector */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs">
-              <img
-                src="/foodfast-logo.png"
-                alt="FoodFast Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="flex items-center">
-              <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] transition-colors leading-none">
-                FoodFast
-              </span>
-            </div>
-          </Link>
-
-          {/* FoodFast City Selector (Chuẩn 63 Tỉnh Thành) */}
-          <div className="flex items-center">
-            <CitySelector />
-          </div>
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
-
-          {/* Nút "Cửa hàng của tôi" - Viền cam / chữ cam tiệp theme FoodFast (Desktop / Tablet) */}
-          {isAuthenticated && user?.role !== 'ADMIN' && (
-            <button
-              onClick={handleMyStoreClick}
-              disabled={checkingStore}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[rgba(154,106,62,0.35)] dark:border-[rgba(229,184,135,0.35)] text-[#9a6a3e] dark:text-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#2b2520] font-bold text-xs sm:text-sm transition-all shadow-xs"
-              title="Quản lý hoặc mở cửa hàng kinh doanh trên FoodFast"
-            >
-              {checkingStore ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#9a6a3e] dark:text-[#e5b887]" />
-              ) : (
-                <Store className="w-4 h-4 text-[#9a6a3e] dark:text-[#e5b887]" />
-              )}
-              <span>Cửa hàng của tôi</span>
-            </button>
-          )}
-
-          {/* Nút "Quản trị" dành riêng cho tài khoản ADMIN (Desktop / Tablet) */}
-          {isAuthenticated && user?.role === 'ADMIN' && (
-            <Link
-              to="/admin"
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white text-xs font-bold border border-[#845831] shadow-xs transition-all cursor-pointer"
-              title="Trang quản trị hệ thống"
-            >
-              <ShieldCheck className="w-4 h-4 text-amber-200" />
-              <span>Quản trị</span>
-            </Link>
-          )}
-
-          {/* Cart Button: Nhấn vào hiển thị Giỏ hàng (Desktop) */}
-          <Link
-            to="/orders?tab=cart"
-            className="hidden md:flex relative p-2.5 rounded-xl text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors"
-            title="Xem giỏ hàng"
-          >
-            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#9a6a3e] text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse shadow-xs">
-                {totalItems > 99 ? '99+' : totalItems}
-              </span>
-            )}
-          </Link>
-
-          {/* Chuông Thông Báo Khách Hàng (Shopee Style) */}
-          {isAuthenticated && <NotificationBell />}
-
-          {/* Nút Điểm danh nhận Xu (Desktop / Tablet) */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => setShowCheckInModal(true)}
-              className="hidden md:flex relative items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/15 dark:from-amber-400/15 dark:to-orange-500/20 border border-amber-500/30 dark:border-amber-400/40 text-[#845831] dark:text-[#f5c542] hover:bg-amber-500/20 dark:hover:bg-amber-400/25 text-xs font-black transition-all shadow-2xs group cursor-pointer"
-              title="Điểm danh mỗi ngày nhận 500 - 1.000 Xu & Quà mốc tháng"
-            >
-              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
-              <span className="font-extrabold tracking-tight">Điểm danh</span>
-              {!isCheckedInToday && (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping absolute -top-0.5 -right-0.5" />
-                  <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-0.5" />
-                </>
-              )}
-            </button>
-          )}
-
-          {/* Hiển thị số Xu FoodFast tích lũy */}
-          {isAuthenticated && (
-            <Link
-              to="/orders?tab=reviews"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2ece1] dark:bg-[#2b2520] border border-[rgba(154,106,62,0.25)] dark:border-[rgba(181,129,76,0.3)] text-[#845831] dark:text-[#e5b887] font-extrabold text-xs hover:bg-[#ebdcc8] dark:hover:bg-[#383029] transition-all shadow-2xs"
-              title="Số Xu FoodFast tích lũy (Đánh giá đơn hàng để nhận 1.000 Xu)"
-            >
-              <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-              <span>{Number(user?.coins || 0).toLocaleString('vi-VN')} Xu</span>
-            </Link>
-          )}
-
-          {/* Nút chuyển đổi Light / Dark Mode ("Candlelit Studio") nét 1.5px */}
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-center p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-[rgba(43,39,33,0.18)] dark:border-[rgba(240,234,224,0.18)] bg-[#f2ece1] dark:bg-[#26211c] text-[#2b2721] dark:text-[#ede6d8] hover:border-[#9a6a3e] dark:hover:border-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#302a24] text-xs font-semibold transition-all shadow-2xs cursor-pointer"
-            title={`Chuyển sang chế độ ${isDark ? 'Sáng' : 'Tối'}`}
-            aria-label="Chuyển chế độ Sáng / Tối"
-          >
-            {isDark ? (
-              <>
-                <Sun className="w-4 h-4 text-amber-400 stroke-[1.5]" />
-                <span className="hidden md:inline text-[11px] font-medium tracking-wide ml-1">Sáng</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-[#9a6a3e] stroke-[1.5]" />
-                <span className="hidden md:inline text-[11px] font-medium tracking-wide ml-1">Tối</span>
-              </>
-            )}
-          </button>
-
-          {/* User Profile / Auth */}
-          {isAuthenticated ? (
-            <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 border-l border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.14)]">
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 p-1 sm:px-2 rounded-xl hover:bg-[#ece7dc]/80 dark:hover:bg-[#2b2520]/80 transition-all text-right group cursor-pointer"
-                title="Xem và cập nhật thông tin tài khoản & Đổi mật khẩu"
-              >
-                <UserAvatar
-                  src={user?.avatar}
-                  name={user?.name}
-                  fallbackChar="U"
-                  className="w-8 h-8 rounded-full text-xs shadow-xs"
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+          {/* CỤM 1 (TRÁI): Brand Logo & City Selector */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs">
+                <img
+                  src="/foodfast-logo.png"
+                  alt="FoodFast Logo"
+                  className="w-full h-full object-contain"
                 />
-                <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-sm font-semibold text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] leading-tight transition">
-                    {user?.name || 'Khách hàng'}
-                  </span>
-                  <span className="text-xs text-[#2b2721]/50 dark:text-[#ede6d8]/50 font-medium">
-                    {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
-                  </span>
-                </div>
-              </Link>
+              </div>
+              <div className="flex items-center">
+                <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] transition-colors leading-none">
+                  FoodFast
+                </span>
+              </div>
+            </Link>
+
+            {/* City Selector (Chuẩn 63 Tỉnh Thành) */}
+            <div className="flex items-center">
+              <CitySelector />
+            </div>
+          </div>
+
+          {/* CỤM 2 (PHẢI): Thứ tự chuẩn TMĐT cao cấp (Portal -> Gamification -> Utilities -> User) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* 1. Portal Hub: "Cửa hàng của tôi" (Merchant) hoặc "Quản trị" (ADMIN) */}
+            {isAuthenticated && user?.role !== 'ADMIN' && (
               <button
-                onClick={() => {
-                  logout();
-                  navigate('/login');
-                }}
-                className="p-1.5 sm:p-2 text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
-                title="Đăng xuất"
+                type="button"
+                onClick={handleMyStoreClick}
+                disabled={checkingStore}
+                className="hidden md:flex items-center gap-1.5 px-3 h-9 rounded-xl border border-[rgba(154,106,62,0.3)] dark:border-[rgba(229,184,135,0.3)] bg-[#f2ece1]/60 dark:bg-[#26211c]/60 text-[#9a6a3e] dark:text-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#2b2520] font-bold text-xs transition-all shadow-2xs cursor-pointer"
+                title="Quản lý hoặc mở cửa hàng kinh doanh trên FoodFast"
               >
-                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                {checkingStore ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#9a6a3e] dark:text-[#e5b887]" />
+                ) : (
+                  <Store className="w-3.5 h-3.5 text-[#9a6a3e] dark:text-[#e5b887]" />
+                )}
+                <span>Cửa hàng của tôi</span>
+              </button>
+            )}
+
+            {isAuthenticated && user?.role === 'ADMIN' && (
+              <Link
+                to="/admin"
+                className="hidden md:flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#9a6a3e] hover:bg-[#845831] text-white text-xs font-bold border border-[#845831] shadow-2xs transition-all cursor-pointer"
+                title="Trang quản trị hệ thống"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
+                <span>Quản trị</span>
+              </Link>
+            )}
+
+            {/* 2. Gamification Capsule: Hợp nhất [🪙 Số dư Xu | 🔥 Điểm danh] thành 1 Pill thanh lịch */}
+            {isAuthenticated && (
+              <div className="hidden lg:flex items-center h-9 rounded-xl bg-[#f2ece1] dark:bg-[#26211c] border border-[rgba(154,106,62,0.25)] dark:border-[rgba(240,234,224,0.15)] shadow-2xs p-0.5">
+                <Link
+                  to="/orders?tab=reviews"
+                  className="flex items-center gap-1.5 px-2.5 h-full rounded-lg hover:bg-[#e8dfd2] dark:hover:bg-[#312b24] text-[#845831] dark:text-[#e5b887] font-bold text-xs transition-colors"
+                  title="Số Xu FoodFast tích lũy (Đánh giá đơn hàng nhận 1.000 Xu)"
+                >
+                  <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
+                  <span>{Number(user?.coins || 0).toLocaleString('vi-VN')} Xu</span>
+                </Link>
+                <div className="w-px h-4 bg-[rgba(154,106,62,0.2)] dark:bg-[rgba(240,234,224,0.12)]" />
+                <button
+                  type="button"
+                  onClick={() => setShowCheckInModal(true)}
+                  className="relative flex items-center gap-1.5 px-2.5 h-full rounded-lg hover:bg-[#e8dfd2] dark:hover:bg-[#312b24] text-[#845831] dark:text-[#e5b887] font-bold text-xs transition-colors cursor-pointer group"
+                  title="Điểm danh mỗi ngày nhận 500 - 1.000 Xu & Quà mốc tháng"
+                >
+                  <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 group-hover:scale-110 transition-transform shrink-0" />
+                  <span>Điểm danh</span>
+                  {!isCheckedInToday && (
+                    <span className="relative flex h-2 w-2 ml-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Divider giữa nhóm Gamification/Portal và nhóm Utilities */}
+            {isAuthenticated && (
+              <div className="hidden md:block w-px h-5 bg-[rgba(43,39,33,0.14)] dark:bg-[rgba(240,234,224,0.12)]" />
+            )}
+
+            {/* 3. Tiện ích (Utilities): Cart + Notification Bell + Theme Toggle */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {/* Giỏ hàng */}
+              <Link
+                to="/orders?tab=cart"
+                className="relative h-9 w-9 rounded-xl flex items-center justify-center text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors"
+                title="Xem giỏ hàng của bạn"
+              >
+                <ShoppingBag className="w-[19px] h-[19px] stroke-[1.75]" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#9a6a3e] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                )}
+              </Link>
+
+              {/* Chuông Thông Báo */}
+              {isAuthenticated && <NotificationBell />}
+
+              {/* Nút chuyển đổi Light / Dark Mode (Icon-only h-9 w-9 gọn gàng tinh tế) */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="h-9 w-9 rounded-xl flex items-center justify-center border border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.14)] bg-[#f2ece1] dark:bg-[#26211c] text-[#2b2721] dark:text-[#ede6d8] hover:border-[#9a6a3e] dark:hover:border-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#302a24] transition-all shadow-2xs cursor-pointer"
+                title={`Chuyển sang chế độ ${isDark ? 'Sáng' : 'Tối'}`}
+                aria-label="Chuyển chế độ Sáng / Tối"
+              >
+                {isDark ? (
+                  <Sun className="w-4 h-4 text-amber-400 stroke-[1.75]" />
+                ) : (
+                  <Moon className="w-4 h-4 text-[#9a6a3e] stroke-[1.75]" />
+                )}
               </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Link
-                to="/login"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/60 dark:hover:bg-[#2b2520]/60 rounded-xl transition-colors"
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                to="/register"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-[#9a6a3e] hover:bg-[#845831] rounded-xl shadow-xs transition-all"
-              >
-                Đăng ký
-              </Link>
-            </div>
-          )}
+
+            {/* Divider giữa nhóm Tiện ích và User Hub */}
+            <div className="w-px h-5 bg-[rgba(43,39,33,0.14)] dark:bg-[rgba(240,234,224,0.12)]" />
+
+            {/* 4. User Profile Hub hoặc Đăng nhập / Đăng ký */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 h-9 px-1.5 sm:px-2 rounded-xl hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors text-right group cursor-pointer"
+                  title="Xem và cập nhật thông tin tài khoản"
+                >
+                  <UserAvatar
+                    src={user?.avatar}
+                    name={user?.name}
+                    fallbackChar="U"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs shadow-xs"
+                  />
+                  <div className="hidden sm:flex flex-col text-left max-w-[120px] lg:max-w-[150px]">
+                    <span className="text-xs font-bold text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] leading-tight truncate transition">
+                      {user?.name || 'Khách hàng'}
+                    </span>
+                    <span className="text-[10px] text-[#2b2721]/50 dark:text-[#ede6d8]/50 font-medium leading-none mt-0.5 truncate">
+                      {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
+                    </span>
+                  </div>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    navigate('/login');
+                  }}
+                  className="h-9 w-9 rounded-xl flex items-center justify-center text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-4 h-4 stroke-[1.75]" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <Link
+                  to="/login"
+                  className="h-9 px-3 rounded-xl flex items-center text-xs font-semibold text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/60 dark:hover:bg-[#2b2520]/60 transition-colors"
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/register"
+                  className="h-9 px-3.5 rounded-xl flex items-center text-xs font-bold text-white bg-[#9a6a3e] hover:bg-[#845831] shadow-2xs transition-all"
+                >
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
       {/* Modal Quản lý thông tin tài khoản (Tự động Portal ra body với ưu tiên cao nhất) */}
       <UserProfileModal

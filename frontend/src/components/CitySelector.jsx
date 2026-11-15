@@ -59,7 +59,7 @@ export default function CitySelector() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2ece1] dark:bg-[#26211c] hover:bg-[#ebdcc8] dark:hover:bg-[#302a24] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(240,234,224,0.18)] text-xs font-bold text-[#2b2721] dark:text-[#ede6d8] hover:text-[#845831] dark:hover:text-[#e5b887] transition-all shadow-2xs group cursor-pointer"
+        className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#f2ece1] dark:bg-[#26211c] hover:bg-[#ebdcc8] dark:hover:bg-[#302a24] border border-[rgba(154,106,62,0.3)] dark:border-[rgba(240,234,224,0.18)] text-xs font-bold text-[#2b2721] dark:text-[#ede6d8] hover:text-[#845831] dark:hover:text-[#e5b887] transition-all shadow-2xs group cursor-pointer"
         title="Chọn Tỉnh/Thành phố của bạn"
       >
         <MapPin className="w-3.5 h-3.5 text-[#9a6a3e] dark:text-[#e5b887] group-hover:scale-110 transition-transform" />
