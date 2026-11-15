@@ -1097,6 +1097,45 @@ export default function Home() {
         </div>
 
         {/* ===================================================================== */}
+        {/* 1.5. BANNER / QUICK CARD: HÔM NAY ĂN GÌ? (Vòng quay chọn món nhận x2 Xu - Milestone 3) */}
+        {/* ===================================================================== */}
+        <div
+          onClick={() => window.dispatchEvent(new CustomEvent('open_food_roulette'))}
+          className="relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer group transition-all duration-300
+            bg-gradient-to-r from-[#EE4D2D]/10 via-amber-500/10 to-[#9a6a3e]/15
+            border border-[#EE4D2D]/30 hover:border-[#EE4D2D] hover:shadow-lg dark:hover:shadow-[#EE4D2D]/10"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#EE4D2D] to-orange-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                <Compass className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-[#1e1b18] dark:text-[#f4efe6]">
+                    Hôm Nay Ăn Gì? — Vòng Quay Chọn Món
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-[#EE4D2D] text-white text-[11px] font-extrabold uppercase shadow-sm">
+                    Nhận x2 Xu
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+                  Không biết ăn gì trưa nay? Quay ngay 8 món gợi ý thông minh & chốt đơn trong 5 phút để nhân đôi Xu tích lũy!
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-[#EE4D2D] hover:bg-[#dc3f1f] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-sm group-hover:shadow-md flex items-center gap-1.5 shrink-0"
+            >
+              <span>Quay Ngay</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+        </div>
+
+        {/* ===================================================================== */}
         {/* 2. SỔ TAY KÝ HỌA ẨM THỰC BA MIỀN 3D (Image 2) */}
         {/* ===================================================================== */}
         <HomeSketchbookSection />

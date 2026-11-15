@@ -87,6 +87,38 @@ const orderSchema = new mongoose.Schema(
     modifyReason: {
       type: String,
       default: ''
+    },
+    rouletteSessionId: {
+      type: String,
+      default: null
+    },
+    coinBonusMultiplier: {
+      type: Number,
+      default: 1
+    },
+    rouletteMenuItemId: {
+      type: String,
+      default: null
+    },
+    coinsRewarded: {
+      type: Boolean,
+      default: false
+    },
+    coinsRewardAmount: {
+      type: Number,
+      default: 0
+    },
+    isGroupOrder: {
+      type: Boolean,
+      default: false
+    },
+    groupOrderRoomCode: {
+      type: String,
+      default: null
+    },
+    groupOrderInfo: {
+      type: Object,
+      default: null
     }
   },
   {

@@ -2,6 +2,168 @@ const Order = require('../models/Order');
 const { publishEvent, DEFAULT_EXCHANGE } = require('../rabbitmq');
 const { subscribe, emitOrderEvent } = require('../utils/realtimeHub');
 
+/**
+ * Tra cứu thông tin phiên quay Roulette từ restaurant-service hoặc trực tiếp từ MongoDB Atlas
+ */
+async function fetchRouletteSession(sessionId) {
+  if (!sessionId) return null;
+  const restaurantUrl = process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3001';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const resp = await fetch(`${restaurantUrl}/api/v1/restaurants/roulette/session/${sessionId}`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.success && data.data) {
+        return data.data;
+      }
+    }
+  } catch (err) {
+    // Timeout hoặc network error, tiến hành fallback MongoDB
+  }
+
+  // Fallback sang MongoDB cluster trực tiếp nếu đang kết nối
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const restDb = mongoose.connection.useDb('restaurant_db');
+      const sessionsCol = restDb.collection('roulettesessions');
+      const doc = await sessionsCol.findOne({ sessionId: String(sessionId) });
+      if (doc) return doc;
+    }
+  } catch (dbErr) {
+    // Không truy cập được fallback
+  }
+
+  return null;
+}
+
+/**
+ * Đánh dấu tiêu thụ phiên quay Roulette sau khi đơn hàng được tạo thành công
+ */
+async function consumeRouletteSession(sessionId, { orderId, userId, menuItemId }) {
+  if (!sessionId) return false;
+  const restaurantUrl = process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3001';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const resp = await fetch(`${restaurantUrl}/api/v1/restaurants/roulette/session/${sessionId}/consume`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: orderId ? String(orderId) : null,
+        userId: userId ? String(userId) : null,
+        menuItemId: menuItemId ? String(menuItemId) : null
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (resp.ok) {
+      return true;
+    }
+  } catch (err) {
+    // Network fallback
+  }
+
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const restDb = mongoose.connection.useDb('restaurant_db');
+      const sessionsCol = restDb.collection('roulettesessions');
+      await sessionsCol.updateOne(
+        { sessionId: String(sessionId), isUsed: false },
+        {
+          $set: {
+            isUsed: true,
+            usedAt: new Date(),
+            orderId: orderId ? String(orderId) : null
+          }
+        }
+      );
+      return true;
+    }
+  } catch (dbErr) {
+    // silent
+  }
+
+  return false;
+}
+
+/**
+ * Cộng Xu FoodFast cho người dùng qua MongoDB auth_db hoặc API Auth Service
+ */
+async function creditUserCoins(userId, amount = 2000, reason = 'ROULETTE_DOUBLE_COINS', orderId = null) {
+  if (!userId || amount <= 0) return null;
+
+  // 1. Direct MongoDB update across databases on the same Atlas cluster
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const authDb = mongoose.connection.useDb('auth_db');
+      const usersCol = authDb.collection('users');
+      const query = mongoose.isValidObjectId(userId) ? { _id: new mongoose.Types.ObjectId(userId) } : { _id: String(userId) };
+      const updated = await usersCol.findOneAndUpdate(
+        query,
+        { $inc: { coins: amount } },
+        { returnDocument: 'after' }
+      );
+      if (updated && (updated.value?.coins !== undefined || updated.coins !== undefined)) {
+        return updated.value?.coins ?? updated.coins;
+      }
+    }
+  } catch (dbErr) {
+    console.warn('[orderController] ⚠️ Lỗi cộng xu trực tiếp qua auth_db:', dbErr.message);
+  }
+
+  // 2. HTTP fallback via Auth Service API
+  try {
+    const authUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3005';
+    const resp = await fetch(`${authUrl}/api/v1/auth/coins/reward`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: String(userId),
+        amount,
+        reason,
+        orderId: orderId ? String(orderId) : null
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return data?.coins;
+    }
+  } catch (httpErr) {
+    console.warn('[orderController] ⚠️ Lỗi gọi API Auth Service cộng xu:', httpErr.message);
+  }
+
+  return null;
+}
+
+/**
+ * Tự động nhân đôi xu thưởng khi đơn hàng hoàn thành DELIVERED / COMPLETED
+ */
+async function rewardRouletteCoinsIfEligible(order) {
+  if (!order || Number(order.coinBonusMultiplier) <= 1 || order.coinsRewarded) {
+    return false;
+  }
+  const coinsToReward = 2000;
+  try {
+    await creditUserCoins(order.customerId, coinsToReward, 'ROULETTE_DOUBLE_COINS', order._id);
+    order.coinsRewarded = true;
+    order.coinsRewardAmount = coinsToReward;
+    await order.save();
+    console.log(`[orderController] 🎁 Đã tặng x2 Xu (${coinsToReward} Xu) cho khách hàng ${order.customerId} từ đơn hàng ${order._id}`);
+    return true;
+  } catch (err) {
+    console.warn('[orderController] ⚠️ Lỗi thưởng xu roulette:', err.message);
+    return false;
+  }
+}
+
 exports.streamOrders = (req, res) => {
   return subscribe(req, res, {
     customerId: req.query?.customerId,
@@ -29,7 +191,11 @@ exports.createOrder = async (req, res) => {
       voucherIssuerType,
       storeVoucherDiscount,
       platformVoucherDiscount,
-      shippingFee
+      shippingFee,
+      rouletteSessionId,
+      isGroupOrder,
+      groupOrderRoomCode,
+      groupOrderInfo
     } = req.body;
 
     const resolvedCustomerId = (req.user && req.user.userId) ? req.user.userId : customerId;
@@ -51,6 +217,73 @@ exports.createOrder = async (req, res) => {
           message: 'Dữ liệu món ăn không hợp lệ: Số lượng phải là số nguyên dương (>= 1) và giá tiền không được âm.'
         });
       }
+    }
+
+    // Xác thực ưu đãi phiên quay Roulette (Requirement R2)
+    let coinBonusMultiplier = 1;
+    let validatedRouletteSession = null;
+    let rouletteMenuItemId = null;
+
+    if (rouletteSessionId) {
+      const sessId = String(rouletteSessionId).trim();
+      const session = await fetchRouletteSession(sessId);
+
+      if (!session) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phiên quay thưởng không tồn tại.'
+        });
+      }
+
+      // Check 1: Thuộc đúng người dùng hiện tại
+      if (session.userId && String(session.userId) !== String(resolvedCustomerId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Phiên quay thưởng không thuộc về tài khoản này.'
+        });
+      }
+
+      // Check 2: Chưa từng sử dụng
+      if (session.isUsed) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phiên quay thưởng đã được sử dụng cho một đơn hàng khác.'
+        });
+      }
+
+      // Check 3: Chưa quá hạn (5 phút)
+      if (session.expiresAt && new Date(session.expiresAt).getTime() <= Date.now()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phiên quay thưởng đã hết hạn (quá thời hạn 5 phút).'
+        });
+      }
+
+      // Check 4: Giỏ hàng có chứa đúng menuItemId đã trúng thưởng
+      const hasWinningItem = items.some((it) => {
+        const itId = it.menuItemId || it._id || it.id;
+        return itId && String(itId) === String(session.menuItemId);
+      });
+
+      if (!hasWinningItem) {
+        const winningName = session.menuItemName || session.menuItemId;
+        return res.status(400).json({
+          success: false,
+          message: `Giỏ hàng phải chứa món ăn trúng thưởng [${winningName}] để kích hoạt ưu đãi.`
+        });
+      }
+
+      // Check 5: Quán ăn khớp nếu phiên có restaurantId
+      if (session.restaurantId && String(restaurantId) !== String(session.restaurantId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Quán ăn không khớp với món ăn trúng thưởng từ vòng quay.'
+        });
+      }
+
+      coinBonusMultiplier = 2;
+      validatedRouletteSession = session;
+      rouletteMenuItemId = session.menuItemId;
     }
 
     const grossItemsTotal = items.reduce(
@@ -96,12 +329,33 @@ exports.createOrder = async (req, res) => {
       voucherIssuerType: resolvedIssuerType,
       storeVoucherDiscount: resolvedStoreDiscount,
       platformVoucherDiscount: resolvedPlatformDiscount,
-      shippingFee: Math.max(0, Number(shippingFee) || 16000)
+      shippingFee: Math.max(0, Number(shippingFee) || 16000),
+      rouletteSessionId: validatedRouletteSession ? validatedRouletteSession.sessionId : null,
+      coinBonusMultiplier,
+      rouletteMenuItemId,
+      coinsRewarded: false,
+      coinsRewardAmount: 0,
+      isGroupOrder: Boolean(isGroupOrder),
+      groupOrderRoomCode: groupOrderRoomCode || null,
+      groupOrderInfo: groupOrderInfo || null
     });
 
     const savedOrder = await newOrder.save();
     emitOrderEvent('order.created', savedOrder);
-    console.log(`[orderController] 📝 Đã lưu đơn hàng vào MongoDB: ${savedOrder._id} (Phương thức: ${savedOrder.paymentMethod})`);
+    console.log(`[orderController] 📝 Đã lưu đơn hàng vào MongoDB: ${savedOrder._id} (Phương thức: ${savedOrder.paymentMethod}, x2 Xu: ${coinBonusMultiplier > 1})`);
+
+    // Tiêu thụ phiên quay roulette ngay lập tức để chống replay attack
+    if (validatedRouletteSession) {
+      try {
+        await consumeRouletteSession(validatedRouletteSession.sessionId, {
+          orderId: savedOrder._id,
+          userId: resolvedCustomerId,
+          menuItemId: validatedRouletteSession.menuItemId
+        });
+      } catch (consumeErr) {
+        console.warn('[orderController] ⚠️ Lỗi tiêu thụ session quay roulette:', consumeErr.message);
+      }
+    }
 
     // Bắn event 'order.created' qua RabbitMQ Topic Exchange
     const eventPayload = {
@@ -117,6 +371,10 @@ exports.createOrder = async (req, res) => {
       platformVoucherDiscount: savedOrder.platformVoucherDiscount,
       status: savedOrder.status,
       paymentMethod: savedOrder.paymentMethod,
+      coinBonusMultiplier: savedOrder.coinBonusMultiplier,
+      rouletteSessionId: savedOrder.rouletteSessionId,
+      isGroupOrder: savedOrder.isGroupOrder,
+      groupOrderRoomCode: savedOrder.groupOrderRoomCode,
       createdAt: savedOrder.createdAt
     };
 
@@ -167,6 +425,7 @@ exports.getOrderById = async (req, res) => {
           phone: '0908 123 456'
         };
       }
+      await rewardRouletteCoinsIfEligible(order);
       await order.save();
     }
 
@@ -282,7 +541,7 @@ exports.cleanupStaleOrders = async (req, res) => {
   }
 };
 
-// 5. Cập nhật trạng thái đơn hàng (CONFIRMED, PREPARING, READY, CANCELLED)
+// 5. Cập nhật trạng thái đơn hàng (CONFIRMED, PREPARING, READY, CANCELLED, DELIVERED, COMPLETED)
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -334,6 +593,12 @@ exports.updateOrderStatus = async (req, res) => {
 
     if (status) order.status = status;
     if (note) order.driverNote = (order.driverNote ? order.driverNote + ' | ' : '') + note;
+
+    // Tự động thưởng x2 Xu khi hoàn tất giao hàng thành công (DELIVERED / COMPLETED)
+    if (['DELIVERED', 'COMPLETED'].includes(order.status)) {
+      await rewardRouletteCoinsIfEligible(order);
+    }
+
     await order.save();
 
     emitOrderEvent('order.updated', order);
@@ -343,7 +608,9 @@ exports.updateOrderStatus = async (req, res) => {
         orderId: order._id ? String(order._id) : id,
         restaurantId: order.restaurantId ? String(order.restaurantId) : null,
         customerId: order.customerId ? String(order.customerId) : null,
-        status: order.status
+        status: order.status,
+        coinBonusMultiplier: order.coinBonusMultiplier,
+        rewardCoins: order.coinsRewardAmount || (order.coinBonusMultiplier > 1 ? 2000 : 1000)
       })).catch(() => {});
     }
 
@@ -409,3 +676,8 @@ exports.modifyOrderItems = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.fetchRouletteSession = fetchRouletteSession;
+exports.consumeRouletteSession = consumeRouletteSession;
+exports.creditUserCoins = creditUserCoins;
+exports.rewardRouletteCoinsIfEligible = rewardRouletteCoinsIfEligible;

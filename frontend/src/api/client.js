@@ -1153,4 +1153,169 @@ export const checkInApi = {
   }
 };
 
+// -----------------------------------------------------------------------------
+// 14. Decision Roulette API ("Hôm nay ăn gì?" - Milestone 1 & 3)
+// -----------------------------------------------------------------------------
+export const rouletteApi = {
+  spin: async ({ budget = 'all', mood = 'all' } = {}) => {
+    try {
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/spin'), { budget, mood });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3001/api/v1/restaurants/roulette/spin', { budget, mood }, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getStatus: async () => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/status'));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get('http://localhost:3001/api/v1/restaurants/roulette/status', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getSession: async (sessionId) => {
+    try {
+      return await apiClient.get(buildUrl(RESTAURANT_SERVICE_URL, `/restaurants/roulette/session/${sessionId}`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
+        try {
+          return await axios.get(`http://localhost:3001/api/v1/restaurants/roulette/session/${sessionId}`);
+        } catch {}
+      }
+      throw err;
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 15. Group Order API ("Lập kèo ăn trưa" - Milestone 2 & 3)
+// -----------------------------------------------------------------------------
+export const groupOrderApi = {
+  createRoom: async ({ restaurantId, restaurantName, restaurantImage, hostName, deliveryAddress, note } = {}) => {
+    const payload = { restaurantId, restaurantName, restaurantImage, hostName, deliveryAddress, note };
+    try {
+      return await apiClient.post(buildUrl(ORDER_SERVICE_URL, '/orders/group-order/create'), payload);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post('http://localhost:3002/api/v1/orders/group-order/create', payload, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  getRoom: async (roomCode) => {
+    try {
+      return await apiClient.get(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}`));
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.get(`http://localhost:3002/api/v1/orders/group-order/${roomCode}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  joinRoom: async (roomCode, { displayName, userId, avatar } = {}) => {
+    const payload = { displayName, userId, avatar };
+    try {
+      return await apiClient.post(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}/join`), payload);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post(`http://localhost:3002/api/v1/orders/group-order/${roomCode}/join`, payload, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  addItem: async (roomCode, itemData) => {
+    try {
+      return await apiClient.post(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}/items`), itemData);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post(`http://localhost:3002/api/v1/orders/group-order/${roomCode}/items`, itemData, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  removeItem: async (roomCode, itemId, memberId) => {
+    try {
+      return await apiClient.delete(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}/items/${itemId}`), {
+        data: { memberId }
+      });
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.delete(`http://localhost:3002/api/v1/orders/group-order/${roomCode}/items/${itemId}`, {
+            data: { memberId },
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  lockRoom: async (roomCode, { hostId, unlock } = {}) => {
+    const payload = { hostId, unlock };
+    try {
+      return await apiClient.post(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}/lock`), payload);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post(`http://localhost:3002/api/v1/orders/group-order/${roomCode}/lock`, payload, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  },
+  checkout: async (roomCode, payload) => {
+    try {
+      return await apiClient.post(buildUrl(ORDER_SERVICE_URL, `/orders/group-order/${roomCode}/checkout`), payload);
+    } catch (err) {
+      if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !ORDER_SERVICE_URL) {
+        const token = localStorage.getItem('token');
+        try {
+          return await axios.post(`http://localhost:3002/api/v1/orders/group-order/${roomCode}/checkout`, payload, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        } catch {}
+      }
+      throw err;
+    }
+  }
+};
+
 export default apiClient;

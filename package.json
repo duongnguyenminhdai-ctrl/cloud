@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node scripts/run-all-tests.js",
     "test:all": "node scripts/run-all-tests.js",
+    "test:e2e": "jest tests/e2e/decisionRouletteAndGroupOrder.test.js --detectOpenHandles --forceExit",
     "check:integrity": "node scripts/check-system-integrity.js"
   },
   "keywords": [],

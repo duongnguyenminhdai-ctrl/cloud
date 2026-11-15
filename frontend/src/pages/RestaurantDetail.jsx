@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Star,
   MapPin,
@@ -22,9 +22,10 @@ import {
   Upload,
   Trash2,
   UtensilsCrossed,
-  Camera
+  Camera,
+  Users
 } from 'lucide-react';
-import { restaurantApi, reviewApi, orderApi } from '../api/client';
+import { restaurantApi, reviewApi, orderApi, groupOrderApi } from '../api/client';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
@@ -39,12 +40,40 @@ import { subscribeRealtimeStream, publishRealtimeSignal } from '../utils/realtim
 
 export default function RestaurantDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [addedItemIds, setAddedItemIds] = useState([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  const handleCreateGroupOrder = async () => {
+    if (!restaurant?._id) return;
+    setCreatingGroup(true);
+    try {
+      const hostName = user?.name || user?.displayName || 'Trưởng nhóm';
+      const res = await groupOrderApi.createRoom({
+        restaurantId: restaurant._id,
+        restaurantName: restaurant.name,
+        restaurantImage: restaurant.image,
+        hostName,
+        deliveryAddress: userCoord?.address || restaurant.address || 'TP. Hồ Chí Minh',
+        note: ''
+      });
+
+      if (res.data?.success && res.data.data?.roomCode) {
+        navigate(`/group-order/${res.data.data.roomCode}`);
+      } else {
+        alert(res.data?.message || 'Không thể tạo phòng nhóm lúc này');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi tạo phòng đặt nhóm');
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
 
   // Review & Event-Driven Incentive States (Chuẩn Shopee)
   const [reviews, setReviews] = useState([]);
@@ -586,13 +615,26 @@ export default function RestaurantDetail() {
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-bold text-sm shrink-0 self-start">
-              <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-              {reviews.length > 0
-                ? `${(reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)} / 5.0 (${reviews.length})`
-                : restaurant.rating > 0
-                ? `${Number(restaurant.rating).toFixed(1)} / 5.0`
-                : 'Chưa có đánh giá'}
+            <div className="flex items-center gap-2 flex-wrap self-start">
+              <button
+                type="button"
+                onClick={handleCreateGroupOrder}
+                disabled={creatingGroup}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-[#EE4D2D] to-orange-500 hover:from-[#dc3f1f] hover:to-[#ea580c] text-white font-bold text-xs shadow-md shadow-[#EE4D2D]/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                title="Tạo phòng đặt đơn nhóm và chia sẻ link cho bạn bè cùng đặt"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>{creatingGroup ? 'Đang tạo phòng...' : 'Lập kèo ăn trưa'}</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-bold text-sm shrink-0">
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                {reviews.length > 0
+                  ? `${(reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)} / 5.0 (${reviews.length})`
+                  : restaurant.rating > 0
+                  ? `${Number(restaurant.rating).toFixed(1)} / 5.0`
+                  : 'Chưa có đánh giá'}
+              </div>
             </div>
           </div>
 

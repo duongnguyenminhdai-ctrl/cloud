@@ -22,7 +22,8 @@ function subscribe(req, res, filters = {}) {
     res,
     customerId: filters.customerId ? String(filters.customerId) : null,
     restaurantId: filters.restaurantId ? String(filters.restaurantId) : null,
-    orderId: filters.orderId ? String(filters.orderId) : null
+    orderId: filters.orderId ? String(filters.orderId) : null,
+    roomCode: filters.roomCode ? String(filters.roomCode).toUpperCase() : null
   };
   clients.add(client);
 
@@ -112,8 +113,48 @@ function emitOrderEvent(eventName, order = {}) {
   return delivered;
 }
 
+function emitGroupOrderEvent(roomCode, eventName, data = {}) {
+  if (clients.size === 0 || !roomCode) return 0;
+  const upperCode = String(roomCode).toUpperCase();
+  const payload = {
+    type: eventName,
+    roomCode: upperCode,
+    ...data,
+    updatedAt: new Date()
+  };
+
+  let delivered = 0;
+  for (const client of Array.from(clients)) {
+    // If client is subscribed to a room, must match roomCode
+    if (client.roomCode && client.roomCode !== upperCode) {
+      continue;
+    }
+    // If client is subscribed specifically to order/customer/store stream (not group room), skip
+    if (!client.roomCode && (client.orderId || client.customerId || client.restaurantId)) {
+      continue;
+    }
+
+    if (!client.res || client.res.writableEnded || client.res.destroyed) {
+      clients.delete(client);
+      continue;
+    }
+
+    try {
+      client.res.write(`event: ${eventName}\n`);
+      client.res.write(`data: ${JSON.stringify({ ...payload, serverTime: Date.now() })}\n\n`);
+      if (typeof client.res.flush === 'function') client.res.flush();
+      delivered += 1;
+    } catch {
+      clients.delete(client);
+    }
+  }
+
+  return delivered;
+}
+
 module.exports = {
   subscribe,
-  emitOrderEvent
+  emitOrderEvent,
+  emitGroupOrderEvent
 };
 

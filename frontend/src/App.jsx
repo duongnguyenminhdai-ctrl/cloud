@@ -21,6 +21,7 @@ import MerchantDashboard from './pages/MerchantDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import IntroPage from './pages/IntroPage';
+import GroupOrderPage from './pages/GroupOrderPage';
 
 // Bộ kiểm soát Intro Gatekeeper:
 // Mọi đường dẫn nhập trên thanh địa chỉ/tìm kiếm trình duyệt đều chuyển tới /intro trước.
@@ -97,6 +98,7 @@ function AppContent() {
             {/* Khách hàng */}
             <Route path="/" element={<Home />} />
             <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+            <Route path="/group-order/:roomCode" element={<GroupOrderPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

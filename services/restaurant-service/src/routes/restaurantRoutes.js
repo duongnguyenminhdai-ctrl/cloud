@@ -5,6 +5,7 @@ const voucherController = require('../controllers/voucherController');
 const recommendationController = require('../controllers/recommendationController');
 const reviewController = require('../controllers/reviewController');
 const uploadController = require('../controllers/uploadController');
+const rouletteRoutes = require('./rouletteRoutes');
 const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 // 0. Cloudinary Media Upload API
@@ -312,6 +313,15 @@ router.post(
   ['/reviews/:reviewId/reply', '/api/v1/reviews/:reviewId/reply'],
   reviewController.replyReview
 );
+
+// -----------------------------------------------------------------------------
+// 5.1 Vòng quay chọn món nhận ưu đãi (Decision Roulette - Milestone 1)
+// Đặt TRƯỚC route dynamic /:id để không bị Express nuốt route
+// -----------------------------------------------------------------------------
+router.use('/roulette', rouletteRoutes);
+router.use('/restaurants/roulette', rouletteRoutes);
+router.use('/api/v1/restaurants/roulette', rouletteRoutes);
+router.use('/api/restaurants/roulette', rouletteRoutes);
 
 // -----------------------------------------------------------------------------
 // 6. Khách hàng xem danh sách và chi tiết quán ăn (Public Endpoints)

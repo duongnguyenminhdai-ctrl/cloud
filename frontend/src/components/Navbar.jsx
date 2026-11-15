@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, Sun, Moon, Flame, CalendarDays } from 'lucide-react';
+import { ShoppingBag, User, LogOut, UtensilsCrossed, Store, ShieldCheck, RefreshCw, FileText, Coins, Sun, Moon, Flame, CalendarDays, Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +10,7 @@ import UserProfileModal from './UserProfileModal';
 import UserAvatar from './UserAvatar';
 import NotificationBell from './NotificationBell';
 import DailyCheckInModal from './DailyCheckInModal';
+import FoodRouletteModal from './FoodRouletteModal';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -19,7 +20,15 @@ export default function Navbar() {
   const [checkingStore, setCheckingStore] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showRouletteModal, setShowRouletteModal] = useState(false);
   const [isCheckedInToday, setIsCheckedInToday] = useState(false);
+
+  // Lắng nghe sự kiện mở vòng quay từ Home hoặc các component khác
+  useEffect(() => {
+    const handleOpenRoulette = () => setShowRouletteModal(true);
+    window.addEventListener('open_food_roulette', handleOpenRoulette);
+    return () => window.removeEventListener('open_food_roulette', handleOpenRoulette);
+  }, []);
 
   // Tải trạng thái điểm danh hôm nay
   useEffect(() => {
@@ -157,6 +166,20 @@ export default function Navbar() {
                 <span>Quản trị</span>
               </Link>
             )}
+
+            {/* 1.5. Nút Kích Hoạt "Hôm nay ăn gì?" — Vòng quay chọn món nhận x2 Xu */}
+            <button
+              type="button"
+              onClick={() => setShowRouletteModal(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 h-8 sm:h-9 rounded-xl border border-[#EE4D2D]/30 bg-gradient-to-r from-[#EE4D2D]/10 to-orange-500/10 hover:from-[#EE4D2D]/20 hover:to-orange-500/20 text-[#EE4D2D] dark:text-[#ff6b4a] font-bold text-xs transition-all shadow-2xs cursor-pointer group shrink-0"
+              title="Vòng quay chọn món thông minh nhận x2 Xu thưởng FoodFast"
+            >
+              <Compass className="w-3.5 h-3.5 text-[#EE4D2D] group-hover:rotate-45 transition-transform shrink-0" />
+              <span className="hidden sm:inline">Hôm nay ăn gì?</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-[#EE4D2D] text-white text-[9.5px] font-black tracking-tight leading-none shrink-0">
+                x2 Xu
+              </span>
+            </button>
 
             {/* 2. Gamification Capsule: Hợp nhất [🪙 Số dư Xu | 🔥 Điểm danh] thành 1 Pill thanh lịch */}
             {isAuthenticated && (
@@ -297,6 +320,12 @@ export default function Navbar() {
       <DailyCheckInModal
         isOpen={showCheckInModal}
         onClose={() => setShowCheckInModal(false)}
+      />
+
+      {/* Modal Vòng Quay Hôm Nay Ăn Gì (Milestone 3 - R4) */}
+      <FoodRouletteModal
+        isOpen={showRouletteModal}
+        onClose={() => setShowRouletteModal(false)}
       />
     </>
   );
