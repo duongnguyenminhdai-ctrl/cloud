@@ -60,7 +60,7 @@ export default function DeliveryBadge({ store, userCoord, variant = 'card' }) {
   if (loading && !estimate) {
     if (variant === 'detail') {
       return (
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-orange-50 text-orange-700 border border-orange-200 text-xs font-semibold animate-pulse">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50 text-xs font-semibold animate-pulse">
           <Clock className="w-4 h-4 animate-spin text-orange-500" />
           <span>Đang tính khoảng cách & thời gian giao hàng OSRM...</span>
         </div>
@@ -81,12 +81,12 @@ export default function DeliveryBadge({ store, userCoord, variant = 'card' }) {
   if (variant === 'detail') {
     return (
       <div className="flex items-center gap-2.5 flex-wrap">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-orange-50 text-orange-800 border border-orange-200 font-semibold text-xs sm:text-sm">
-          <Clock className="w-4 h-4 text-orange-600" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50 font-semibold text-xs sm:text-sm">
+          <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           <span>Giao dự kiến: {minEstimate} - {maxEstimate} phút</span>
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs sm:text-sm">
-          <Navigation className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 font-semibold text-xs sm:text-sm">
+          <Navigation className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Cách bạn {distanceKm} km (OSRM Road)</span>
         </div>
       </div>

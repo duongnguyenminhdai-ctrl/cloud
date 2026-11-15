@@ -501,7 +501,7 @@ export default function RestaurantDetail() {
       {/* Back button */}
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-orange-600 transition-colors"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Danh sách nhà hàng
       </Link>
@@ -544,13 +544,13 @@ export default function RestaurantDetail() {
             <div className="space-y-2">
               {!restaurant.image && (
                 <div className="flex items-center justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{restaurant.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#2b2721] dark:text-[#ede6d8]">{restaurant.name}</h1>
                   <button
                     onClick={handleToggleFavorite}
                     className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                       isLiked
                         ? 'bg-red-50 border-red-300 text-red-600'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-red-500'
+                        : 'bg-gray-50 dark:bg-[#25201a] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-600 dark:text-[#ede6d8]/70 hover:text-red-500'
                     }`}
                   >
                     <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
@@ -563,8 +563,8 @@ export default function RestaurantDetail() {
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                       dataSource === 'cache'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                        : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
                     }`}
                   >
                     <Zap className="w-3 h-3" />
@@ -573,20 +573,20 @@ export default function RestaurantDetail() {
                 )}
               </div>
               {!restaurant.image && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-[#2b2721]/60 dark:text-[#ede6d8]/60">
                   <MapPin className="w-4 h-4 text-orange-500 shrink-0" />
                   <span>{restaurant.address}</span>
                 </div>
               )}
               {restaurant.phone && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-[#2b2721]/60 dark:text-[#ede6d8]/60">
                   <Phone className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>{restaurant.phone}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 font-bold text-sm shrink-0 self-start">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-bold text-sm shrink-0 self-start">
               <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
               {reviews.length > 0
                 ? `${(reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)} / 5.0 (${reviews.length})`
@@ -597,12 +597,12 @@ export default function RestaurantDetail() {
           </div>
 
           {/* Khoảng cách & Thời gian giao hàng thực tế (OSRM Routing) */}
-          <div className="pt-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
+          <div className="pt-3 border-t border-[rgba(43,39,33,0.08)] dark:border-[rgba(240,234,224,0.08)] flex items-center justify-between flex-wrap gap-3">
             <DeliveryBadge store={restaurant} userCoord={userCoord} variant="detail" />
             <button
               type="button"
               onClick={() => setIsAddressModalOpen(true)}
-              className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline px-2.5 py-1 bg-orange-50 rounded-lg transition-colors cursor-pointer"
+              className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline px-2.5 py-1 bg-orange-50 dark:bg-orange-950/40 rounded-lg transition-colors cursor-pointer"
             >
               Đổi vị trí ({userCoord?.shortAddress || 'TP.HCM'})
             </button>
@@ -613,10 +613,10 @@ export default function RestaurantDetail() {
       {/* Menu Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-xl font-bold text-[#2b2721] dark:text-[#ede6d8]">
             Thực đơn món ăn ({restaurant.menuItems?.length || 0})
           </h2>
-          <span className="text-xs font-medium text-gray-400">Chọn món yêu thích vào giỏ</span>
+          <span className="text-xs font-medium text-[#2b2721]/60 dark:text-[#ede6d8]/60">Chọn món yêu thích vào giỏ</span>
         </div>
 
         {/* Thanh danh mục Sticky phong cách FoodFast */}
@@ -684,31 +684,31 @@ export default function RestaurantDetail() {
                     )}
                     <div className="space-y-1 flex-1">
                       <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-snug">{item.name}</h3>
+                        <h3 className="font-bold text-[#2b2721] dark:text-[#ede6d8] text-sm sm:text-base leading-snug">{item.name}</h3>
                       </div>
-                      <p className="font-black text-orange-600 text-sm">
+                      <p className="font-black text-orange-600 dark:text-orange-400 text-sm">
                         {Number(item.price).toLocaleString('vi-VN')} đ
                       </p>
                       {item.description && (
-                        <p className="text-xs text-gray-400 line-clamp-2">{item.description}</p>
+                        <p className="text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60 line-clamp-2">{item.description}</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                    <span className="text-xs text-emerald-600 font-medium">Sẵn sàng phục vụ</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-[rgba(43,39,33,0.08)] dark:border-[rgba(240,234,224,0.08)]">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Sẵn sàng phục vụ</span>
 
                     {dishQty > 0 ? (
-                      <div className="flex items-center gap-2 bg-orange-50 px-2 py-1 rounded-xl border border-orange-200">
+                      <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-xl border border-orange-200 dark:border-orange-800/50">
                         <button
                           type="button"
                           onClick={() => handleDecrement(item)}
-                          className="w-7 h-7 rounded-lg bg-white text-orange-600 shadow-xs hover:bg-orange-100 flex items-center justify-center transition-colors font-bold cursor-pointer"
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-[#26211c] text-orange-600 dark:text-orange-400 shadow-xs hover:bg-orange-100 dark:hover:bg-[#342b23] flex items-center justify-center transition-colors font-bold cursor-pointer"
                           title="Giảm món / Chọn biến thể để giảm"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-5 text-center font-black text-xs text-orange-600">{dishQty}</span>
+                        <span className="w-5 text-center font-black text-xs text-orange-600 dark:text-orange-400">{dishQty}</span>
                         <button
                           type="button"
                           onClick={() => handleAdd(item)}
@@ -724,7 +724,7 @@ export default function RestaurantDetail() {
                         className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           isAdded
                             ? 'bg-emerald-600 text-white scale-105'
-                            : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'
+                            : 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 hover:bg-orange-600 dark:hover:bg-orange-500 hover:text-white dark:hover:text-white'
                         }`}
                       >
                         {isAdded ? (
@@ -768,12 +768,12 @@ export default function RestaurantDetail() {
       {/* ===================================================================== */}
       <div className="sketch-panel rounded-3xl p-6 sm:p-8 space-y-6">
         {/* Header Phân vùng */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] pb-4">
           <div className="space-y-1">
-            <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] flex items-center gap-2">
+            <h2 className="sketch-title text-2xl sm:text-3xl font-bold text-[#2b2721] dark:text-[#ede6d8] flex items-center gap-2">
               <span>Đánh giá Shop</span>
             </h2>
-            <p className="text-xs text-[#2b2721]/60">
+            <p className="text-xs text-[#2b2721]/60 dark:text-[#ede6d8]/60">
               Đánh giá từ khách hàng đã trải nghiệm và nhận món thực tế tại quán
             </p>
           </div>
@@ -788,9 +788,9 @@ export default function RestaurantDetail() {
         </div>
 
         {/* Khung Tóm Tắt Điểm Số & Dãy Bộ Lọc (Shopee Summary Box trong ảnh) */}
-        <div className="bg-[#fffbf8] border border-[#f53d2d]/20 rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row items-center gap-6 shadow-xs">
+        <div className="bg-[#fffbf8] dark:bg-[#221c17] border border-[#f53d2d]/20 dark:border-[#f53d2d]/30 rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row items-center gap-6 shadow-xs">
           {/* Cột Trái: Điểm số to 4.9 trên 5 kèm 5 ngôi sao đỏ/cam */}
-          <div className="flex flex-col items-center justify-center text-center shrink-0 min-w-[170px] border-b md:border-b-0 md:border-r border-orange-100/80 pb-4 md:pb-0 md:pr-6">
+          <div className="flex flex-col items-center justify-center text-center shrink-0 min-w-[170px] border-b md:border-b-0 md:border-r border-orange-100/80 dark:border-orange-950/60 pb-4 md:pb-0 md:pr-6">
             <div className="flex items-baseline gap-1.5 text-[#EE4D2D]">
               <span className="text-4xl sm:text-5xl font-black tracking-tight">
                 {reviewsSummary.totalReviews > 0
@@ -806,7 +806,7 @@ export default function RestaurantDetail() {
                 <Star key={s} className="w-5 h-5 fill-[#EE4D2D] text-[#EE4D2D]" />
               ))}
             </div>
-            <span className="text-xs text-gray-400 mt-1.5">
+            <span className="text-xs text-gray-400 dark:text-[#ede6d8]/60 mt-1.5">
               ({reviewsSummary.totalReviews || reviews.length} lượt đánh giá)
             </span>
           </div>
@@ -817,8 +817,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('all')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === 'all'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               Tất Cả
@@ -827,8 +827,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('5')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === '5'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               5 Sao ({reviewsSummary.starCounts?.[5] || 0})
@@ -837,8 +837,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('4')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === '4'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               4 Sao ({reviewsSummary.starCounts?.[4] || 0})
@@ -847,8 +847,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('3')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === '3'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               3 Sao ({reviewsSummary.starCounts?.[3] || 0})
@@ -857,8 +857,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('2')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === '2'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               2 Sao ({reviewsSummary.starCounts?.[2] || 0})
@@ -867,8 +867,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('1')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === '1'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               1 Sao ({reviewsSummary.starCounts?.[1] || 0})
@@ -877,8 +877,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('with_photos')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === 'with_photos'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               Có Hình Ảnh ({reviewsSummary.withPhotosCount || 0})
@@ -887,8 +887,8 @@ export default function RestaurantDetail() {
               onClick={() => handleFilterChange('with_comments')}
               className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
                 reviewFilter === 'with_comments'
-                  ? 'bg-white border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300'
+                  ? 'bg-white dark:bg-[#342b23] border-[#EE4D2D] text-[#EE4D2D] shadow-xs'
+                  : 'bg-white dark:bg-[#1a1714] border-gray-200 dark:border-[rgba(240,234,224,0.12)] text-gray-700 dark:text-[#ede6d8]/80 hover:border-orange-300 dark:hover:border-orange-500/50'
               }`}
             >
               Có Bình Luận ({reviewsSummary.withCommentsCount || 0})
@@ -902,34 +902,34 @@ export default function RestaurantDetail() {
             {[1, 2].map((i) => (
               <div key={i} className="p-4 bg-gray-50 rounded-2xl space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-1/4" />
-                <div className="h-3 bg-gray-200 rounded w-3/4" />
+                <div className="h-3 bg-gray-200 dark:bg-stone-700 rounded w-3/4" />
               </div>
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="p-10 text-center bg-gray-50/70 rounded-2xl border border-gray-100 space-y-2">
-            <p className="text-sm font-bold text-gray-700">Chưa có đánh giá nào phù hợp với bộ lọc.</p>
-            <p className="text-xs text-gray-400">
+          <div className="p-10 text-center bg-gray-50/70 dark:bg-[#201c18] rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.1)] space-y-2">
+            <p className="text-sm font-bold text-gray-700 dark:text-[#ede6d8]">Chưa có đánh giá nào phù hợp với bộ lọc.</p>
+            <p className="text-xs text-gray-400 dark:text-[#ede6d8]/50">
               Hãy là người đầu tiên trải nghiệm món ăn và để lại cảm nhận của bạn để nhận 1.000 Xu FoodFast!
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-[rgba(240,234,224,0.08)]">
             {paginatedReviews.map((rev) => (
               <div key={rev._id} className="py-6 space-y-3 first:pt-2 last:pb-2">
                 {/* 1. Header Khách hàng: Avatar + Username + 5 Sao + Meta row */}
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#2a241e] border border-gray-200 dark:border-[rgba(240,234,224,0.12)] overflow-hidden shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
                     {rev.userAvatar ? (
                       <img src={rev.userAvatar} alt={rev.userName} className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-5 h-5 text-gray-400" />
+                      <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     )}
                   </div>
 
                   <div className="flex-1 space-y-1">
                     {/* Tên khách hàng */}
-                    <p className="text-xs sm:text-sm font-medium text-gray-900">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-[#ede6d8]">
                       {rev.userName || (rev.user_id ? `d***${String(rev.user_id).slice(-4)}` : 'Khách hàng FoodFast')}
                     </p>
 
@@ -939,14 +939,14 @@ export default function RestaurantDetail() {
                         <Star
                           key={s}
                           className={`w-3.5 h-3.5 ${
-                            s <= rev.rating ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 text-gray-200'
+                            s <= rev.rating ? 'fill-[#EE4D2D] text-[#EE4D2D]' : 'fill-gray-200 dark:fill-stone-700 text-gray-200 dark:text-stone-700'
                           }`}
                         />
                       ))}
                     </div>
 
                     {/* Meta row: Thời gian | Phân loại hàng */}
-                    <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
+                    <div className="text-[11px] text-gray-400 dark:text-[#ede6d8]/50 flex flex-wrap items-center gap-2">
                       <span>
                         {rev.created_at || rev.createdAt
                           ? new Date(rev.created_at || rev.createdAt).toISOString().replace('T', ' ').slice(0, 16)
@@ -962,23 +962,23 @@ export default function RestaurantDetail() {
 
                 {/* 2. Tiêu chí chi tiết (Hương vị, Đóng gói, Thời gian giao - như trong ảnh) */}
                 {rev.criteria && (
-                  <div className="space-y-1 text-xs text-gray-600 pl-13 font-normal">
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-[#ede6d8]/70 pl-13 font-normal">
                     {rev.criteria.taste && (
                       <p>
-                        <span className="text-gray-400">Hương vị món ăn:</span>{' '}
-                        <span className="text-gray-800 font-medium">{rev.criteria.taste}</span>
+                        <span className="text-gray-400 dark:text-[#ede6d8]/40">Hương vị món ăn:</span>{' '}
+                        <span className="text-gray-800 dark:text-[#ede6d8] font-medium">{rev.criteria.taste}</span>
                       </p>
                     )}
                     {rev.criteria.packaging && (
                       <p>
-                        <span className="text-gray-400">Đóng gói & nhiệt độ:</span>{' '}
-                        <span className="text-gray-800 font-medium">{rev.criteria.packaging}</span>
+                        <span className="text-gray-400 dark:text-[#ede6d8]/40">Đóng gói & nhiệt độ:</span>{' '}
+                        <span className="text-gray-800 dark:text-[#ede6d8] font-medium">{rev.criteria.packaging}</span>
                       </p>
                     )}
                     {rev.criteria.deliverySpeed && (
                       <p>
-                        <span className="text-gray-400">Thời gian giao & phục vụ:</span>{' '}
-                        <span className="text-gray-800 font-medium">{rev.criteria.deliverySpeed}</span>
+                        <span className="text-gray-400 dark:text-[#ede6d8]/40">Thời gian giao & phục vụ:</span>{' '}
+                        <span className="text-gray-800 dark:text-[#ede6d8] font-medium">{rev.criteria.deliverySpeed}</span>
                       </p>
                     )}
                   </div>
@@ -986,7 +986,7 @@ export default function RestaurantDetail() {
 
                 {/* 3. Nội dung nhận xét bình luận */}
                 {rev.comment && (
-                  <p className="text-xs sm:text-sm text-gray-800 pl-13 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-gray-800 dark:text-[#ede6d8] pl-13 leading-relaxed whitespace-pre-line">
                     {rev.comment}
                   </p>
                 )}
@@ -998,7 +998,7 @@ export default function RestaurantDetail() {
                       <div
                         key={idx}
                         onClick={() => setLightboxImage(imgUrl)}
-                        className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-gray-200 hover:border-[#EE4D2D] cursor-pointer shadow-2xs group relative transition-all"
+                        className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-[rgba(240,234,224,0.14)] hover:border-[#EE4D2D] cursor-pointer shadow-2xs group relative transition-all"
                         title="Bấm để xem ảnh phóng to"
                       >
                         <img
@@ -1013,22 +1013,22 @@ export default function RestaurantDetail() {
 
                 {/* 5. Thẻ món ăn đã mua (Purchased Item Card - như ảnh Shopee) */}
                 {rev.purchasedItem?.name && (
-                  <div className="ml-13 bg-gray-50/90 border border-gray-200/80 rounded-xl p-2.5 flex items-center gap-3 w-fit max-w-md">
+                  <div className="ml-13 bg-gray-50/90 dark:bg-[#201c18] border border-gray-200/80 dark:border-[rgba(240,234,224,0.14)] rounded-xl p-2.5 flex items-center gap-3 w-fit max-w-md">
                     {rev.purchasedItem.image ? (
                       <img
                         src={rev.purchasedItem.image}
                         alt={rev.purchasedItem.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-gray-200 shrink-0"
+                        className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-stone-700 shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
                         <UtensilsCrossed className="w-6 h-6" />
                       </div>
                     )}
                     <div className="text-xs space-y-0.5">
-                      <p className="font-semibold text-gray-800 line-clamp-1">{rev.purchasedItem.name}</p>
+                      <p className="font-semibold text-gray-800 dark:text-[#ede6d8] line-clamp-1">{rev.purchasedItem.name}</p>
                       {rev.purchasedItem.options && (
-                        <p className="text-[11px] text-gray-400">Phân loại hàng: {rev.purchasedItem.options}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-[#ede6d8]/50">Phân loại hàng: {rev.purchasedItem.options}</p>
                       )}
                     </div>
                   </div>
@@ -1036,9 +1036,9 @@ export default function RestaurantDetail() {
 
                 {/* 6. Phản hồi từ Người Bán / Chủ quán */}
                 {rev.sellerReply?.comment && (
-                  <div className="ml-13 bg-gray-50 border-l-2 border-[#EE4D2D] rounded-r-xl p-3 text-xs space-y-1">
-                    <p className="font-bold text-gray-900">Phản Hồi Của Người Bán</p>
-                    <p className="text-gray-600 leading-relaxed">{rev.sellerReply.comment}</p>
+                  <div className="ml-13 bg-gray-50 dark:bg-[#201c18] border-l-2 border-[#EE4D2D] rounded-r-xl p-3 text-xs space-y-1">
+                    <p className="font-bold text-gray-900 dark:text-[#ede6d8]">Phản Hồi Của Người Bán</p>
+                    <p className="text-gray-600 dark:text-[#ede6d8]/70 leading-relaxed">{rev.sellerReply.comment}</p>
                   </div>
                 )}
 
@@ -1047,7 +1047,7 @@ export default function RestaurantDetail() {
                   <button
                     onClick={() => handleToggleLikeReview(rev._id)}
                     className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                      likedReviewIds.has(rev._id) ? 'text-[#EE4D2D] font-bold' : 'text-gray-400 hover:text-gray-600'
+                      likedReviewIds.has(rev._id) ? 'text-[#EE4D2D] font-bold' : 'text-gray-400 dark:text-[#ede6d8]/50 hover:text-gray-600 dark:hover:text-[#ede6d8]'
                     }`}
                   >
                     <ThumbsUp className={`w-3.5 h-3.5 ${likedReviewIds.has(rev._id) ? 'fill-[#EE4D2D]' : ''}`} />
@@ -1098,25 +1098,25 @@ export default function RestaurantDetail() {
       {/* Modal Viết Đánh Giá Đơn Hàng Mới Chuẩn Shopee */}
       {isReviewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#221e1a] rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.14)] space-y-4 max-h-[90vh] overflow-y-auto text-[#2b2721] dark:text-[#ede6d8]">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-[rgba(240,234,224,0.12)] pb-3">
+              <h3 className="font-extrabold text-base text-gray-900 dark:text-[#ede6d8] flex items-center gap-2">
                 <Gift className="w-5 h-5 text-[#EE4D2D]" />
                 Đánh giá quán & Nhận 1.000 Xu
               </h3>
               <button
                 onClick={() => setIsReviewModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-full cursor-pointer"
+                className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-[#ede6d8] rounded-full cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {reviewReward ? (
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-center">
-                <p className="font-extrabold text-sm text-emerald-800">{reviewReward.title}</p>
-                <p className="text-xs text-emerald-700 leading-relaxed">{reviewReward.message}</p>
-                <div className="p-2 bg-white rounded-xl border border-emerald-300 font-mono text-xs font-bold text-emerald-800">
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 space-y-2 text-center">
+                <p className="font-extrabold text-sm text-emerald-800 dark:text-emerald-300">{reviewReward.title}</p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed">{reviewReward.message}</p>
+                <div className="p-2 bg-white dark:bg-[#1a1714] rounded-xl border border-emerald-300 dark:border-emerald-700 font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300">
                   {reviewReward.type === 'FIVE_STAR'
                     ? 'Mã áp dụng: THANKYOU (Giảm 10%)'
                     : reviewReward.type === 'SORRY'
@@ -1134,22 +1134,22 @@ export default function RestaurantDetail() {
               <form onSubmit={handleSubmitReview} className="space-y-4">
                 {/* Thẻ Món Ăn Đã Mua Trong Đơn Hàng */}
                 {targetPurchasedItem?.name && (
-                  <div className="bg-orange-50/70 border border-orange-200/70 rounded-2xl p-3 flex items-center gap-3">
+                  <div className="bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/70 dark:border-orange-800/40 rounded-2xl p-3 flex items-center gap-3">
                     {targetPurchasedItem.image ? (
                       <img
                         src={targetPurchasedItem.image}
                         alt={targetPurchasedItem.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-orange-200 shrink-0"
+                        className="w-12 h-12 rounded-xl object-cover border border-orange-200 dark:border-stone-700 shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-orange-200 text-orange-700 flex items-center justify-center shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-orange-200 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300 flex items-center justify-center shrink-0">
                         <UtensilsCrossed className="w-6 h-6" />
                       </div>
                     )}
                     <div className="text-xs space-y-0.5">
-                      <p className="font-bold text-gray-900">{targetPurchasedItem.name}</p>
+                      <p className="font-bold text-gray-900 dark:text-[#ede6d8]">{targetPurchasedItem.name}</p>
                       {targetPurchasedItem.options && (
-                        <p className="text-[11px] text-gray-500">Phân loại: {targetPurchasedItem.options}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-[#ede6d8]/60">Phân loại: {targetPurchasedItem.options}</p>
                       )}
                     </div>
                   </div>
@@ -1157,7 +1157,7 @@ export default function RestaurantDetail() {
 
                 {/* Chọn số sao (Đỏ/cam Shopee) */}
                 <div className="space-y-1.5 text-center">
-                  <label className="text-xs font-bold text-gray-700">Chất lượng món ăn & phục vụ:</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/90">Chất lượng món ăn & phục vụ:</label>
                   <div className="flex items-center justify-center gap-2 pt-1">
                     {[1, 2, 3, 4, 5].map((num) => (
                       <button
@@ -1170,7 +1170,7 @@ export default function RestaurantDetail() {
                           className={`w-7 h-7 ${
                             num <= reviewRating
                               ? 'fill-[#EE4D2D] text-[#EE4D2D]'
-                              : 'fill-gray-200 text-gray-200'
+                              : 'fill-gray-200 dark:fill-stone-700 text-gray-200 dark:text-stone-700'
                           }`}
                         />
                       </button>
@@ -1185,10 +1185,10 @@ export default function RestaurantDetail() {
                 </div>
 
                 {/* Chọn các tiêu chí cụ thể (Hương vị, Đóng gói, Tốc độ giao) */}
-                <div className="space-y-3 bg-gray-50/70 p-3.5 rounded-2xl border border-gray-100 text-xs">
+                <div className="space-y-3 bg-gray-50/70 dark:bg-[#1a1714] p-3.5 rounded-2xl border border-gray-100 dark:border-[rgba(240,234,224,0.12)] text-xs">
                   {/* Tiêu chí 1: Hương vị */}
                   <div>
-                    <span className="font-semibold text-gray-700 block mb-1.5">Hương vị món ăn:</span>
+                    <span className="font-semibold text-gray-700 dark:text-[#ede6d8] block mb-1.5">Hương vị món ăn:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {['Tuyệt vời', 'Rất ngon', 'Tạm ổn', 'Chưa hợp khẩu vị'].map((t) => (
                         <button
@@ -1198,7 +1198,7 @@ export default function RestaurantDetail() {
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
                             reviewCriteria.taste === t
                               ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              : 'bg-white dark:bg-[#26211c] text-gray-600 dark:text-[#ede6d8]/80 border-gray-200 dark:border-[rgba(240,234,224,0.14)] hover:border-gray-300 dark:hover:border-stone-600'
                           }`}
                         >
                           {t}
@@ -1209,7 +1209,7 @@ export default function RestaurantDetail() {
 
                   {/* Tiêu chí 2: Đóng gói & Nhiệt độ */}
                   <div>
-                    <span className="font-semibold text-gray-700 block mb-1.5">Đóng gói & nhiệt độ:</span>
+                    <span className="font-semibold text-gray-700 dark:text-[#ede6d8] block mb-1.5">Đóng gói & nhiệt độ:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {['Cẩn thận, sạch sẽ', 'Nóng hổi', 'Bình thường', 'Cần cải thiện'].map((p) => (
                         <button
@@ -1219,7 +1219,7 @@ export default function RestaurantDetail() {
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
                             reviewCriteria.packaging === p
                               ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              : 'bg-white dark:bg-[#26211c] text-gray-600 dark:text-[#ede6d8]/80 border-gray-200 dark:border-[rgba(240,234,224,0.14)] hover:border-gray-300 dark:hover:border-stone-600'
                           }`}
                         >
                           {p}
@@ -1230,7 +1230,7 @@ export default function RestaurantDetail() {
 
                   {/* Tiêu chí 3: Tốc độ giao & chuẩn bị */}
                   <div>
-                    <span className="font-semibold text-gray-700 block mb-1.5">Thời gian giao & phục vụ:</span>
+                    <span className="font-semibold text-gray-700 dark:text-[#ede6d8] block mb-1.5">Thời gian giao & phục vụ:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {['Giao siêu tốc', 'Đúng giờ', 'Hơi chậm'].map((d) => (
                         <button
@@ -1240,7 +1240,7 @@ export default function RestaurantDetail() {
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition ${
                             reviewCriteria.deliverySpeed === d
                               ? 'bg-[#EE4D2D] text-white border-[#EE4D2D]'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              : 'bg-white dark:bg-[#26211c] text-gray-600 dark:text-[#ede6d8]/80 border-gray-200 dark:border-[rgba(240,234,224,0.14)] hover:border-gray-300 dark:hover:border-stone-600'
                           }`}
                         >
                           {d}
@@ -1252,30 +1252,30 @@ export default function RestaurantDetail() {
 
                 {/* Nhập nhận xét */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700">Cảm nhận chi tiết:</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-[#ede6d8]/90">Cảm nhận chi tiết:</label>
                   <textarea
                     rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     placeholder="Hãy chia sẻ trải nghiệm chân thực của bạn về món ăn, hương vị và thái độ phục vụ..."
-                    className="w-full p-3 text-xs sm:text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D]"
+                    className="w-full p-3 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-[rgba(240,234,224,0.16)] bg-white dark:bg-[#1a1714] text-gray-900 dark:text-[#ede6d8] placeholder:text-gray-400 dark:placeholder:text-[#ede6d8]/40 focus:outline-none focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D]"
                   />
                 </div>
 
                 {/* Tải lên hình ảnh chụp món ăn (Tối đa 5 ảnh) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-gray-700 flex items-center gap-1.5">
+                    <span className="font-bold text-gray-700 dark:text-[#ede6d8] flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5 text-[#EE4D2D]" />
                       Ảnh chụp món ăn ({reviewImages.length}/5)
                     </span>
-                    <span className="text-gray-400 text-[11px]">Định dạng JPG, PNG</span>
+                    <span className="text-gray-400 dark:text-[#ede6d8]/50 text-[11px]">Định dạng JPG, PNG</span>
                   </div>
 
                   {/* Preview danh sách ảnh & nút thêm ảnh */}
                   <div className="flex flex-wrap gap-2">
                     {reviewImages.map((img, idx) => (
-                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 shadow-2xs group">
+                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 dark:border-[rgba(240,234,224,0.14)] shadow-2xs group">
                         <img src={img} alt="review upload" className="w-full h-full object-cover" />
                         <button
                           type="button"
@@ -1292,7 +1292,7 @@ export default function RestaurantDetail() {
                         type="button"
                         onClick={() => reviewFileInputRef.current?.click()}
                         disabled={uploadingReviewImg}
-                        className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EE4D2D] hover:bg-orange-50/30 flex flex-col items-center justify-center text-gray-400 hover:text-[#EE4D2D] cursor-pointer transition"
+                        className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 dark:border-stone-700 hover:border-[#EE4D2D] hover:bg-orange-50/30 dark:hover:bg-orange-950/20 flex flex-col items-center justify-center text-gray-400 dark:text-[#ede6d8]/60 hover:text-[#EE4D2D] cursor-pointer transition"
                       >
                         {uploadingReviewImg ? (
                           <div className="w-4 h-4 border-2 border-[#EE4D2D] border-t-transparent rounded-full animate-spin" />
@@ -1316,13 +1316,13 @@ export default function RestaurantDetail() {
                 </div>
 
                 {reviewError && (
-                  <p className="text-xs text-red-600 flex items-center gap-1 font-medium">
+                  <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1 font-medium">
                     <AlertCircle className="w-3.5 h-3.5" />
                     <span>{reviewError}</span>
                   </p>
                 )}
 
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 leading-relaxed flex items-center gap-2">
+                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
                   <span>🎁 Đánh giá kèm hình ảnh chân thực nhận ngay <strong>1.000 Xu FoodFast</strong> tích lũy vào ví!</span>
                 </div>

@@ -134,22 +134,22 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-fadeIn">
       <div
-        className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp"
+        className="bg-white dark:bg-[#1e1b18] text-[#2b2721] dark:text-[#ede6d8] border border-gray-100 dark:border-[rgba(240,234,224,0.12)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header món ăn */}
-        <div className="relative border-b border-gray-100 p-4 flex gap-3.5 bg-gray-50/50">
+        <div className="relative border-b border-gray-100 dark:border-[rgba(240,234,224,0.1)] p-4 flex gap-3.5 bg-gray-50/50 dark:bg-[#25201a]/70">
           <img
             src={dishImage}
             alt={dish.name}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-gray-200/80 shadow-xs"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-gray-200/80 dark:border-[rgba(240,234,224,0.12)] shadow-xs"
           />
           <div className="flex-1 min-w-0 pr-6 space-y-1">
-            <h3 className="font-extrabold text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
+            <h3 className="font-extrabold text-gray-900 dark:text-[#ede6d8] text-sm sm:text-base leading-snug line-clamp-2">
               {dish.name}
             </h3>
             {dish.description && (
-              <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-gray-500 dark:text-[#ede6d8]/60 line-clamp-2 leading-relaxed">
                 {dish.description}
               </p>
             )}
@@ -160,7 +160,7 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
 
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 hover:bg-gray-100 text-gray-500 transition-colors shadow-xs"
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 dark:bg-[#2a241e] hover:bg-gray-100 dark:hover:bg-[#342b23] text-gray-500 dark:text-[#ede6d8]/70 transition-colors shadow-xs cursor-pointer"
             title="Đóng"
           >
             <X className="w-5 h-5 stroke-[2.2]" />
@@ -178,15 +178,15 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
               <div key={group.id} className="space-y-2.5">
                 {/* Tiêu đề nhóm (Trường chính) */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-[#ede6d8] flex items-center gap-1.5">
                     <span>{group.name}</span>
                     {group.required && (
-                      <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] text-red-500 font-semibold bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">
                         Bắt buộc
                       </span>
                     )}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 dark:text-[#ede6d8]/50">
                     {group.multiple ? 'Chọn nhiều' : 'Chọn 1'}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-[#EE4D2D] text-white shadow-xs scale-[1.02]'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              : 'bg-gray-100 dark:bg-[#26211c] hover:bg-gray-200 dark:hover:bg-[#302a24] text-gray-700 dark:text-[#ede6d8]/80'
                           }`}
                         >
                           {choice.name}
@@ -230,8 +230,8 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
                           onClick={() => handleChoiceClick(group, choice)}
                           className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${
                             isSelected
-                              ? 'border-[#EE4D2D] bg-orange-50/50 shadow-xs font-semibold'
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                              ? 'border-[#EE4D2D] bg-orange-50/50 dark:bg-orange-950/30 shadow-xs font-semibold'
+                              : 'border-gray-200 dark:border-[rgba(240,234,224,0.12)] hover:border-gray-300 dark:hover:border-stone-600 bg-white dark:bg-[#25201a]'
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -240,7 +240,7 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
                                 className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? 'border-[#EE4D2D] bg-[#EE4D2D] text-white'
-                                    : 'border-gray-300 bg-white'
+                                    : 'border-gray-300 dark:border-stone-600 bg-white dark:bg-[#1a1714]'
                                 }`}
                               >
                                 {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -250,15 +250,15 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
                                 className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? 'border-[#EE4D2D] bg-[#EE4D2D]'
-                                    : 'border-gray-300 bg-white'
+                                    : 'border-gray-300 dark:border-stone-600 bg-white dark:bg-[#1a1714]'
                                 }`}
                               >
                                 {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                               </div>
                             )}
-                            <span className="text-xs sm:text-sm text-gray-800">{choice.name}</span>
+                            <span className="text-xs sm:text-sm text-gray-800 dark:text-[#ede6d8]">{choice.name}</span>
                           </div>
-                          <span className="text-xs font-bold text-gray-600">
+                          <span className="text-xs font-bold text-gray-600 dark:text-[#ede6d8]/70">
                             {choice.price > 0 ? `+${choice.price.toLocaleString('vi-VN')} đ` : '0 đ'}
                           </span>
                         </div>
@@ -273,7 +273,7 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
           {/* Ghi chú cho quán */}
           {config?.allowNotes && (
             <div className="space-y-1.5">
-              <label className="text-xs sm:text-sm font-bold text-gray-900 block">
+              <label className="text-xs sm:text-sm font-bold text-gray-900 dark:text-[#ede6d8] block">
                 Ghi chú cho quán
               </label>
               <textarea
@@ -282,9 +282,9 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
                 placeholder={config.notePlaceholder || 'Ví dụ: không hành, ớt để riêng, ít cay...'}
                 maxLength={150}
                 rows={2}
-                className="w-full text-xs sm:text-sm p-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#EE4D2D] transition-colors resize-none placeholder:text-gray-400"
+                className="w-full text-xs sm:text-sm p-3 border border-gray-200 dark:border-[rgba(240,234,224,0.14)] bg-white dark:bg-[#1a1714] text-gray-900 dark:text-[#ede6d8] focus:outline-none focus:border-[#EE4D2D] transition-colors resize-none placeholder:text-gray-400 dark:placeholder:text-[#ede6d8]/40 rounded-2xl"
               />
-              <div className="text-right text-[10px] text-gray-400">
+              <div className="text-right text-[10px] text-gray-400 dark:text-[#ede6d8]/40">
                 {customerNote.length}/150
               </div>
             </div>
@@ -292,22 +292,22 @@ export default function DishCustomizationModal({ dish, isOpen, onClose, onConfir
         </div>
 
         {/* Footer: Bộ chọn số lượng & Nút Thêm vào giỏ */}
-        <div className="border-t border-gray-100 p-4 bg-white flex items-center gap-3">
+        <div className="border-t border-gray-100 dark:border-[rgba(240,234,224,0.1)] p-4 bg-white dark:bg-[#1e1b18] flex items-center gap-3">
           {/* Bộ đếm số lượng */}
-          <div className="flex items-center border border-gray-200 rounded-2xl px-2 py-1.5 bg-gray-50 shrink-0">
+          <div className="flex items-center border border-gray-200 dark:border-[rgba(240,234,224,0.14)] rounded-2xl px-2 py-1.5 bg-gray-50 dark:bg-[#25201a] shrink-0">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={quantity <= 1}
-              className="p-1 text-gray-500 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
+              className="p-1 text-gray-500 dark:text-[#ede6d8]/60 hover:text-gray-900 dark:hover:text-[#ede6d8] disabled:opacity-30 cursor-pointer"
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="w-8 text-center text-sm font-extrabold text-gray-900">
+            <span className="w-8 text-center text-sm font-extrabold text-gray-900 dark:text-[#ede6d8]">
               {quantity}
             </span>
             <button
               onClick={() => setQuantity((q) => q + 1)}
-              className="p-1 text-gray-700 hover:text-[#EE4D2D] cursor-pointer"
+              className="p-1 text-gray-700 dark:text-[#ede6d8]/80 hover:text-[#EE4D2D] cursor-pointer"
             >
               <Plus className="w-4 h-4" />
             </button>
