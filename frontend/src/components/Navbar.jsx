@@ -102,12 +102,12 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200 w-full max-w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3 w-full">
           {/* CỤM 1 (TRÁI): Brand Logo & City Selector */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs">
+          <div className="flex items-center gap-1.5 sm:gap-3.5 shrink-0 min-w-0">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2.5 group shrink-0">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs">
                 <img
                   src="/foodfast-logo.png"
                   alt="FoodFast Logo"
@@ -115,20 +115,20 @@ export default function Navbar() {
                 />
               </div>
               <div className="flex items-center">
-                <span className="font-serif text-2xl font-normal tracking-wide text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] transition-colors leading-none">
+                <span className="font-serif text-base sm:text-2xl font-normal tracking-wide text-[#2b2721] dark:text-[#ede6d8] group-hover:text-[#9a6a3e] dark:group-hover:text-[#e5b887] transition-colors leading-none">
                   FoodFast
                 </span>
               </div>
             </Link>
 
             {/* City Selector (Chuẩn 63 Tỉnh Thành) */}
-            <div className="flex items-center">
+            <div className="flex items-center shrink-0">
               <CitySelector />
             </div>
           </div>
 
           {/* CỤM 2 (PHẢI): Thứ tự chuẩn TMĐT cao cấp (Portal -> Gamification -> Utilities -> User) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             {/* 1. Portal Hub: "Cửa hàng của tôi" (Merchant) hoặc "Quản trị" (ADMIN) */}
             {isAuthenticated && user?.role !== 'ADMIN' && (
               <button
@@ -188,17 +188,17 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Divider giữa nhóm Gamification/Portal và nhóm Utilities */}
+            {/* Divider giữa nhóm Gamification/Portal và nhóm Utilities (Desktop) */}
             {isAuthenticated && (
               <div className="hidden md:block w-px h-5 bg-[rgba(43,39,33,0.14)] dark:bg-[rgba(240,234,224,0.12)]" />
             )}
 
-            {/* 3. Tiện ích (Utilities): Cart + Notification Bell + Theme Toggle */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {/* Giỏ hàng */}
+            {/* 3. Tiện ích (Utilities): Cart (chỉ desktop) + Notification Bell + Theme Toggle */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* Giỏ hàng (chỉ hiển thị desktop vì mobile đã có Bottom Navigation) */}
               <Link
                 to="/orders?tab=cart"
-                className="relative h-9 w-9 rounded-xl flex items-center justify-center text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors"
+                className="hidden md:flex relative h-9 w-9 rounded-xl items-center justify-center text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors"
                 title="Xem giỏ hàng của bạn"
               >
                 <ShoppingBag className="w-[19px] h-[19px] stroke-[1.75]" />
@@ -212,31 +212,31 @@ export default function Navbar() {
               {/* Chuông Thông Báo */}
               {isAuthenticated && <NotificationBell />}
 
-              {/* Nút chuyển đổi Light / Dark Mode (Icon-only h-9 w-9 gọn gàng tinh tế) */}
+              {/* Nút chuyển đổi Light / Dark Mode (Icon-only h-8 w-8 sm:h-9 sm:w-9 gọn gàng tinh tế) */}
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="h-9 w-9 rounded-xl flex items-center justify-center border border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.14)] bg-[#f2ece1] dark:bg-[#26211c] text-[#2b2721] dark:text-[#ede6d8] hover:border-[#9a6a3e] dark:hover:border-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#302a24] transition-all shadow-2xs cursor-pointer"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center border border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.14)] bg-[#f2ece1] dark:bg-[#26211c] text-[#2b2721] dark:text-[#ede6d8] hover:border-[#9a6a3e] dark:hover:border-[#e5b887] hover:bg-[#ece7dc] dark:hover:bg-[#302a24] transition-all shadow-2xs cursor-pointer shrink-0"
                 title={`Chuyển sang chế độ ${isDark ? 'Sáng' : 'Tối'}`}
                 aria-label="Chuyển chế độ Sáng / Tối"
               >
                 {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-400 stroke-[1.75]" />
+                  <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 stroke-[1.75]" />
                 ) : (
-                  <Moon className="w-4 h-4 text-[#9a6a3e] stroke-[1.75]" />
+                  <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#9a6a3e] stroke-[1.75]" />
                 )}
               </button>
             </div>
 
             {/* Divider giữa nhóm Tiện ích và User Hub */}
-            <div className="w-px h-5 bg-[rgba(43,39,33,0.14)] dark:bg-[rgba(240,234,224,0.12)]" />
+            <div className="w-px h-4 sm:h-5 bg-[rgba(43,39,33,0.14)] dark:bg-[rgba(240,234,224,0.12)] shrink-0" />
 
             {/* 4. User Profile Hub hoặc Đăng nhập / Đăng ký */}
             {isAuthenticated ? (
-              <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 h-9 px-1.5 sm:px-2 rounded-xl hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors text-right group cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-1 sm:px-2 rounded-lg sm:rounded-xl hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors text-right group cursor-pointer shrink-0"
                   title="Xem và cập nhật thông tin tài khoản"
                 >
                   <UserAvatar
@@ -260,23 +260,23 @@ export default function Navbar() {
                     logout();
                     navigate('/login');
                   }}
-                  className="h-9 w-9 rounded-xl flex items-center justify-center text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center text-[#2b2721]/60 dark:text-[#ede6d8]/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer shrink-0"
                   title="Đăng xuất"
                 >
-                  <LogOut className="w-4 h-4 stroke-[1.75]" />
+                  <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.75]" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <Link
                   to="/login"
-                  className="h-9 px-3 rounded-xl flex items-center text-xs font-semibold text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/60 dark:hover:bg-[#2b2520]/60 transition-colors"
+                  className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg sm:rounded-xl flex items-center text-xs font-semibold text-[#2b2721] dark:text-[#ede6d8] hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/60 dark:hover:bg-[#2b2520]/60 transition-colors"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="h-9 px-3.5 rounded-xl flex items-center text-xs font-bold text-white bg-[#9a6a3e] hover:bg-[#845831] shadow-2xs transition-all"
+                  className="h-8 sm:h-9 px-3 sm:px-3.5 rounded-lg sm:rounded-xl flex items-center text-xs font-bold text-white bg-[#9a6a3e] hover:bg-[#845831] shadow-2xs transition-all"
                 >
                   Đăng ký
                 </Link>

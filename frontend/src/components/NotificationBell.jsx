@@ -243,12 +243,12 @@ export default function NotificationBell({ onReviewOrder }) {
             handleMarkAllRead();
           }
         }}
-        className="relative h-9 w-9 rounded-xl flex items-center justify-center text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors cursor-pointer"
+        className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center text-[#2b2721]/80 dark:text-[#ede6d8]/80 hover:text-[#9a6a3e] dark:hover:text-[#e5b887] hover:bg-[#ece7dc]/70 dark:hover:bg-[#2b2520]/70 transition-colors cursor-pointer shrink-0"
         title="Thông báo của bạn"
       >
-        <Bell className="w-[19px] h-[19px] stroke-[1.75]" />
+        <Bell className="w-4 h-4 sm:w-[19px] sm:h-[19px] stroke-[1.75]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#c04a2c] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse">
+          <span className="absolute -top-1 -right-1 min-w-[16px] sm:min-w-[18px] h-4 sm:h-[18px] px-1 bg-[#c04a2c] text-white text-[9px] sm:text-[10px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

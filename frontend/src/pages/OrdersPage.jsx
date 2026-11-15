@@ -665,14 +665,14 @@ export default function OrdersPage({ initialTab }) {
   ];
 
   return (
-    <div className="min-h-screen pb-20 md:pb-12 text-[#2b2721] dark:text-[#ede6d8] transition-colors">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden pb-20 md:pb-12 text-[#2b2721] dark:text-[#ede6d8] transition-colors">
       {/* Khung chính tối đa 640px để tạo chuẩn màn hình ứng dụng FoodFast */}
-      <div className="max-w-2xl mx-auto sketch-panel min-h-screen my-4 rounded-3xl shadow-md flex flex-col">
+      <div className="w-full max-w-2xl mx-auto sketch-panel min-h-screen my-0 sm:my-4 sm:rounded-3xl shadow-md flex flex-col min-w-0 overflow-hidden">
         
         {/* =================================================================== */}
         {/* 1. TOP HEADER CHUẨN FOODFAST */}
         {/* =================================================================== */}
-        <header className="sticky top-0 z-40 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] px-4 py-3.5 flex items-center justify-between rounded-t-3xl transition-colors">
+        <header className="sticky top-0 z-40 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] px-4 py-3 sm:py-3.5 flex items-center justify-between sm:rounded-t-3xl transition-colors">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
@@ -725,8 +725,8 @@ export default function OrdersPage({ initialTab }) {
         {/* =================================================================== */}
         {/* 2. TABS BAR CHUẨN FOODFAST: Đang đến | Đơn đã mua | Lịch sử | Đánh giá | Voucher | Đơn nháp */}
         {/* =================================================================== */}
-        <div className="border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 sticky top-[53px] z-30 transition-colors">
-          <div className="flex items-center justify-between px-4 overflow-x-auto no-scrollbar gap-5 text-xs sm:text-sm">
+        <div className="border-b border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 sticky top-[49px] sm:top-[53px] z-30 transition-colors w-full min-w-0 overflow-hidden">
+          <div className="flex items-center px-4 overflow-x-auto no-scrollbar gap-4 sm:gap-5 text-xs sm:text-sm w-full">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (

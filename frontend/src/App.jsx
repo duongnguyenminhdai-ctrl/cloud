@@ -68,7 +68,7 @@ function AppContent() {
   return (
     <IntroGatekeeper>
       <div
-        className={`min-h-screen flex flex-col font-sans relative ${isAuthPage
+        className={`min-h-screen flex flex-col font-sans relative w-full max-w-full overflow-x-hidden ${isAuthPage
           ? 'bg-transparent'
           : 'bg-[var(--app-bg,#ece7dc)] dark:bg-[#161412] text-[#2b2721] dark:text-[#ede6d8]'
           }`}
@@ -89,7 +89,7 @@ function AppContent() {
         )}
 
         {!isIntro && <Navbar />}
-        <main className={`flex-1 flex flex-col ${!isAuthPage && !isIntro ? 'relative z-10 pb-16 md:pb-0' : ''}`}>
+        <main className={`flex-1 flex flex-col w-full max-w-full min-w-0 overflow-x-hidden ${!isAuthPage && !isIntro ? 'relative z-10 pb-16 md:pb-0' : ''}`}>
           <Routes>
             {/* Trang Intro mở đầu */}
             <Route path="/intro" element={<IntroPage />} />

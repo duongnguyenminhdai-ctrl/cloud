@@ -38,6 +38,20 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 html, body, #root, .shader-frame {
