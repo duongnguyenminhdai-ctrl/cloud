@@ -254,9 +254,9 @@ export default function NotificationBell({ onReviewOrder }) {
         )}
       </button>
 
-      {/* Popover Dropdown Thông Báo (Tối ưu full fit trên Mobile: w-[calc(100vw-24px)] max-w-sm) */}
+      {/* Popover Dropdown Thông Báo (Tối ưu full fit trên Mobile: w-[min(380px,calc(100vw-24px))]) */}
       {isOpen && (
-        <div className="absolute -right-10 sm:right-0 mt-2 w-[calc(100vw-24px)] max-w-sm sm:w-96 sketch-panel bg-[#fffdfa] dark:bg-[#1e1b18] rounded-2xl shadow-2xl border border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] z-50 overflow-hidden animate-fadeIn">
+        <div className="absolute -right-16 sm:right-0 mt-2 w-[min(380px,calc(100vw-24px))] sketch-panel bg-[#fffdfa] dark:bg-[#1e1b18] rounded-2xl shadow-2xl border border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] z-[100] overflow-hidden animate-fadeIn">
           {/* Header */}
           <div className="px-4 py-3 bg-[#f2ece1] dark:bg-[#28231e] border-b border-[rgba(43,39,33,0.1)] dark:border-[rgba(240,234,224,0.08)] flex items-center justify-between text-[#2b2721] dark:text-[#ede6d8]">
             <div className="flex items-center gap-2">

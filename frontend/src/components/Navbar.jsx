@@ -102,7 +102,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200 w-full max-w-full overflow-hidden">
+      <header className="sticky top-0 z-[60] bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200 w-full">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3 w-full">
           {/* CỤM 1 (TRÁI): Brand Logo & City Selector */}
           <div className="flex items-center gap-1.5 sm:gap-3.5 shrink-0 min-w-0">
