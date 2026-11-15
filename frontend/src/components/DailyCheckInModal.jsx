@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar,
   Gift,
@@ -181,20 +182,42 @@ export default function DailyCheckInModal({ isOpen, onClose }) {
     }
   ];
 
+  // Khóa scroll của body khi modal điểm danh mở để không bị cuộn trang nền
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 bg-black/60 dark:bg-black/75 backdrop-blur-xs flex items-start sm:items-center justify-center py-4 sm:py-6 animate-fadeIn">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[999999] overflow-y-auto p-2 sm:p-4 bg-black/70 dark:bg-black/85 backdrop-blur-xs flex items-start sm:items-center justify-center py-4 sm:py-6 animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       {/* Toast thông báo chúc mừng */}
       {successToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-60 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black text-xs sm:text-sm shadow-2xl flex items-center gap-2 animate-bounce">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000000] px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black text-xs sm:text-sm shadow-2xl flex items-center gap-2 animate-bounce">
           <Coins className="w-4 h-4 text-yellow-200 fill-yellow-200" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Panel Điểm Danh - Đồng bộ Light / Dark Theme & Tối ưu Responsive chống tràn đỉnh */}
-      <div className="relative w-full max-w-4xl my-auto max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl border border-[#d8c8b8] dark:border-[#2e4356] bg-[#fbf9f5] dark:bg-[#16202a] text-[#2b2721] dark:text-[#e3edf7] font-sans flex flex-col select-none transition-colors duration-200 scrollbar-thin">
+      <div
+        className="relative w-full max-w-4xl my-auto max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl border border-[#d8c8b8] dark:border-[#2e4356] bg-[#fbf9f5] dark:bg-[#16202a] text-[#2b2721] dark:text-[#e3edf7] font-sans flex flex-col select-none transition-colors duration-200 scrollbar-thin"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* =================================================================== */}
         {/* HEADER PANEL (Phong cách HUD Truy Kích) */}
@@ -510,4 +533,8 @@ export default function DailyCheckInModal({ isOpen, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, User, Phone, MapPin, Calendar, Mail, Key, Lock,
   ShieldCheck, Eye, EyeOff, Save, CheckCircle2, AlertCircle, Camera, Trash2
@@ -78,6 +79,18 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
       fetchLatestProfile();
     }
   }, [isOpen, user]);
+
+  // Khóa scroll body khi modal profile mở
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -187,9 +200,17 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
   const textLabel = isDark ? 'text-slate-300' : 'text-gray-700';
   const textMuted = isDark ? 'text-slate-400' : 'text-gray-500';
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className={`rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col border shadow-2xl overflow-hidden ${bgModal}`}>
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[999998] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className={`rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col border shadow-2xl overflow-hidden ${bgModal}`}
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Modal Header */}
         <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${bgHeader}`}>
@@ -552,5 +573,9 @@ export default function UserProfileModal({ isOpen, onClose, isDark = false }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
 

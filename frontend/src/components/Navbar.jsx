@@ -101,8 +101,9 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200">
-      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+    <>
+      <header className="sticky top-0 z-50 bg-[#f7f4ee]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-b border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] text-[#2b2721] dark:text-[#ede6d8] shadow-2xs transition-colors duration-200">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo chính thức từ Google AI Studio & City Selector */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -278,19 +279,20 @@ export default function Navbar() {
           )}
         </div>
       </div>
+    </header>
 
-      {/* Modal Quản lý thông tin tài khoản */}
+      {/* Modal Quản lý thông tin tài khoản (Tự động Portal ra body với ưu tiên cao nhất) */}
       <UserProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         isDark={false}
       />
 
-      {/* Modal Điểm Danh Nhận Xu (Phong cách Truy Kích & FoodFast) */}
+      {/* Modal Điểm Danh Nhận Xu (Tự động Portal ra body với z-[999999] cao nhất hệ thống) */}
       <DailyCheckInModal
         isOpen={showCheckInModal}
         onClose={() => setShowCheckInModal(false)}
       />
-    </header>
+    </>
   );
 }
