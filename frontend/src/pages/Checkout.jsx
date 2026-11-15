@@ -984,6 +984,28 @@ export default function Checkout() {
         </div>
       </div>
 
+      {/* =================================================================== */}
+      {/* THANH CỐ ĐỊNH ĐẶT HÀNG TRÊN MOBILE (Fixed Mobile Checkout Bar) */}
+      {/* =================================================================== */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#fffdfa]/95 dark:bg-[#1c1916]/95 backdrop-blur-md border-t border-[rgba(43,39,33,0.14)] dark:border-[rgba(240,234,224,0.12)] p-3 px-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom,12px)] transition-colors">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium block">Tổng thanh toán</span>
+            <span className="text-lg font-black text-orange-600 dark:text-orange-400 whitespace-nowrap">
+              {payableTotal.toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+
+          <button
+            onClick={handlePlaceOrder}
+            disabled={loading || (isFirebasePhoneConfigured && isAuthenticated && !user?.phoneVerified)}
+            className="flex-1 max-w-[210px] py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 active:scale-98 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            {loading ? 'Đang tạo đơn...' : 'Đặt đơn hàng →'}
+          </button>
+        </div>
+      </div>
+
       {/* Modal chọn địa chỉ trên bản đồ */}
       <AddressPickerModal
         isOpen={isAddressModalOpen}

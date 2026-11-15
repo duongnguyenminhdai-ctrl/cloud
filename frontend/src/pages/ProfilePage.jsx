@@ -622,6 +622,64 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Thanh Tabs Chuyển Nhanh Trên Mobile (Mobile Segmented Tab Bar) */}
+      <div className="lg:hidden flex items-center overflow-x-auto no-scrollbar gap-2 p-1.5 bg-[#f2ece1] dark:bg-[#201c18] rounded-2xl border border-[rgba(43,39,33,0.12)] dark:border-[rgba(240,234,224,0.12)] mb-4 select-none touch-pan-x">
+        <button
+          type="button"
+          onClick={() => handleTabChange('profile')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'profile'
+              ? 'bg-[#9a6a3e] text-white shadow-xs font-extrabold'
+              : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-white/50 dark:hover:bg-black/30'
+          }`}
+        >
+          <User className="w-3.5 h-3.5" />
+          <span>Hồ sơ</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('password')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'password'
+              ? 'bg-[#9a6a3e] text-white shadow-xs font-extrabold'
+              : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-white/50 dark:hover:bg-black/30'
+          }`}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          <span>Đổi mật khẩu</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('address')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'address'
+              ? 'bg-[#9a6a3e] text-white shadow-xs font-extrabold'
+              : 'text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-white/50 dark:hover:bg-black/30'
+          }`}
+        >
+          <MapPin className="w-3.5 h-3.5" />
+          <span>Địa chỉ nhận hàng</span>
+        </button>
+
+        <Link
+          to="/orders"
+          className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-white/50 dark:hover:bg-black/30"
+        >
+          <Package className="w-3.5 h-3.5 text-[#8c5d33] dark:text-[#d49859]" />
+          <span>Đơn mua</span>
+        </Link>
+
+        <Link
+          to="/orders?tab=vouchers"
+          className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 text-[#2b2721]/75 dark:text-[#ede6d8]/75 hover:bg-white/50 dark:hover:bg-black/30"
+        >
+          <Ticket className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+          <span>Voucher</span>
+        </Link>
+      </div>
+
       {/* Khung bố cục chính: Sidebar Trái & Nội dung Phải */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* =================================================================== */}

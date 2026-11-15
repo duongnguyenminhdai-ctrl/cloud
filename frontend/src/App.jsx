@@ -157,8 +157,8 @@ function AppContent() {
             </div>
           </footer>
         )}
-        {/* Thanh Điều Hướng Đáy Màn Hình Cho Mobile (Bottom Navigation Bar) */}
-        {!isIntro && !isAuthPage && <BottomNavigation />}
+        {/* Thanh Điều Hướng Đáy Màn Hình Cho Mobile (Bottom Navigation Bar - Ẩn tại Checkout để nhường chỗ cho nút Đặt Hàng cố định) */}
+        {!isIntro && !isAuthPage && location.pathname !== '/checkout' && <BottomNavigation />}
       </div>
     </IntroGatekeeper>
   );
