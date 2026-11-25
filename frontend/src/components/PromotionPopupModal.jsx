@@ -55,6 +55,7 @@ export default function PromotionPopupModal() {
     };
 
     // Kiểm tra xem đã hiển thị trong phiên duyệt web hiện tại chưa
+    // Hoãn 3.2s để không che khuất cuốn sách lúc vừa tự scroll xuống xem hiệu ứng lật sách
     const hasShown = sessionStorage.getItem('foodfast_popup_sale_shown');
     if (!hasShown) {
       fetchBanners();
@@ -63,7 +64,7 @@ export default function PromotionPopupModal() {
           setIsOpen(true);
           sessionStorage.setItem('foodfast_popup_sale_shown', 'true');
         }
-      }, 1000);
+      }, 3200);
       return () => {
         isMounted = false;
         clearTimeout(timer);

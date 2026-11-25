@@ -1138,7 +1138,14 @@ export default function Home() {
         {/* ===================================================================== */}
         {/* 2. SỔ TAY KÝ HỌA ẨM THỰC BA MIỀN 3D (Image 2) */}
         {/* ===================================================================== */}
-        <HomeSketchbookSection />
+        <HomeSketchbookSection
+          autoScrollOnMount={
+            !searchParams.get('search') &&
+            !searchParams.get('dish') &&
+            !searchParams.get('tab') &&
+            !searchParams.get('filter')
+          }
+        />
 
         {/* ===================================================================== */}
         {/* 3. DANH MỤC ĐẶC TRƯNG FOODFAST (20 Icon Grid) (Image 3) */}

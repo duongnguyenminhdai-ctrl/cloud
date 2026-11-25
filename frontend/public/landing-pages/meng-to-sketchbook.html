@@ -1261,7 +1261,7 @@ zOutBtn.onclick=()=>{setView(view.trx,view.try_,view.tz/1.16);hideHint();};
 const plateList=document.getElementById('plateList');
 const aboutLabel=document.getElementById('aboutLabel');
 const aboutBio=document.getElementById('aboutBio');
-let riffle=null,riffleAt=0,introOn=false;
+let riffle=null,riffleAt=0,introOn=false,introLand=LAND,introStarted=false,introFallbackTimer=null;
 if(plateList){
   PAGES.forEach((p,i)=>{
     const li=el('li');
@@ -1275,7 +1275,7 @@ if(plateList){
   });
 }
 function marks(){
-  const cur=introOn?LAND:(turn?turn.to:idx);
+  const cur=introOn?introLand:(turn?turn.to:idx);
   if(plateList){
     plateList.querySelectorAll('.plate').forEach((b,i)=>b.setAttribute('aria-current',i===cur?'true':'false'));
   }
@@ -1306,10 +1306,15 @@ function riffleStep(){
     else{endIntro();paint();}
   });
 }
-function startIntro(){
+function startIntro(targetLand){
+  if(introStarted)return;
+  introStarted=true;
+  if(introFallbackTimer){clearTimeout(introFallbackTimer);introFallbackTimer=null;}
+  introLand=typeof targetLand==='number'&&targetLand>=0&&targetLand<M?targetLand:LAND;
   const coarse=matchMedia('(max-width: 640px), (pointer: coarse)').matches;
-  if(coarse||REDUCED||Q.has('nointro')){idx=LAND;paint();return;}
-  const steps=M+LAND;
+  if(coarse||REDUCED||Q.has('nointro')){idx=introLand;paint();return;}
+  idx=0;
+  const steps=M+introLand;
   riffle=[];
   for(let r=0;r<steps;r++){
     const bell=Math.sin(Math.PI*(r/(steps-1)));
@@ -1338,12 +1343,24 @@ function startIntro(){
     if(Q.has('t')){startTurn(Q.get('dir')||'next',parseFloat(Q.get('t')));}
     return;
   }
-  setTimeout(startIntro,220);
+  if(window.parent!==window||Q.has('embed')){
+    // Khi nhúng trên Trang Chủ, đợi parent tự scroll xuống cuốn sách rồi phát hiệu ứng lật sách (fallback 1600ms)
+    introFallbackTimer=setTimeout(()=>startIntro(introLand),1600);
+  }else{
+    setTimeout(()=>startIntro(introLand),220);
+  }
 
   function sendAutoHeight() {
     if (window.parent !== window) {
       const h = Math.ceil(document.body.scrollHeight || document.documentElement.scrollHeight || 960);
-      window.parent.postMessage({ type: 'FOODFAST_SKETCHBOOK_HEIGHT', height: h }, '*');
+      const wrapEl = document.getElementById('sbWrap');
+      const wrapRect = wrapEl ? wrapEl.getBoundingClientRect() : null;
+      window.parent.postMessage({
+        type: 'FOODFAST_SKETCHBOOK_HEIGHT',
+        height: h,
+        bookTop: wrapRect ? Math.max(0, Math.round(wrapRect.top)) : 0,
+        bookHeight: wrapRect ? Math.round(wrapRect.height) : 0
+      }, '*');
     }
   }
   window.addEventListener('load', sendAutoHeight);
@@ -1367,6 +1384,9 @@ function startIntro(){
 
   window.addEventListener('message', function(e) {
     if (!e.data) return;
+    if (e.data.type === 'FOODFAST_PLAY_INTRO_RIFFLE') {
+      startIntro(introLand);
+    }
     if (e.data.type === 'foodfast-theme-change' && e.data.theme) {
       applyTheme(e.data.theme, false);
     }
@@ -1401,13 +1421,22 @@ function startIntro(){
         });
       }
       if (targetIdx !== undefined && targetIdx >= 0 && targetIdx < PAGES.length) {
-        goTo(targetIdx);
+        introLand = targetIdx;
+        if (introStarted && !introOn) {
+          goTo(targetIdx);
+        }
       }
     }
   });
 
   if (window.parent !== window) {
-    window.parent.postMessage({ type: 'FOODFAST_SKETCHBOOK_READY' }, '*');
+    const wrapEl = document.getElementById('sbWrap');
+    const wrapRect = wrapEl ? wrapEl.getBoundingClientRect() : null;
+    window.parent.postMessage({
+      type: 'FOODFAST_SKETCHBOOK_READY',
+      bookTop: wrapRect ? Math.max(0, Math.round(wrapRect.top)) : 0,
+      bookHeight: wrapRect ? Math.round(wrapRect.height) : 0
+    }, '*');
   }
 
   const themeBtn = document.getElementById('themeToggleBtn');
