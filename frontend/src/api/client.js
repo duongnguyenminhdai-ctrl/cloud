@@ -1157,16 +1157,13 @@ export const checkInApi = {
 // 14. Decision Roulette API ("Hôm nay ăn gì?" - Milestone 1 & 3)
 // -----------------------------------------------------------------------------
 export const rouletteApi = {
-  spin: async ({ budget = 'all', mood = 'all' } = {}) => {
+  spin: async ({ budget = 'all', vegetarianOnly = false, mood = 'all' } = {}) => {
     try {
-      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/spin'), { budget, mood });
+      return await apiClient.post(buildUrl(RESTAURANT_SERVICE_URL, '/restaurants/roulette/spin'), { budget, vegetarianOnly, mood });
     } catch (err) {
       if (isLocalhost && (err.code === 'ERR_NETWORK' || !err.response) && !RESTAURANT_SERVICE_URL) {
-        const token = localStorage.getItem('token');
         try {
-          return await axios.post('http://localhost:3001/api/v1/restaurants/roulette/spin', { budget, mood }, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-          });
+          return await axios.post('http://localhost:3001/api/v1/restaurants/roulette/spin', { budget, vegetarianOnly, mood });
         } catch {}
       }
       throw err;

@@ -167,18 +167,15 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* 1.5. Nút Kích Hoạt "Hôm nay ăn gì?" — Vòng quay chọn món nhận x2 Xu */}
+            {/* 1.5. Nút Kích Hoạt "Hôm nay ăn gì?" — Hòm gợi ý chọn món vui vẻ */}
             <button
               type="button"
               onClick={() => setShowRouletteModal(true)}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 h-8 sm:h-9 rounded-xl border border-[#EE4D2D]/30 bg-gradient-to-r from-[#EE4D2D]/10 to-orange-500/10 hover:from-[#EE4D2D]/20 hover:to-orange-500/20 text-[#EE4D2D] dark:text-[#ff6b4a] font-bold text-xs transition-all shadow-2xs cursor-pointer group shrink-0"
-              title="Vòng quay chọn món thông minh nhận x2 Xu thưởng FoodFast"
+              title="Hòm món ngon ngẫu nhiên — Gợi ý ăn gì hôm nay?"
             >
               <Compass className="w-3.5 h-3.5 text-[#EE4D2D] group-hover:rotate-45 transition-transform shrink-0" />
               <span className="hidden sm:inline">Hôm nay ăn gì?</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-[#EE4D2D] text-white text-[9.5px] font-black tracking-tight leading-none shrink-0">
-                x2 Xu
-              </span>
             </button>
 
             {/* 2. Gamification Capsule: Hợp nhất [🪙 Số dư Xu | 🔥 Điểm danh] thành 1 Pill thanh lịch */}

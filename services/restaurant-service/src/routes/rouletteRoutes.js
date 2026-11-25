@@ -5,14 +5,14 @@ const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * Decision Roulette Routes
- * Phụ trách tính năng "Hôm nay ăn gì?" - Vòng quay chọn món nhận ưu đãi x2 Xu FoodFast.
+ * Phụ trách tính năng "Hôm nay ăn gì?" - Hòm quay chọn món giải trí, không giới hạn lượt.
  */
 
-// 1. Quay thưởng (Yêu cầu đăng nhập)
-router.post(['/spin', '/'], verifyToken, rouletteController.spinRoulette);
+// 1. Quay chọn món ngẫu nhiên (Public, không giới hạn lượt)
+router.post(['/spin', '/'], rouletteController.spinRoulette);
 
-// 2. Tra cứu số lượt quay còn lại trong ngày (Yêu cầu đăng nhập)
-router.get(['/status'], verifyToken, rouletteController.getRouletteStatus);
+// 2. Tra cứu trạng thái vòng quay (không giới hạn lượt)
+router.get(['/status'], rouletteController.getRouletteStatus);
 
 // 3. Tra cứu thông tin và tính hợp lệ của phiên quay thưởng
 router.get(['/session/:sessionId'], rouletteController.getRouletteSession);

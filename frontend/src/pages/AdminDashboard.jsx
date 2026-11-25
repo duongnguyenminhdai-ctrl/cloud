@@ -2069,7 +2069,7 @@ export default function AdminDashboard() {
                   <Zap className="w-5 h-5 text-amber-400" /> Quản lý Hòm Món Ngon FoodFast
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Cấu hình các món tiêu biểu trong hòm quay thưởng. Khách quay ra món nào, đặt món có tên tương tự tại bất kỳ quán nào trong 10 phút sẽ nhận ưu đãi x2 Xu.
+                  Cấu hình danh sách các món tiêu biểu hiển thị trong hòm quay gợi ý món ăn vui vẻ cho người dùng (không giới hạn lượt quay).
                 </p>
               </div>
 
@@ -2148,9 +2148,9 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400 font-medium">Cơ chế x2 Xu</span>
+                <span className="text-[11px] text-slate-400 font-medium">Chế độ quay</span>
                 <p className="text-xs font-bold text-amber-300 mt-1 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> 10 phút sau khi quay
+                  <Zap className="w-3.5 h-3.5" /> Giải trí — Không giới hạn lượt
                 </p>
               </div>
             </div>
@@ -4452,7 +4452,7 @@ export default function AdminDashboard() {
                   {editingRouletteItem.index !== undefined ? 'Chỉnh sửa món trong hòm' : 'Thêm món mới vào hòm'}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Món tiêu biểu để người dùng quay và đặt tại bất kỳ quán nào nhận x2 Xu
+                  Món tiêu biểu hiển thị ngẫu nhiên trong Hòm Món Ngon FoodFast
                 </p>
               </div>
             </div>

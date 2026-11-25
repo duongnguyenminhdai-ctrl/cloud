@@ -3,31 +3,21 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
-  Flame,
-  Coins,
-  Star,
   Tag,
   Zap,
   Utensils,
   Volume2,
   VolumeX,
-  Clock,
   ArrowRight,
   RotateCw,
-  CheckCircle2,
   AlertCircle,
-  ShoppingBag
+  Search
 } from 'lucide-react';
 import { rouletteApi } from '../api/client';
-import { useAuth } from '../context/AuthContext';
 import { CaseAudio } from '../utils/caseAudio';
 import {
   TILE_WIDTH,
-  TILE_GAP,
   STEP,
-  RARITY_TIERS,
-  getDishRarity,
-  getRaritySound,
   stopFraction,
   spinProgress,
   createSpinProfile
@@ -71,7 +61,6 @@ const FALLBACK_CONFIG_ITEMS = [
 
 export default function FoodRouletteModal({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
   // Audio Engine
   const audio = useRef(null);
@@ -79,15 +68,12 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
 
   // Config món tiêu biểu từ API
   const [configItems, setConfigItems] = useState(FALLBACK_CONFIG_ITEMS);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
   // Bộ lọc ngân sách & chay
   const [budget, setBudget] = useState('all');
   const [vegetarianOnly, setVegetarianOnly] = useState(false);
 
-  // Trạng thái lượt quay
-  const [spinsRemaining, setSpinsRemaining] = useState(3);
-  const [resetCountdown, setResetCountdown] = useState('');
+  // Trạng thái quay
   const [errorMsg, setErrorMsg] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -102,13 +88,9 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
   const [visibleStart, setVisibleStart] = useState(0);
   const [reelItems, setReelItems] = useState([]);
 
-  // Kết quả trúng thưởng
+  // Kết quả mở hòm
   const [winningResult, setWinningResult] = useState(null);
   const [showRevealDialog, setShowRevealDialog] = useState(false);
-  const [sessionSecondsLeft, setSessionSecondsLeft] = useState(600); // 10 phút
-
-  const countdownIntervalRef = useRef(null);
-  const resetIntervalRef = useRef(null);
 
   // ─── 1. Khởi tạo Audio Engine ───────────────────────────────────────────────
   useEffect(() => {
@@ -135,7 +117,6 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
 
   // ─── 2. Tải config món tiêu biểu từ API ────────────────────────────────────
   const fetchConfig = useCallback(async () => {
-    setIsLoadingConfig(true);
     try {
       const res = await rouletteApi.getConfig();
       const items = res?.data?.data?.items || [];
@@ -146,43 +127,12 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
       }
     } catch {
       setConfigItems(FALLBACK_CONFIG_ITEMS);
-    } finally {
-      setIsLoadingConfig(false);
     }
   }, []);
 
-  // ─── 3. Lấy trạng thái lượt quay ───────────────────────────────────────────
-  const fetchStatus = useCallback(async () => {
-    if (!isAuthenticated) { setSpinsRemaining(3); return; }
-    try {
-      const res = await rouletteApi.getStatus();
-      if (res.data?.success && res.data.data) {
-        const { spinsRemaining: remaining, resetInSeconds } = res.data.data;
-        setSpinsRemaining(typeof remaining === 'number' ? remaining : 3);
-        if (remaining <= 0 && resetInSeconds > 0) startResetTimer(resetInSeconds);
-      }
-    } catch {}
-  }, [isAuthenticated]);
-
-  const startResetTimer = (initialSecs) => {
-    if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
-    let remaining = initialSecs;
-    const updateText = () => {
-      const h = Math.floor(remaining / 3600);
-      const m = Math.floor((remaining % 3600) / 60);
-      const s = remaining % 60;
-      setResetCountdown(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
-      if (remaining <= 0) { clearInterval(resetIntervalRef.current); setSpinsRemaining(3); setResetCountdown(''); }
-      else remaining -= 1;
-    };
-    updateText();
-    resetIntervalRef.current = setInterval(updateText, 1000);
-  };
-
-  // ─── 4. Kích hoạt khi modal mở ─────────────────────────────────────────────
+  // ─── 3. Kích hoạt khi modal mở ─────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      fetchStatus();
       fetchConfig();
       setErrorMsg('');
       setShowRevealDialog(false);
@@ -193,13 +143,11 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
       isBusyRef.current = false;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     }
-  }, [isOpen, fetchStatus, fetchConfig]);
+  }, [isOpen, fetchConfig]);
 
   // Dọn dẹp timers
   useEffect(() => () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
   }, []);
 
   // Khóa cuộn trang nền khi modal mở
@@ -214,7 +162,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  // ─── 5. Lọc danh sách theo ngân sách & chay ────────────────────────────────
+  // ─── 4. Lọc danh sách theo ngân sách & chay ────────────────────────────────
   const eligibleItems = useMemo(() => {
     let list = configItems.filter(d => d.isActive !== false);
 
@@ -226,22 +174,18 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     }
 
     if (budget !== 'all') {
-      const budgetConfig = BUDGET_OPTIONS.find(b => b.id === budget);
-      if (budgetConfig) {
-        list = list.filter(d => {
-          // Ánh xạ rarity → phân khúc giá
-          if (budget === 'under_35k') return d.rarity === 'COMMON';
-          if (budget === '35k_70k') return d.rarity === 'RARE';
-          if (budget === 'above_70k') return d.rarity === 'LEGENDARY';
-          return true;
-        });
-      }
+      list = list.filter(d => {
+        if (budget === 'under_35k') return d.rarity === 'COMMON';
+        if (budget === '35k_70k') return d.rarity === 'RARE';
+        if (budget === 'above_70k') return d.rarity === 'LEGENDARY';
+        return true;
+      });
     }
 
     return list.length > 0 ? list : configItems.filter(d => d.isActive !== false);
   }, [configItems, budget, vegetarianOnly]);
 
-  // ─── 6. Khởi tạo dải thẻ băng chuyền ──────────────────────────────────────
+  // ─── 5. Khởi tạo dải thẻ băng chuyền ──────────────────────────────────────
   useEffect(() => {
     if (isSpinning || !eligibleItems.length) return;
     const initialItems = [];
@@ -255,40 +199,10 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     if (trackRef.current) trackRef.current.style.transform = 'translate3d(-400px, 0, 0)';
   }, [eligibleItems, isSpinning]);
 
-  // ─── 7. Đếm ngược 10 phút ưu đãi ──────────────────────────────────────────
-  useEffect(() => {
-    if (winningResult?.expiresAt) {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-      const targetTime = new Date(winningResult.expiresAt).getTime();
-      const updateCountdown = () => {
-        const diff = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
-        setSessionSecondsLeft(diff);
-        if (diff <= 0) clearInterval(countdownIntervalRef.current);
-      };
-      updateCountdown();
-      countdownIntervalRef.current = setInterval(updateCountdown, 1000);
-    }
-    return () => { if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current); };
-  }, [winningResult]);
-
-  const formattedCountdown = useMemo(() => {
-    const m = Math.floor(sessionSecondsLeft / 60);
-    const s = sessionSecondsLeft % 60;
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }, [sessionSecondsLeft]);
-
-  // ─── 8. Mở hòm (spin) ──────────────────────────────────────────────────────
+  // ─── 6. Mở hòm (quay không giới hạn, thuần giải trí gợi ý món) ────────────
   const handleOpenCase = async () => {
     if (isBusyRef.current || isSpinning) return;
     if (!viewportRef.current || !trackRef.current) return;
-    if (!isAuthenticated) {
-      setErrorMsg('Vui lòng đăng nhập để mở hòm chọn món và nhận x2 Xu FoodFast!');
-      return;
-    }
-    if (spinsRemaining <= 0) {
-      setErrorMsg('Bạn đã dùng hết 3 lượt mở hòm hôm nay. Vui lòng quay lại vào ngày mai!');
-      return;
-    }
 
     audio.current?.unlock();
     isBusyRef.current = true;
@@ -297,26 +211,27 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     setShowRevealDialog(false);
 
     try {
-      const response = await rouletteApi.spin({ budget, mood: 'all' });
-      const resData = response.data;
-      if (!resData?.success) throw new Error(resData?.message || 'Không thể mở hòm lúc này');
+      let winnerFromServer = null;
+      try {
+        const response = await rouletteApi.spin({ budget, vegetarianOnly, mood: 'all' });
+        if (response?.data?.success && response.data.data?.winnerItem) {
+          winnerFromServer = response.data.data.winnerItem;
+        }
+      } catch {
+        // Nếu offline / mất kết nối API, tự chọn ngẫu nhiên từ danh sách đang có
+      }
 
-      const { winnerItem, sessionId, bonusType, expiresAt, spinsRemaining: newRemaining } = resData.data;
-      if (typeof newRemaining === 'number') setSpinsRemaining(newRemaining);
-
-      // Nếu backend trả về winnerItem chỉ có name (không có restaurantId), tìm trong eligibleItems
-      const localWinner = eligibleItems.find(d =>
-        d.name?.toLowerCase() === winnerItem?.name?.toLowerCase()
-      ) || eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
+      const localWinner = winnerFromServer
+        ? (eligibleItems.find(d => d.name?.toLowerCase() === winnerFromServer.name?.toLowerCase()) || winnerFromServer)
+        : eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
 
       const finalWinner = {
         ...localWinner,
-        name: winnerItem?.name || localWinner.name,
-        image: winnerItem?.image || localWinner.image,
-        priceRange: winnerItem?.priceRange || localWinner.priceRange,
-        rarity: winnerItem?.rarity || localWinner.rarity || 'COMMON',
-        sessionId,
-        expiresAt
+        name: localWinner.name,
+        description: localWinner.description || '',
+        image: localWinner.image || '',
+        priceRange: localWinner.priceRange || '',
+        rarity: localWinner.rarity || 'COMMON'
       };
 
       // Build spin animation
@@ -373,12 +288,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
         isBusyRef.current = false;
         setIsSpinning(false);
 
-        setWinningResult({
-          winnerItem: finalWinner,
-          sessionId,
-          bonusType: bonusType || 'DOUBLE_COINS',
-          expiresAt: expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
-        });
+        setWinningResult({ winnerItem: finalWinner });
         setShowRevealDialog(true);
 
         const rarityMap = { COMMON: 'csgo_reveal_common', RARE: 'csgo_reveal_rare', LEGENDARY: 'csgo_reveal_legendary' };
@@ -389,33 +299,13 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
     } catch (err) {
       isBusyRef.current = false;
       setIsSpinning(false);
-      const errMsg = err.response?.data?.message || err.message || 'Lỗi kết nối máy chủ';
-      setErrorMsg(errMsg);
-      if (err.response?.status === 429) {
-        setSpinsRemaining(0);
-        if (err.response?.data?.resetInSeconds) startResetTimer(err.response.data.resetInSeconds);
-      }
+      setErrorMsg(err?.message || 'Không thể mở hòm lúc này');
     }
   };
 
-  // ─── 9. CTA: Đặt Món Ngay (không gắn link quán, chỉ điều hướng về trang chủ) ──
+  // ─── 7. CTA: Khám phá quán trên trang chủ (không gắn link cứng hay Xu) ─────
   const handleGoOrder = () => {
-    if (!winningResult?.winnerItem) return;
-    const { winnerItem, sessionId, expiresAt } = winningResult;
-
-    // Lưu session x2 Xu vào sessionStorage (Checkout sẽ dùng để match tên món)
-    try {
-      sessionStorage.setItem('foodfast_roulette_session', JSON.stringify({
-        sessionId,
-        itemName: winnerItem.name,
-        bonusType: 'DOUBLE_COINS',
-        expiresAt: expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        matchByName: true  // Flag báo cho Order Service: so sánh theo tên, không theo ID
-      }));
-    } catch {}
-
     onClose();
-    // Điều hướng về trang chủ, người dùng tự chọn quán và đặt món tương tự
     navigate('/');
   };
 
@@ -448,24 +338,12 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                 </span>
               </div>
               <p className="text-xs text-[#8c98a4] hidden sm:block">
-                Mở hòm nhận gợi ý món — Đặt món tên tương tự trong{' '}
-                <span className="text-[#dfc681] font-semibold">10 phút</span> để nhận{' '}
-                <span className="text-[#dfc681] font-semibold">+x2 Xu</span> tại bất kỳ quán nào!
+                Mở hòm gợi ý món ăn ngẫu nhiên — Quay vui vẻ, hoàn toàn miễn phí &amp; không giới hạn lượt!
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Lượt quay */}
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
-              spinsRemaining > 0
-                ? 'bg-amber-500/10 text-[#dfc681] border-[#dfc681]/40'
-                : 'bg-gray-800 text-gray-400 border-gray-700'
-            }`}>
-              <Flame className="w-3.5 h-3.5 text-[#EE4D2D]" />
-              <span>{spinsRemaining}/3 lượt</span>
-            </div>
-
             {/* Âm thanh */}
             <button
               type="button"
@@ -492,34 +370,13 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* ── THÔNG BÁO LỖI / HẾT LƯỢT (shrink-0) ───────────────────────── */}
+        {/* ── THÔNG BÁO LỖI (shrink-0) ──────────────────────────────────── */}
         {errorMsg && (
           <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
             <span>{errorMsg}</span>
           </div>
         )}
-
-        {spinsRemaining <= 0 && resetCountdown && (
-          <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-amber-950/30 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-200">
-            <Clock className="w-4 h-4 shrink-0 text-[#dfc681]" />
-            <span>
-              Bạn đã mở hết 3/3 lượt hòm hôm nay. Lượt mới sẽ được làm mới sau:{' '}
-              <strong className="text-white font-mono">{resetCountdown}</strong>
-            </span>
-          </div>
-        )}
-
-        {/* ── INFO BANNER: CƠ CHẾ ƯU ĐÃI (shrink-0) ─────────────────────── */}
-        <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 rounded-lg bg-[#dfc681]/8 border border-[#dfc681]/25 flex items-start gap-2.5 text-xs text-[#c8b97a]">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-[#dfc681] mt-0.5" />
-          <div>
-            <span className="font-bold text-[#dfc681]">Cơ chế x2 Xu:</span>{' '}
-            Quay ra món nào → Đặt món có tên tương tự tại{' '}
-            <strong className="text-white">bất kỳ quán nào</strong> bạn thích trong{' '}
-            <strong className="text-[#dfc681]">10 phút</strong> → Tự động nhận x2 Xu!
-          </div>
-        </div>
 
         {/* ── THÂN MODAL CUỘN ĐƯỢC ĐỘC LẬP (flex-1 overflow-y-auto) ─────── */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 min-h-0">
@@ -531,7 +388,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                 <Utensils className="w-3.5 h-3.5 text-[#dfc681]" />
                 Băng chuyền món ngon FoodFast
               </span>
-              <span className="text-[11px]">Vạch dừng tự động chọn ngẫu nhiên món thắng</span>
+              <span className="text-[11px]">Vạch dừng tự động chọn ngẫu nhiên gợi ý hôm nay</span>
             </div>
 
             {/* REEL WINDOW */}
@@ -603,7 +460,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                           )}
                         </div>
 
-                        {/* Tên món (không có tên quán) */}
+                        {/* Tên món */}
                         <div className="pt-1.5 border-t border-white/5">
                           <h4 className="text-xs font-bold text-white truncate" title={dish.name}>
                             {dish.name}
@@ -665,11 +522,11 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={handleOpenCase}
-              disabled={isSpinning || spinsRemaining <= 0}
+              disabled={isSpinning}
               className={`w-full md:w-auto min-w-[200px] px-7 py-3 rounded-xl font-black text-sm tracking-wide uppercase transition-all shadow-lg flex items-center justify-center gap-2.5 ${
-                isSpinning || spinsRemaining <= 0
+                isSpinning
                   ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700 shadow-none'
-                  : 'bg-gradient-to-r from-[#dfc681] to-[#e4ae39] hover:from-[#e8d192] hover:to-[#f0ba45] text-[#14181f] active:scale-95 shadow-[#dfc681]/20'
+                  : 'bg-gradient-to-r from-[#dfc681] to-[#e4ae39] hover:from-[#e8d192] hover:to-[#f0ba45] text-[#14181f] active:scale-95 shadow-[#dfc681]/20 cursor-pointer'
               }`}
             >
               {isSpinning ? (
@@ -756,7 +613,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* ── OVERLAY KẾT QUẢ MỞ HÒM ─────────────────────────────────────── */}
+        {/* ── OVERLAY KẾT QUẢ MỞ HÒM (GỢI Ý VUI VẺ) ───────────────────────── */}
         {showRevealDialog && winningResult?.winnerItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
             <div
@@ -768,7 +625,7 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
               }}
             >
               <span className="text-xs font-mono font-bold tracking-[3px] text-[#b6c2ca] uppercase mb-1">
-                VẬT PHẨM MỚI
+                GỢI Ý HÔM NAY
               </span>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1 mb-2 tracking-tight">
@@ -777,7 +634,9 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
 
               <p className="text-sm text-[#aebbc5] mb-4">
                 {winningResult.winnerItem.description || 'Món ngon FoodFast gợi ý cho bạn'}{' '}
-                <span className="text-[#dfc681] font-semibold">{winningResult.winnerItem.priceRange}</span>
+                {winningResult.winnerItem.priceRange && (
+                  <span className="text-[#dfc681] font-semibold">{winningResult.winnerItem.priceRange}</span>
+                )}
               </p>
 
               {/* Ảnh món */}
@@ -799,10 +658,10 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                 )}
               </div>
 
-              {/* Huy hiệu rarity + x2 Xu */}
-              <div className="flex items-center gap-2 my-2 flex-wrap justify-center">
+              {/* Huy hiệu độ hiếm */}
+              <div className="flex items-center gap-2 my-3 flex-wrap justify-center">
                 <span
-                  className="px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase"
+                  className="px-3.5 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase"
                   style={{
                     backgroundColor: `${RARITY_COLOR[winningResult.winnerItem.rarity] || '#dfc681'}25`,
                     color: RARITY_COLOR[winningResult.winnerItem.rarity] || '#dfc681',
@@ -811,31 +670,11 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                 >
                   {RARITY_LABEL[winningResult.winnerItem.rarity] || 'Phổ biến'}
                 </span>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EE4D2D] text-white text-xs font-bold shadow-md">
-                  <Coins className="w-3.5 h-3.5" />
-                  <span>Nhận x2 Xu FoodFast (2.000 Xu)</span>
-                </div>
               </div>
 
-              {/* Đồng hồ 10 phút */}
-              <div className="my-3 flex items-center gap-2 text-xs text-gray-300">
-                <Clock className="w-4 h-4 text-[#dfc681]" />
-                {sessionSecondsLeft > 0 ? (
-                  <span>
-                    Đặt món tên tương tự trong:{' '}
-                    <strong className="text-[#dfc681] font-mono text-sm">{formattedCountdown}</strong>
-                    {' '}để nhận x2 Xu!
-                  </span>
-                ) : (
-                  <span className="text-gray-400">Phiên ưu đãi đã hết hạn.</span>
-                )}
-              </div>
-
-              {/* Gợi ý */}
-              <div className="w-full p-3 rounded-lg bg-[#dfc681]/10 border border-[#dfc681]/20 text-xs text-[#c8b97a] text-left mb-4">
-                <strong className="text-[#dfc681]">💡 Gợi ý:</strong> Vào trang chủ, tìm quán bạn thích và đặt bất kỳ
-                món có tên tương tự "<span className="font-bold text-white">{winningResult.winnerItem.name}</span>"
-                là được tự động nhận x2 Xu!
+              {/* Lời chúc vui vẻ */}
+              <div className="w-full p-3 rounded-lg bg-[#dfc681]/10 border border-[#dfc681]/20 text-xs text-[#c8b97a] text-center mb-4">
+                Hôm nay thử ngay <strong className="text-white">"{winningResult.winnerItem.name}"</strong> tại quán quen yêu thích của bạn nhé! Hoặc quay tiếp nếu muốn đổi gió.
               </div>
 
               {/* Buttons */}
@@ -843,22 +682,20 @@ export default function FoodRouletteModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={() => setShowRevealDialog(false)}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  Tiếp tục quay
+                  Quay tiếp
                 </button>
 
                 <button
                   type="button"
                   onClick={handleGoOrder}
-                  disabled={sessionSecondsLeft <= 0}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#EE4D2D] to-[#f97316] hover:from-[#dc3f1f] hover:to-[#ea580c]
                     text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-[#EE4D2D]/30 transition-all active:scale-95
-                    flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Đặt Món Ngay (+x2 XU)</span>
-                  <span className="font-mono text-amber-200">({formattedCountdown})</span>
+                  <Search className="w-4 h-4" />
+                  <span>Đi Chọn Quán Ngay</span>
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </button>
               </div>

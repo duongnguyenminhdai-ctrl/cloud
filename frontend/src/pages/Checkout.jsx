@@ -14,35 +14,6 @@ import { publishRealtimeSignal } from '../utils/realtimeSync';
 import PhoneVerificationBox from '../components/PhoneVerificationBox';
 import { isFirebasePhoneConfigured } from '../utils/firebase';
 
-// Hàm kiểm tra độ tương đồng tên món ăn (cho ưu đãi x2 Xu vòng quay Roulette)
-function isSimilarDishName(nameA, nameB) {
-  if (!nameA || !nameB) return false;
-  const stopWords = new Set([
-    'và', 'với', 'có', 'của', 'cho', 'các', 'một', 'món', 'ăn', 'uống',
-    'đặc', 'biệt', 'số', 'thêm', 'không', 'bao', 'gồm', 'size', 'phần',
-    'combo', 'set', 'mix', 'the', 'and', 'with', 'or', 'in', 'of', 'a', 'an'
-  ]);
-  const norm = (s) => String(s)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[^\w\s\u0300-\u036f]/g, ' ')
-    .normalize('NFC')
-    .split(/\s+/)
-    .filter(w => w.length >= 2 && !stopWords.has(w));
-  const wA = norm(nameA);
-  const wB = norm(nameB);
-  const setA = new Set(wA);
-  for (const w of wB) {
-    if (setA.has(w)) return true;
-  }
-  for (const a of wA) {
-    for (const b of wB) {
-      if (a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a))) return true;
-    }
-  }
-  return false;
-}
-
 export default function Checkout() {
   const { cartItems, currentRestaurant, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user, isAuthenticated, loginWithToken, updateUserProfile } = useAuth();
@@ -51,52 +22,8 @@ export default function Checkout() {
   const { location: userCoord, setManualLocation } = useUserLocation();
   const [checkoutPhone, setCheckoutPhone] = useState(user?.phone || '');
 
-  // Trạng thái Decision Roulette (R4) & Group Order (R5)
+  // Trạng thái Group Order (R5)
   const groupOrderRoomCode = location.state?.groupOrderRoomCode || new URLSearchParams(location.search).get('groupRoom') || null;
-  const [activeRouletteSession, setActiveRouletteSession] = useState(null);
-  const [rouletteSecondsLeft, setRouletteSecondsLeft] = useState(0);
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem('foodfast_roulette_session');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const now = Date.now();
-        const exp = new Date(parsed.expiresAt).getTime();
-        if (exp > now) {
-          const hasWinningItem = cartItems.some(
-            (it) =>
-              String(it.menuItemId || it._id) === String(parsed.menuItemId) ||
-              it.name === parsed.itemName ||
-              isSimilarDishName(it.name, parsed.itemName)
-          );
-          if (hasWinningItem) {
-            setActiveRouletteSession(parsed);
-            setRouletteSecondsLeft(Math.floor((exp - now) / 1000));
-          } else {
-            setActiveRouletteSession(null);
-          }
-        } else {
-          sessionStorage.removeItem('foodfast_roulette_session');
-        }
-      }
-    } catch {}
-  }, [cartItems]);
-
-  useEffect(() => {
-    if (!activeRouletteSession) return;
-    const timer = setInterval(() => {
-      const exp = new Date(activeRouletteSession.expiresAt).getTime();
-      const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
-      setRouletteSecondsLeft(diff);
-      if (diff <= 0) {
-        setActiveRouletteSession(null);
-        sessionStorage.removeItem('foodfast_roulette_session');
-        clearInterval(timer);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [activeRouletteSession]);
 
   const [address, setAddress] = useState(
     userCoord?.address || 'Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'
@@ -396,7 +323,6 @@ export default function Checkout() {
         shippingFeeDetails: shippingFeeData,
         paymentMethod,
         deliveryAddress: address,
-        rouletteSessionId: activeRouletteSession ? activeRouletteSession.sessionId : undefined,
         isGroupOrder: Boolean(groupOrderRoomCode),
         groupOrderRoomCode: groupOrderRoomCode || undefined,
       };
@@ -404,12 +330,6 @@ export default function Checkout() {
       const res = await orderApi.create(orderPayload);
       if (res.data?.success) {
         const orderId = res.data.data?._id || res.data.order?._id || res.data.data?.orderId;
-
-        // Xóa phiên roulette sau khi đặt hàng thành công
-        if (activeRouletteSession) {
-          sessionStorage.removeItem('foodfast_roulette_session');
-          setActiveRouletteSession(null);
-        }
 
         // Lưu đơn hàng vào LocalStorage riêng của tài khoản này
         try {
@@ -540,36 +460,6 @@ export default function Checkout() {
         <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {/* Banner Ưu đãi x2 Xu thưởng Roulette nếu có session hợp lệ (Milestone 3 - R4) */}
-      {activeRouletteSession && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/15 to-[#EE4D2D]/15 border border-[#EE4D2D]/40 text-[#2b2520] dark:text-[#ede6d8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-fadeIn">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EE4D2D] text-white flex items-center justify-center shrink-0 shadow-md">
-              <Coins className="w-5 h-5 text-amber-200 fill-amber-200" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-black text-sm text-[#EE4D2D] dark:text-[#ff6b4a]">
-                  🎉 Đơn hàng nhận x2 Xu thưởng FoodFast khi giao thành công!
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-[#EE4D2D] text-white text-[10px] font-extrabold uppercase">
-                  Ưu đãi vòng quay
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                Món trúng thưởng: <strong>{activeRouletteSession.itemName}</strong>. Tự động nhận 2.000 Xu FoodFast vào tài khoản khi đơn giao thành công.
-              </p>
-            </div>
-          </div>
-          {rouletteSecondsLeft > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 font-bold self-end sm:self-auto bg-white/80 dark:bg-black/40 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 shrink-0">
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
-              <span>Còn lại: {Math.floor(rouletteSecondsLeft / 60)}:{String(rouletteSecondsLeft % 60).padStart(2, '0')}</span>
-            </div>
-          )}
         </div>
       )}
 

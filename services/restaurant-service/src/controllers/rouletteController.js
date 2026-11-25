@@ -117,39 +117,41 @@ async function getConfigItems() {
 }
 
 /**
- * Controller: Quay thưởng Vòng quay ẩm thực
+ * Controller: Quay Hòm Món Ngon ("Hôm nay ăn gì?")
  * POST /api/v1/restaurants/roulette/spin
+ * Chỉ mang tính chất gợi ý vui vẻ — Không giới hạn lượt quay, không gắn Xu/ưu đãi.
  */
 exports.spinRoulette = async (req, res) => {
   try {
-    const userId = getAuthenticatedUserId(req);
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Vui lòng đăng nhập để tham gia vòng quay chọn món.'
-      });
-    }
+    const budget = (req.body?.budget || 'all').toLowerCase();
+    const vegetarianOnly = Boolean(req.body?.vegetarianOnly);
 
-    const { dateStr, resetAt, resetInSeconds } = getVietnamDateInfo();
-
-    // 1. Kiểm tra giới hạn 3 lượt quay / ngày
-    const existingLog = await RouletteSpinLog.findOne({ userId, dateStr });
-    if (existingLog && existingLog.count >= 3) {
-      return res.status(429).json({
-        success: false,
-        message: 'Bạn đã sử dụng hết 3/3 lượt quay hôm nay. Vui lòng quay lại vào ngày mai!',
-        spinsRemaining: 0,
-        maxSpins: 3,
-        resetAt,
-        resetInSeconds
-      });
-    }
-
-    // 2. Lấy danh sách config items (từ DB hoặc fallback tĩnh)
+    // 1. Lấy danh sách config items (từ DB hoặc fallback tĩnh)
     const configItems = await getConfigItems();
 
+    // 2. Áp dụng bộ lọc tùy chọn từ client (fallback về toàn bộ nếu rỗng)
+    let filtered = [...configItems];
+    if (vegetarianOnly) {
+      const vegList = filtered.filter((d) =>
+        /(chay|nấm|đậu|rau|healthy)/i.test(d.name || '') ||
+        /(chay|nấm|đậu|rau|healthy)/i.test(d.description || '')
+      );
+      if (vegList.length > 0) filtered = vegList;
+    }
+
+    if (budget === 'under_35k' || budget === 'under_40k') {
+      const list = filtered.filter((d) => d.rarity === 'COMMON');
+      if (list.length > 0) filtered = list;
+    } else if (budget === '35k_70k' || budget === '40k_70k') {
+      const list = filtered.filter((d) => d.rarity === 'RARE');
+      if (list.length > 0) filtered = list;
+    } else if (budget === 'above_70k') {
+      const list = filtered.filter((d) => d.rarity === 'LEGENDARY');
+      if (list.length > 0) filtered = list;
+    }
+
     // 3. Đảm bảo đủ 8 ô cho vòng quay
-    let items = [...configItems];
+    let items = [...filtered];
 
     // Shuffle ngẫu nhiên
     for (let i = items.length - 1; i > 0; i--) {
@@ -169,7 +171,7 @@ exports.spinRoulette = async (req, res) => {
       items = items.slice(0, 8);
     }
 
-    // 4. Chọn ngẫu nhiên 1 món thắng (winnerIndex từ 0 đến 7)
+    // 4. Chọn ngẫu nhiên 1 món gợi ý (winnerIndex từ 0 đến 7)
     const winnerIndex = Math.floor(Math.random() * items.length);
     const winnerItem = {
       name: items[winnerIndex].name,
@@ -179,118 +181,37 @@ exports.spinRoulette = async (req, res) => {
       rarity: items[winnerIndex].rarity || 'COMMON'
     };
 
-    // 5. Sinh mã phiên quay và lưu RouletteSession có hiệu lực 10 phút
-    const sessionId = `rsess_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
-
-    const session = await RouletteSession.create({
-      sessionId,
-      userId,
-      menuItemId: 'ANY',          // Không ràng buộc menuItemId cụ thể
-      menuItemName: winnerItem.name,
-      restaurantId: 'ANY',        // Không ràng buộc quán
-      restaurantName: '',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: false,
-      expiresAt
-    });
-
-    // 6. Ghi nhận lượt quay vào RouletteSpinLog (Atomic increment)
-    const spinRecord = {
-      spunAt: new Date(),
-      sessionId: session.sessionId,
-      menuItemId: 'ANY',
-      winnerIndex,
-      budget: (req.body?.budget || 'all').toLowerCase(),
-      mood: (req.body?.mood || 'all').toLowerCase()
-    };
-
-    let updatedLog;
-    if (!existingLog) {
-      updatedLog = await RouletteSpinLog.findOneAndUpdate(
-        { userId, dateStr },
-        {
-          $setOnInsert: { userId, dateStr },
-          $inc: { count: 1 },
-          $push: { spins: spinRecord }
-        },
-        { upsert: true, new: true }
-      );
-    } else {
-      updatedLog = await RouletteSpinLog.findOneAndUpdate(
-        { userId, dateStr, count: { $lt: 3 } },
-        {
-          $inc: { count: 1 },
-          $push: { spins: spinRecord }
-        },
-        { new: true }
-      );
-
-      // Nếu không update được do lượt quay đã chạm 3 trong race condition
-      if (!updatedLog) {
-        await RouletteSession.deleteOne({ sessionId });
-        return res.status(429).json({
-          success: false,
-          message: 'Bạn đã sử dụng hết 3/3 lượt quay hôm nay. Vui lòng quay lại vào ngày mai!',
-          spinsRemaining: 0,
-          maxSpins: 3,
-          resetAt,
-          resetInSeconds
-        });
-      }
-    }
-
-    const currentCount = updatedLog ? updatedLog.count : 1;
-    const spinsRemaining = Math.max(0, 3 - currentCount);
-
     return res.status(200).json({
       success: true,
       data: {
         items,
         winnerIndex,
         winnerItem,
-        sessionId: session.sessionId,
-        bonusType: 'DOUBLE_COINS',
-        expiresAt: session.expiresAt,
-        spinsRemaining
+        unlimited: true
       }
     });
   } catch (error) {
     console.error('[rouletteController] ❌ Lỗi spinRoulette:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi máy chủ khi quay thưởng: ' + error.message
+      message: 'Lỗi máy chủ khi mở hòm gợi ý món: ' + error.message
     });
   }
 };
 
 /**
- * Controller: Lấy trạng thái số lượt quay còn lại trong ngày
+ * Controller: Lấy trạng thái vòng quay (không giới hạn lượt)
  * GET /api/v1/restaurants/roulette/status
  */
 exports.getRouletteStatus = async (req, res) => {
   try {
-    const userId = getAuthenticatedUserId(req);
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Vui lòng đăng nhập để kiểm tra trạng thái lượt quay.'
-      });
-    }
-
-    const { dateStr, resetAt, resetInSeconds } = getVietnamDateInfo();
-    const log = await RouletteSpinLog.findOne({ userId, dateStr });
-    const spinsUsed = log ? log.count : 0;
-    const spinsRemaining = Math.max(0, 3 - spinsUsed);
-
     return res.status(200).json({
       success: true,
       data: {
-        spinsRemaining,
-        maxSpins: 3,
-        spinsUsed,
-        resetAt,
-        resetInSeconds
+        unlimited: true,
+        spinsRemaining: null,
+        maxSpins: null,
+        spinsUsed: 0
       }
     });
   } catch (error) {

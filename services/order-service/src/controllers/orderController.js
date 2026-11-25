@@ -185,24 +185,11 @@ async function creditUserCoins(userId, amount = 2000, reason = 'ROULETTE_DOUBLE_
 }
 
 /**
- * Tự động nhân đôi xu thưởng khi đơn hàng hoàn thành DELIVERED / COMPLETED
+ * Vòng quay gợi ý món hiện chỉ mang tính chất giải trí, không áp dụng x2 Xu vào đơn hàng.
+ * Hàm này luôn trả về false và giữ nguyên export để tương thích ngược nếu được gọi.
  */
-async function rewardRouletteCoinsIfEligible(order) {
-  if (!order || Number(order.coinBonusMultiplier) <= 1 || order.coinsRewarded) {
-    return false;
-  }
-  const coinsToReward = 2000;
-  try {
-    await creditUserCoins(order.customerId, coinsToReward, 'ROULETTE_DOUBLE_COINS', order._id);
-    order.coinsRewarded = true;
-    order.coinsRewardAmount = coinsToReward;
-    await order.save();
-    console.log(`[orderController] 🎁 Đã tặng x2 Xu (${coinsToReward} Xu) cho khách hàng ${order.customerId} từ đơn hàng ${order._id}`);
-    return true;
-  } catch (err) {
-    console.warn('[orderController] ⚠️ Lỗi thưởng xu roulette:', err.message);
-    return false;
-  }
+async function rewardRouletteCoinsIfEligible() {
+  return false;
 }
 
 exports.streamOrders = (req, res) => {
@@ -260,84 +247,10 @@ exports.createOrder = async (req, res) => {
       }
     }
 
-    // Xác thực ưu đãi phiên quay Roulette (Requirement R2)
-    let coinBonusMultiplier = 1;
-    let validatedRouletteSession = null;
-    let rouletteMenuItemId = null;
-    let rouletteMatchedItemName = null;
-
-    if (rouletteSessionId) {
-      const sessId = String(rouletteSessionId).trim();
-      const session = await fetchRouletteSession(sessId);
-
-      if (!session) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phiên quay thưởng không tồn tại.'
-        });
-      }
-
-      // Check 1: Thuộc đúng người dùng hiện tại
-      if (session.userId && String(session.userId) !== String(resolvedCustomerId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Phiên quay thưởng không thuộc về tài khoản này.'
-        });
-      }
-
-      // Check 2: Chưa từng sử dụng
-      if (session.isUsed) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phiên quay thưởng đã được sử dụng cho một đơn hàng khác.'
-        });
-      }
-
-      // Check 3: Chưa quá hạn (10 phút)
-      if (session.expiresAt && new Date(session.expiresAt).getTime() <= Date.now()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phiên quay thưởng đã hết hạn (quá thời hạn 10 phút).'
-        });
-      }
-
-      // Check 4: Giỏ hàng có chứa món tương tự hoặc đúng menuItemId đã trúng thưởng
-      const isAnyMenuItem = !session.menuItemId || session.menuItemId === 'ANY';
-      const winningName = session.menuItemName || session.menuItemId || 'Món trúng thưởng';
-
-      const matchedItem = items.find((it) => {
-        const itId = it.menuItemId || it._id || it.id;
-        // Trùng id
-        if (itId && session.menuItemId && String(itId) === String(session.menuItemId)) {
-          return true;
-        }
-        // Hoặc tên món tương tự
-        if (session.menuItemName && it.name && nameSimilarityMatch(session.menuItemName, it.name)) {
-          return true;
-        }
-        return false;
-      });
-
-      if (!matchedItem && !isAnyMenuItem) {
-        return res.status(400).json({
-          success: false,
-          message: `Giỏ hàng phải chứa món ăn trúng thưởng [${winningName}] (hoặc món có tên tương tự) trong vòng 10 phút để kích hoạt ưu đãi x2 Xu.`
-        });
-      }
-
-      // Check 5: Quán ăn: Chỉ kiểm tra nếu phiên chỉ định cụ thể một quán (khác ANY)
-      if (session.restaurantId && session.restaurantId !== 'ANY' && String(restaurantId) !== String(session.restaurantId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Quán ăn không khớp với món ăn trúng thưởng từ vòng quay.'
-        });
-      }
-
-      coinBonusMultiplier = 2;
-      validatedRouletteSession = session;
-      rouletteMenuItemId = matchedItem ? (matchedItem.menuItemId || matchedItem._id || matchedItem.id || 'ANY') : (session.menuItemId || 'ANY');
-      rouletteMatchedItemName = matchedItem ? matchedItem.name : session.menuItemName;
-    }
+    // Vòng quay gợi ý món chỉ mang tính giải trí — không áp dụng kiểm tra session hay thưởng x2 Xu vào đơn hàng
+    const coinBonusMultiplier = 1;
+    const validatedRouletteSession = null;
+    const rouletteMenuItemId = null;
 
     const grossItemsTotal = items.reduce(
       (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
@@ -383,7 +296,7 @@ exports.createOrder = async (req, res) => {
       storeVoucherDiscount: resolvedStoreDiscount,
       platformVoucherDiscount: resolvedPlatformDiscount,
       shippingFee: Math.max(0, Number(shippingFee) || 16000),
-      rouletteSessionId: validatedRouletteSession ? validatedRouletteSession.sessionId : null,
+      rouletteSessionId: null,
       coinBonusMultiplier,
       rouletteMenuItemId,
       coinsRewarded: false,
@@ -395,21 +308,7 @@ exports.createOrder = async (req, res) => {
 
     const savedOrder = await newOrder.save();
     emitOrderEvent('order.created', savedOrder);
-    console.log(`[orderController] 📝 Đã lưu đơn hàng vào MongoDB: ${savedOrder._id} (Phương thức: ${savedOrder.paymentMethod}, x2 Xu: ${coinBonusMultiplier > 1})`);
-
-    // Tiêu thụ phiên quay roulette ngay lập tức để chống replay attack
-    if (validatedRouletteSession) {
-      try {
-        await consumeRouletteSession(validatedRouletteSession.sessionId, {
-          orderId: savedOrder._id,
-          userId: resolvedCustomerId,
-          menuItemId: validatedRouletteSession.menuItemId,
-          orderItemName: rouletteMatchedItemName || validatedRouletteSession.menuItemName
-        });
-      } catch (consumeErr) {
-        console.warn('[orderController] ⚠️ Lỗi tiêu thụ session quay roulette:', consumeErr.message);
-      }
-    }
+    console.log(`[orderController] 📝 Đã lưu đơn hàng vào MongoDB: ${savedOrder._id} (Phương thức: ${savedOrder.paymentMethod})`);
 
     // Bắn event 'order.created' qua RabbitMQ Topic Exchange
     const eventPayload = {

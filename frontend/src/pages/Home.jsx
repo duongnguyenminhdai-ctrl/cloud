@@ -1097,7 +1097,7 @@ export default function Home() {
         </div>
 
         {/* ===================================================================== */}
-        {/* 1.5. BANNER / QUICK CARD: HÔM NAY ĂN GÌ? (Vòng quay chọn món nhận x2 Xu - Milestone 3) */}
+        {/* 1.5. BANNER / QUICK CARD: HÔM NAY ĂN GÌ? (Hòm gợi ý món ăn vui vẻ) */}
         {/* ===================================================================== */}
         <div
           onClick={() => window.dispatchEvent(new CustomEvent('open_food_roulette'))}
@@ -1113,14 +1113,14 @@ export default function Home() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base sm:text-lg font-black text-[#1e1b18] dark:text-[#f4efe6]">
-                    Hôm Nay Ăn Gì? — Vòng Quay Chọn Món
+                    Hôm Nay Ăn Gì? — Hòm Gợi Ý Món Ngon
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-[#EE4D2D] text-white text-[11px] font-extrabold uppercase shadow-sm">
-                    Nhận x2 Xu
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[#EE4D2D] dark:text-amber-300 text-[11px] font-extrabold uppercase border border-[#EE4D2D]/30">
+                    Quay thả ga
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
-                  Không biết ăn gì trưa nay? Quay ngay 8 món gợi ý thông minh & chốt đơn trong 5 phút để nhân đôi Xu tích lũy!
+                  Đau đầu vì không biết ăn gì hôm nay? Mở ngay hòm món ngon ngẫu nhiên để tìm cảm hứng cho bữa ăn của bạn — hoàn toàn miễn phí & không giới hạn lượt!
                 </p>
               </div>
             </div>

@@ -64,7 +64,6 @@ jest.mock('../src/models/Order', () => {
   return MockOrder;
 });
 
-// Helper sinh JWT Token hợp lệ
 function createAuthToken(userId, role = 'USER') {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const body = Buffer.from(
@@ -86,81 +85,17 @@ const { publishEvent, DEFAULT_EXCHANGE } = require('../src/rabbitmq');
 const Order = require('../src/models/Order');
 const app = require('../app');
 
-describe('Roulette Order Verification & Double Coins (Requirement R2) - Unit & Integration Tests', () => {
-  const testUserId = 'cust_roulette_user_001';
-  const otherUserId = 'cust_roulette_user_999';
+describe('Order Creation & Roulette Removal Verification', () => {
+  const testUserId = 'cust_order_user_001';
   const validToken = createAuthToken(testUserId);
-
-  let mockSessions;
-  let creditedCoinsLog;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockOrders = [];
-    creditedCoinsLog = [];
-    mockSessions = new Map();
-
-    // Thiết lập Mock global.fetch cho inter-service communication
-    global.fetch = jest.fn().mockImplementation(async (url, options = {}) => {
-      const urlStr = String(url);
-
-      // Tiêu thụ session: POST /api/v1/restaurants/roulette/session/:sessionId/consume
-      if (urlStr.includes('/consume')) {
-        const sessId = urlStr.split('/session/')[1]?.split('/consume')[0];
-        const session = mockSessions.get(sessId);
-        if (session) {
-          session.isUsed = true;
-          session.usedAt = new Date();
-        }
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ success: true, message: 'Session consumed' })
-        };
-      }
-
-      // Tra cứu session: GET /api/v1/restaurants/roulette/session/:sessionId
-      if (urlStr.includes('/api/v1/restaurants/roulette/session/')) {
-        const parts = urlStr.split('/session/');
-        const sessId = parts[1]?.split('?')[0];
-        const session = mockSessions.get(sessId);
-        if (!session) {
-          return {
-            ok: false,
-            status: 404,
-            json: async () => ({ success: false, message: 'Session not found' })
-          };
-        }
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ success: true, data: { ...session } })
-        };
-      }
-
-      // Cộng xu Auth Service: POST /api/v1/auth/coins/reward
-      if (urlStr.includes('/api/v1/auth/coins/reward')) {
-        const body = JSON.parse(options.body || '{}');
-        creditedCoinsLog.push(body);
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ success: true, coins: body.amount || 2000 })
-        };
-      }
-
-      return {
-        ok: false,
-        status: 404,
-        json: async () => ({ success: false })
-      };
-    });
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
   });
 
-  // ---------------------------------------------------------------------------
-  // Test 1: Tạo đơn bình thường (không có rouletteSessionId)
-  // ---------------------------------------------------------------------------
-  it('Test 1: Tạo đơn không kèm rouletteSessionId -> coinBonusMultiplier = 1, không cộng xu thêm', async () => {
+  it('Test 1: Tạo đơn hàng bình thường luôn có coinBonusMultiplier = 1 và không ràng buộc roulette', async () => {
     const payload = {
       restaurantId: 'rest_001',
       items: [{ menuItemId: 'item_normal_1', name: 'Cơm sườn', price: 45000, quantity: 1 }],
@@ -179,31 +114,12 @@ describe('Roulette Order Verification & Double Coins (Requirement R2) - Unit & I
     expect(res.body.data.coinsRewarded).toBe(false);
   });
 
-  // ---------------------------------------------------------------------------
-  // Test 2: Tạo đơn với rouletteSessionId hợp lệ & có món trúng thưởng trong giỏ
-  // ---------------------------------------------------------------------------
-  it('Test 2: Tạo đơn với rouletteSessionId hợp lệ -> coinBonusMultiplier = 2 và kích hoạt tiêu thụ session', async () => {
-    const validSessionId = 'rsess_valid_12345';
-    mockSessions.set(validSessionId, {
-      sessionId: validSessionId,
-      userId: testUserId,
-      menuItemId: 'dish_roulette_winner',
-      menuItemName: 'Trà Đào Cam Sả',
-      restaurantId: 'rest_001',
-      restaurantName: 'Quán Nước FoodFast',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: false,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    });
-
+  it('Test 2: Kể cả client cũ gửi kèm rouletteSessionId cũng không chặn đơn và không kích hoạt x2 Xu', async () => {
     const payload = {
       restaurantId: 'rest_001',
-      rouletteSessionId: validSessionId,
-      items: [
-        { menuItemId: 'dish_roulette_winner', name: 'Trà Đào Cam Sả', price: 35000, quantity: 1 },
-        { menuItemId: 'dish_extra_1', name: 'Bánh flan', price: 15000, quantity: 1 }
-      ],
-      totalPrice: 66000
+      rouletteSessionId: 'rsess_legacy_ignored',
+      items: [{ menuItemId: 'dish_1', name: 'Phở bò', price: 55000, quantity: 1 }],
+      totalPrice: 71000
     };
 
     const res = await request(app)
@@ -213,194 +129,24 @@ describe('Roulette Order Verification & Double Coins (Requirement R2) - Unit & I
 
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.coinBonusMultiplier).toBe(2);
-    expect(res.body.data.rouletteSessionId).toBe(validSessionId);
-    expect(res.body.data.rouletteMenuItemId).toBe('dish_roulette_winner');
-
-    // Kiểm tra session đã được gọi consume
-    const sessionInDb = mockSessions.get(validSessionId);
-    expect(sessionInDb.isUsed).toBe(true);
-
-    // RabbitMQ event phát sinh mang cờ coinBonusMultiplier: 2
-    expect(publishEvent).toHaveBeenCalledWith(
-      DEFAULT_EXCHANGE,
-      'order.created',
-      expect.objectContaining({
-        coinBonusMultiplier: 2,
-        rouletteSessionId: validSessionId
-      })
-    );
+    expect(res.body.data.coinBonusMultiplier).toBe(1);
+    expect(res.body.data.rouletteSessionId).toBeNull();
   });
 
-  // ---------------------------------------------------------------------------
-  // Test 3: Từ chối phiên quay thưởng không tồn tại (HTTP 400)
-  // ---------------------------------------------------------------------------
-  it('Test 3: Từ chối phiên quay thưởng không tồn tại với HTTP 400', async () => {
-    const payload = {
-      restaurantId: 'rest_001',
-      rouletteSessionId: 'rsess_non_existent_999',
-      items: [{ menuItemId: 'dish_1', name: 'Món ăn', price: 40000, quantity: 1 }]
-    };
-
-    const res = await request(app)
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send(payload);
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/phiên quay thưởng không tồn tại/i);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Test 4: Từ chối phiên quay thưởng thuộc về tài khoản khác (HTTP 403)
-  // ---------------------------------------------------------------------------
-  it('Test 4: Từ chối phiên quay thưởng của tài khoản khác với HTTP 403', async () => {
-    const stolenSessionId = 'rsess_stolen_001';
-    mockSessions.set(stolenSessionId, {
-      sessionId: stolenSessionId,
-      userId: otherUserId, // Thuộc về user khác
-      menuItemId: 'dish_winner',
-      menuItemName: 'Món trúng thưởng',
-      restaurantId: 'rest_001',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: false,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    });
-
-    const payload = {
-      restaurantId: 'rest_001',
-      rouletteSessionId: stolenSessionId,
-      items: [{ menuItemId: 'dish_winner', name: 'Món trúng thưởng', price: 40000, quantity: 1 }]
-    };
-
-    const res = await request(app)
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send(payload);
-
-    expect(res.statusCode).toBe(403);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/không thuộc về tài khoản này/i);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Test 5: Từ chối phiên quay thưởng đã hết hạn (> 5 phút) (HTTP 400)
-  // ---------------------------------------------------------------------------
-  it('Test 5: Từ chối phiên quay thưởng đã quá hạn 5 phút với HTTP 400', async () => {
-    const expiredSessionId = 'rsess_expired_001';
-    mockSessions.set(expiredSessionId, {
-      sessionId: expiredSessionId,
-      userId: testUserId,
-      menuItemId: 'dish_winner',
-      menuItemName: 'Món trúng thưởng',
-      restaurantId: 'rest_001',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: false,
-      expiresAt: new Date(Date.now() - 30 * 1000).toISOString() // Đã hết hạn 30s trước
-    });
-
-    const payload = {
-      restaurantId: 'rest_001',
-      rouletteSessionId: expiredSessionId,
-      items: [{ menuItemId: 'dish_winner', name: 'Món trúng thưởng', price: 40000, quantity: 1 }]
-    };
-
-    const res = await request(app)
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send(payload);
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/hết hạn/i);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Test 6: Từ chối phiên quay thưởng đã được sử dụng (isUsed: true)
-  // ---------------------------------------------------------------------------
-  it('Test 6: Từ chối phiên quay thưởng đã được sử dụng trước đó với HTTP 400', async () => {
-    const usedSessionId = 'rsess_already_used_001';
-    mockSessions.set(usedSessionId, {
-      sessionId: usedSessionId,
-      userId: testUserId,
-      menuItemId: 'dish_winner',
-      menuItemName: 'Món trúng thưởng',
-      restaurantId: 'rest_001',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: true, // Đã sử dụng
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    });
-
-    const payload = {
-      restaurantId: 'rest_001',
-      rouletteSessionId: usedSessionId,
-      items: [{ menuItemId: 'dish_winner', name: 'Món trúng thưởng', price: 40000, quantity: 1 }]
-    };
-
-    const res = await request(app)
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send(payload);
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/đã được sử dụng/i);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Test 7: Từ chối khi giỏ hàng thiếu món ăn trúng thưởng
-  // ---------------------------------------------------------------------------
-  it('Test 7: Từ chối khi giỏ hàng không chứa đúng menuItemId đã trúng thưởng', async () => {
-    const validSessionId = 'rsess_item_mismatch_001';
-    mockSessions.set(validSessionId, {
-      sessionId: validSessionId,
-      userId: testUserId,
-      menuItemId: 'dish_special_winner',
-      menuItemName: 'Món Trúng Thưởng Đặc Biệt',
-      restaurantId: 'rest_001',
-      bonusType: 'DOUBLE_COINS',
-      isUsed: false,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    });
-
-    // Giỏ hàng chỉ có món khác
-    const payload = {
-      restaurantId: 'rest_001',
-      rouletteSessionId: validSessionId,
-      items: [{ menuItemId: 'dish_other_random', name: 'Món không trúng thưởng', price: 40000, quantity: 1 }]
-    };
-
-    const res = await request(app)
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send(payload);
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/chứa món ăn trúng thưởng/i);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Test 8: Tự động cộng 2.000 Xu FoodFast khi đơn hàng hoàn tất DELIVERED
-  // ---------------------------------------------------------------------------
-  it('Test 8: Khi đơn hàng x2 Xu chuyển sang DELIVERED -> thưởng 2.000 Xu cho tài khoản', async () => {
+  it('Test 3: Khi đơn hàng chuyển sang DELIVERED không tự cộng 2.000 Xu từ vòng quay nữa', async () => {
     const driverToken = createAuthToken('driver_partner_001', 'DRIVER');
 
-    // Tạo đơn hàng x2 xu có sẵn trong DB
     const order = new Order({
       customerId: testUserId,
       restaurantId: 'rest_001',
-      items: [{ menuItemId: 'dish_winner', name: 'Món trúng thưởng', price: 50000, quantity: 1 }],
+      items: [{ menuItemId: 'dish_1', name: 'Bún bò', price: 50000, quantity: 1 }],
       totalPrice: 66000,
       coinBonusMultiplier: 2,
-      rouletteSessionId: 'rsess_delivered_test',
       status: 'DELIVERING',
       coinsRewarded: false
     });
     await order.save();
 
-    // Cập nhật trạng thái sang DELIVERED bởi tài xế
     const res = await request(app)
       .put(`/api/v1/orders/${order._id}/status`)
       .set('Authorization', `Bearer ${driverToken}`)
@@ -410,31 +156,16 @@ describe('Roulette Order Verification & Double Coins (Requirement R2) - Unit & I
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe('DELIVERED');
 
-    // Kiểm tra order được cập nhật coinsRewarded = true và amount = 2000
     const updatedOrder = await Order.findById(order._id);
-    expect(updatedOrder.coinsRewarded).toBe(true);
-    expect(updatedOrder.coinsRewardAmount).toBe(2000);
-
-    // Kiểm tra API Auth Service được gọi để cộng 2.000 Xu
-    expect(creditedCoinsLog).toHaveLength(1);
-    expect(creditedCoinsLog[0]).toEqual(
-      expect.objectContaining({
-        userId: testUserId,
-        amount: 2000,
-        reason: 'ROULETTE_DOUBLE_COINS',
-        orderId: String(order._id)
-      })
-    );
-
-    // Kiểm tra RabbitMQ bắn event order.completed với thông tin x2 Xu
+    expect(updatedOrder.coinsRewarded).toBe(false);
+    expect(updatedOrder.coinsRewardAmount).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/api/v1/auth/coins/reward'), expect.anything());
     expect(publishEvent).toHaveBeenCalledWith(
       DEFAULT_EXCHANGE,
       'order.completed',
       expect.objectContaining({
         orderId: String(order._id),
-        status: 'DELIVERED',
-        coinBonusMultiplier: 2,
-        rewardCoins: 2000
+        status: 'DELIVERED'
       })
     );
   });
